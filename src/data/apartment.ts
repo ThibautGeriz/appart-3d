@@ -290,9 +290,9 @@ export const APARTMENT_DEF: ApartmentDef = {
   ],
 
   furniture: [
-    // Kitchen: the whole west wall of the séjour (0 → 4.42 m). Sage green
-    // 60 cm base units, black worktop, oven under the hob, oak wall cabinets
-    // with black open shelves, dark 60 × 60 floor tiles.
+    // Kitchen: the whole west wall of the séjour (0 → 4.42 m), no fridge.
+    // Sage green 60 cm base units, black worktop, oven under the hob, oak
+    // wall cabinets with black open shelves, dark 60 × 60 floor tiles.
     {
       name: "Carrelage cuisine",
       rect: [0, 0, 1.5, 4.42],
@@ -303,16 +303,8 @@ export const APARTMENT_DEF: ApartmentDef = {
     },
     { name: "Plinthe", rect: [0, 0, 0.56, 4.42], h: 0.1, color: "#1f2420" },
     {
-      name: "Colonne frigo",
-      rect: [0, 0, 0.62, 0.6],
-      y: 0.1,
-      h: 2.0,
-      color: KITCHEN_GREEN,
-      finish: "cabinetTall",
-    },
-    {
       name: "Meubles bas",
-      rect: [0, 0.6, 0.6, 4.42],
+      rect: [0, 0, 0.6, 4.42],
       y: 0.1,
       h: 0.76,
       color: KITCHEN_GREEN,
@@ -320,7 +312,7 @@ export const APARTMENT_DEF: ApartmentDef = {
     },
     {
       name: "Plan de travail",
-      rect: [0, 0.6, 0.64, 4.42],
+      rect: [0, 0, 0.64, 4.42],
       y: 0.86,
       h: 0.04,
       color: "#3a3a3a",
