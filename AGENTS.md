@@ -1,0 +1,103 @@
+# AGENTS.md
+
+Guidance for AI coding agents working in this repository.
+
+## Project Goal
+
+A web app that renders the user's future apartment in 3D and lets them walk
+through it like in a first-person video game. It must work equally well on
+desktop (keyboard + mouse) and mobile (touch).
+
+Think "apartment walkthrough simulator", not "architectural viewer": the
+core experience is moving around inside the home.
+
+## Tech Stack (do not change without asking)
+
+- **Three.js** for 3D rendering (raw `three`, no heavy wrappers)
+- **TypeScript**, strict mode
+- **Vite** for dev server and builds
+- **Vanilla DOM/UI** — no React/Vue; the UI is a thin HUD layer over the canvas
+- Apartment geometry defined in **data files (JSON or TS modules)**, never
+  hardcoded in render logic, so the layout can be edited independently
+
+## Architecture
+
+```
+src/
+  main.ts          # bootstrap: renderer, scene, camera, loop
+  apartment/       # load apartment data, build meshes (walls, floors, doors, furniture)
+  player/          # first-person controller: walking, collision, camera
+  controls/        # input: keyboard+mouse (desktop), touch (mobile)
+  ui/              # HUD overlays (joysticks, buttons, help)
+  data/            # apartment layout: rooms, walls, openings, furniture
+```
+
+Key rules:
+
+- **Rendering is data-driven**: `src/apartment/` reads layout data from
+  `src/data/` and produces meshes. Adding/moving a wall should be a data
+  edit, not a code edit.
+- **Player physics is decoupled from input**: the controller exposes
+  "move forward/back/strafe, look yaw/pitch, run"; the input layer only
+  produces those intents. This keeps desktop and mobile identical.
+- **Collision**: use simple AABB/box colliders derived from the wall data
+  (no full physics engine unless the need is proven). The player is a
+  vertical capsule/cylinder; sliding along walls must work smoothly.
+- Eye height ~1.6m; realistic scale (rooms in meters).
+
+## Input Requirements (core feature — treat as spec)
+
+Desktop:
+
+- **WASD / ZQSD-aware**: detect keyboard layout so French AZERTY keyboards
+  work natively (prefer `event.code` `KeyW/KeyA/...` over `key` characters).
+- Mouse look via Pointer Lock (click canvas to capture, ESC to release).
+- Shift = run, Space handled later (jump is optional; do not block on it).
+
+Mobile (touch):
+
+- **Left virtual joystick** = move, **right side drag** = look.
+- On-screen Run button.
+- Must work with the canvas fullscreened; handle `visualViewport` and
+  `100dvh` correctly (not `100vh`).
+- Pointer events (`pointerdown/move/up`) uniformly; never assume mouse-only.
+
+## Performance Budget (mobile is the target device, not an afterthought)
+
+- Target 60fps on a mid-range phone; hard floor 30fps.
+- Desktop default: antialiasing on; mobile: off (detect via touch/coarse pointer + device memory).
+- Reuse geometries and materials; merge static apartment meshes.
+- Use `MeshStandardMaterial` sparingly on mobile; simple lambert-style
+  materials are fine.
+- One directional light + one ambient/hemisphere light max. No real-time
+  shadows on mobile.
+- Texture resolution capped (1024px max is fine for apartment scale).
+
+## Commands
+
+```bash
+npm install
+npm run dev        # Vite dev server (test on a real phone via LAN URL)
+npm run build      # production build
+npm run preview    # serve the build
+npm test           # unit tests (Vitest) — must pass before any commit
+```
+
+## Conventions
+
+- TypeScript strict; no `any` unless unavoidable (and comment why).
+- Keep `main.ts` under ~100 lines; the game loop calls into modules.
+- No server component: the app is fully static after build (can be hosted
+  on GitHub Pages). Apartment data ships with the app.
+- French labels in the UI are acceptable (user is French); code identifiers
+  in English.
+
+## Testing Expectations
+
+- Unit-test pure logic: layout parsing, collider generation, input mapping
+  (code→intent), player movement math.
+- Manual test checklist before considering a feature done:
+  - desktop: WASD + AZERTY + mouse look + pointer lock + run
+  - mobile: both joysticks, no scroll/zoom hijack, correct fullscreen height,
+    playable framerate
+  - collision: cannot walk through walls; smooth sliding in corridors
