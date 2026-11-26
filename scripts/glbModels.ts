@@ -8,6 +8,8 @@ import { mannequin, PROP_BUILDERS } from "../src/models";
 import { CATALOG } from "../src/data/catalog";
 import { CHAIR_BUILDERS } from "../src/models/furniture/chairs";
 import { TABLE_BUILDERS } from "../src/models/furniture/tables";
+import { SOFA_BUILDERS } from "../src/models/furniture/sofa";
+import { SIDEBOARD_BUILDERS } from "../src/models/furniture/sideboards";
 import { PHOTO_TEXTURES } from "../src/models/furniture/materials";
 
 export interface ModelEntry {
@@ -28,7 +30,7 @@ export interface TextureFiles {
 
 /** The furniture scans: <scan>_diff / _nor / _rough.jpg (the oak colour map is shared). */
 const FURNITURE_TEXTURES: Record<string, TextureFiles> = Object.fromEntries(
-  Object.entries(PHOTO_TEXTURES).map(([material, { scan, flat }]) => {
+  Object.entries(PHOTO_TEXTURES).map(([material, { scan, flat, noRoughness }]) => {
     const dir = "src/assets/textures/furniture";
     const base =
       scan === "oak_veneer_01"
@@ -36,12 +38,19 @@ const FURNITURE_TEXTURES: Record<string, TextureFiles> = Object.fromEntries(
         : `${dir}/${scan}_diff.jpg`;
     const maps = flat
       ? {}
-      : { normal: `${dir}/${scan}_nor.jpg`, roughness: `${dir}/${scan}_rough.jpg` };
+      : noRoughness
+        ? { normal: `${dir}/${scan}_nor.jpg` }
+        : { normal: `${dir}/${scan}_nor.jpg`, roughness: `${dir}/${scan}_rough.jpg` };
     return [material, { base, ...maps }];
   }),
 );
 
-const FURNITURE_BUILDERS = { ...CHAIR_BUILDERS, ...TABLE_BUILDERS };
+const FURNITURE_BUILDERS = {
+  ...CHAIR_BUILDERS,
+  ...TABLE_BUILDERS,
+  ...SOFA_BUILDERS,
+  ...SIDEBOARD_BUILDERS,
+};
 
 /** Build a prop at the size the layout data gives it (first item using it). */
 function prop(model: PropModel): THREE.Object3D {

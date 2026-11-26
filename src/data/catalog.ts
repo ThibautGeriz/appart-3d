@@ -7,7 +7,7 @@
  * +z), h (height).
  */
 
-export type ProductKind = "table" | "chair" | "coffeeTable";
+export type ProductKind = "table" | "chair" | "coffeeTable" | "sofa" | "sideboard" | "tvUnit";
 
 export interface Product {
   id: string;
@@ -23,6 +23,13 @@ export interface Product {
   seatHeight?: number;
   /** materials as listed by the seller */
   materials: string;
+  /** sofas: depth of one section (a corner sofa is deeper overall) */
+  sofa?: { depth: number };
+  /**
+   * footprint as several rectangles [x0, z0, x1, z1] in the model's frame
+   * (origin at its centre), when it is not a plain rectangle (corner sofa)
+   */
+  parts?: [number, number, number, number][];
   /** unit price in euros (seller's page, November 2026); 0 when the seller gives none */
   price: number;
 }
@@ -157,6 +164,86 @@ export const CATALOG: Product[] = [
     h: 0.4,
     materials: "Métal, plateaux bois de bateau recyclé",
     price: 329,
+  },
+  // ── Sideboards ──────────────────────────────────────────────────────────
+  {
+    id: "sideboard-norway",
+    kind: "sideboard",
+    name: "Norway",
+    url: `${SHOP}/bahut-norway-2/`,
+    w: 1.5,
+    d: 0.5,
+    h: 0.88,
+    materials: "Chêne massif huilé, 3 portes, 3 tiroirs, poignées métal",
+    price: 795,
+  },
+  {
+    id: "sideboard-biwa",
+    kind: "sideboard",
+    name: "Biwa",
+    url: `${SHOP}/bahut-biwa-2-portes-3-tiroirs/`,
+    w: 1.6,
+    d: 0.48,
+    h: 0.85,
+    materials: "Pin recyclé, 2 portes, 3 tiroirs, 2 étagères",
+    price: 489,
+  },
+  // ── TV units ────────────────────────────────────────────────────────────
+  {
+    id: "tv-norway",
+    kind: "tvUnit",
+    name: "Norway",
+    url: `${SHOP}/meuble-tv-norway-grand/`,
+    w: 1.5,
+    d: 0.5,
+    h: 0.6,
+    materials: "Chêne massif huilé, 3 tiroirs, 1 niche, poignées métal",
+    price: 549,
+  },
+  {
+    id: "tv-biwa",
+    kind: "tvUnit",
+    name: "Biwa",
+    url: `${SHOP}/meuble-tv-biwa/`,
+    w: 1.5,
+    d: 0.39,
+    h: 0.67,
+    materials: "Pin recyclé, 2 portes, 2 niches, 1 tiroir",
+    price: 359,
+  },
+  // ── Sofas (Mobilier de France ROMA, 3D mesh fabric, 104 cm seat depth) ──
+  {
+    id: "sofa-roma-corner",
+    kind: "sofa",
+    name: "Roma d'angle 312 × 197",
+    url: "https://www.mobilierdefrance.com/canapes-droits/canape-roma",
+    w: 3.12,
+    d: 1.97,
+    h: 1.02,
+    seatHeight: 0.44,
+    sofa: { depth: 1.04 },
+    // long side along the back, return on the left coming forward
+    parts: [
+      [-1.56, -0.985, 1.56, 0.055],
+      [-1.56, 0.055, -0.52, 0.985],
+    ],
+    materials:
+      "Tissu maillage 3D, dossiers avance-recule, accoudoirs relevables, pieds fer titanio",
+    price: 6780,
+  },
+  {
+    id: "sofa-roma-210",
+    kind: "sofa",
+    name: "Roma 210",
+    url: "https://www.mobilierdefrance.com/canapes-droits/canape-roma",
+    w: 2.1,
+    d: 1.04,
+    h: 1.02,
+    seatHeight: 0.44,
+    sofa: { depth: 1.04 },
+    materials:
+      "Tissu maillage 3D, dossiers avance-recule, accoudoirs relevables, pieds fer titanio",
+    price: 3386.46,
   },
 ];
 

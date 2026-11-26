@@ -4,9 +4,11 @@ import type { Furniture } from "../apartment/furniture";
 import { budget, formatEuros } from "../apartment/furnishing";
 
 const SECTIONS: { kind: ProductKind; title: string }[] = [
+  { kind: "sofa", title: "Canapé (et son aménagement)" },
+  { kind: "coffeeTable", title: "Table basse" },
   { kind: "table", title: "Table" },
   { kind: "chair", title: "Chaises" },
-  { kind: "coffeeTable", title: "Table basse" },
+  { kind: "sideboard", title: "Bahut" },
 ];
 
 const cm = (m: number) => Math.round(m * 100);
@@ -106,6 +108,7 @@ export function createFurniturePanel(
       options.set(p.id, option);
     }
     section.appendChild(list);
+    if (kind === "sofa") section.appendChild(colorPicker(furniture));
     pages.meubles.appendChild(section);
   }
   const refreshOptions = () => {
@@ -167,6 +170,60 @@ export function createFurniturePanel(
   container.append(button, panel);
 }
 
+/** Fabric colours offered for the sofa (the shop has 200+; any can be picked). */
+export const SOFA_COLORS: { name: string; hex: string }[] = [
+  { name: "Moutarde", hex: "#c9971c" },
+  { name: "Terracotta", hex: "#b4553a" },
+  { name: "Vert sauge", hex: "#8a9a7b" },
+  { name: "Bleu canard", hex: "#1f5f6b" },
+  { name: "Bleu nuit", hex: "#233250" },
+  { name: "Beige lin", hex: "#d8ccb6" },
+  { name: "Gris perle", hex: "#b9b7b2" },
+  { name: "Anthracite", hex: "#45464a" },
+];
+
+/** Swatches + a free colour input, tinting the sofa fabric live. */
+function colorPicker(furniture: Furniture): HTMLElement {
+  const row = el("div", "fp-colors");
+  row.appendChild(el("span", "fp-size", "Couleur"));
+  const swatches: HTMLButtonElement[] = [];
+  const custom = el("input", "fp-color-input");
+  custom.type = "color";
+  custom.title = "Autre couleur";
+  const refresh = () => {
+    for (const s of swatches) s.classList.toggle("active", s.dataset.hex === furniture.sofaColor);
+    custom.value = furniture.sofaColor;
+  };
+  for (const { name, hex } of SOFA_COLORS) {
+    const swatch = el("button", "fp-swatch");
+    swatch.type = "button";
+    swatch.title = name;
+    swatch.setAttribute("aria-label", name);
+    swatch.dataset.hex = hex;
+    swatch.style.background = hex;
+    swatch.addEventListener("click", () => {
+      furniture.setSofaColor(hex);
+      refresh();
+    });
+    swatches.push(swatch);
+    row.appendChild(swatch);
+  }
+  custom.addEventListener("input", () => {
+    furniture.setSofaColor(custom.value);
+    refresh();
+  });
+  row.appendChild(custom);
+  refresh();
+  return row;
+}
+
 function kindLabel(kind: ProductKind): string {
-  return { table: "table", chair: "chaise", coffeeTable: "table basse" }[kind];
+  return {
+    table: "table",
+    chair: "chaise",
+    coffeeTable: "table basse",
+    sofa: "canapé",
+    sideboard: "bahut",
+    tvUnit: "meuble TV",
+  }[kind];
 }

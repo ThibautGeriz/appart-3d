@@ -15,6 +15,8 @@ export interface PhotoTexture {
   grain: "u" | "v";
   /** colour map only (no normal / roughness scans) */
   flat?: boolean;
+  /** colour + normal maps, no roughness map */
+  noRoughness?: boolean;
 }
 
 function textured(name: string, color: string, roughness = 1): THREE.MeshStandardMaterial {
@@ -33,6 +35,8 @@ export const oiledOak = textured("oiled oak", "#f2d6ac", 0.9);
 export const recycledElm = textured("recycled elm", "#c99366", 1);
 /** Mackay: light solid elm. */
 export const lightElm = textured("light elm", "#f3dcc2", 0.9);
+/** Biwa sideboard: recycled pine, warm and worn. */
+export const recycledPine = textured("recycled pine", "#c88d5c", 0.95);
 /** Westmount: rough sawn fir. */
 export const fir = textured("fir", "#d8a06a", 1);
 /** Norway: brown microfibre, suede look. */
@@ -40,6 +44,20 @@ export const microfibre = textured("microfibre", "#a07658", 1);
 
 /** Kitchen sink: Fragranite "gris ardoise", matte speckled granite composite. */
 export const fragranite = textured("fragranite", "#6c7074", 0.62);
+
+/**
+ * Roma sofa: 3D mesh fabric ("maillage 3D"). White: the app tints it with the
+ * colour picked in the toolbar (the map only carries the weave's light/dark).
+ */
+export const romaFabric = textured("roma fabric", "#ffffff", 0.92);
+
+/** Roma legs: painted iron, "titanio" (dark titanium grey). */
+export const titanio = new THREE.MeshStandardMaterial({
+  name: "titanio",
+  color: "#3b3d40",
+  metalness: 0.75,
+  roughness: 0.42,
+});
 
 /** Photo scan behind each textured material (by material name). */
 export const PHOTO_TEXTURES: Record<string, PhotoTexture> = {
@@ -51,9 +69,12 @@ export const PHOTO_TEXTURES: Record<string, PhotoTexture> = {
   [recycledElm.name]: { scan: "brown_planks_08", size: 1, grain: "u" },
   [lightElm.name]: { scan: "ash_veneer", size: 1, grain: "u" },
   [fir.name]: { scan: "brown_planks_09", size: 1, grain: "u" },
+  [recycledPine.name]: { scan: "brown_planks_08", size: 0.8, grain: "u" },
   [microfibre.name]: { scan: "fabric_leather_01", size: 0.4, grain: "u" },
   // generated speckle (quartz grains in a dark matrix), not a scan
   [fragranite.name]: { scan: "fragranite", size: 0.25, grain: "u", flat: true },
+  // generated weave (scripts/gen-roma-mesh.py): ~3 mm between holes
+  [romaFabric.name]: { scan: "roma_mesh", size: 0.05, grain: "u", noRoughness: true },
 };
 
 /** Aged (vieilli) iron: dark brown-black with a soft sheen. */
