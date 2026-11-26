@@ -32,11 +32,25 @@ export interface WallDef {
   openings?: OpeningDef[];
 }
 
+/** Procedural surface texture (see src/apartment/textures.ts), tinted by the color. */
+export type Finish =
+  | "plaster"
+  | "parquet"
+  | "tile30"
+  | "tile60"
+  | "oak"
+  | "cabinet"
+  | "cabinetTall"
+  | "stone"
+  | "grass"
+  | "facade";
+
 export interface AreaDef {
   /** room name; unlabeled areas still get floor/ceiling */
   label?: string;
   rect: Rect;
   floorColor: string;
+  floorFinish?: Finish;
   /** lowered ceiling height (HSFP), defaults to the wall height */
   ceiling?: number;
   /** no ceiling (balcony) */
@@ -49,6 +63,8 @@ export interface FurnitureDef {
   /** height */
   h: number;
   color: string;
+  /** texture, aligned on the item's own corner (cabinet doors line up) */
+  finish?: Finish;
   /** elevation of the bottom face (default 0) */
   y?: number;
   /** blocks the player (default true) */
@@ -68,7 +84,9 @@ export interface ApartmentDef {
   site: SiteDef;
   wallHeight: number;
   wallColor: string;
+  wallFinish: Finish;
   ceilingColor: string;
+  ceilingFinish: Finish;
   glassColor: string;
   frameColor: string;
   walls: WallDef[];
@@ -108,7 +126,9 @@ export const APARTMENT_DEF: ApartmentDef = {
   site: { latitude: 45.9, longitude: 6.13, northAngleDeg: 25, floorElevation: 12 },
   wallHeight: 2.5,
   wallColor: "#e8e4dc",
+  wallFinish: "plaster",
   ceilingColor: "#f5f5f0",
+  ceilingFinish: "plaster",
   glassColor: "#e6f4fb",
   frameColor: "#1c1c1c",
 
@@ -210,45 +230,126 @@ export const APARTMENT_DEF: ApartmentDef = {
   ],
 
   areas: [
-    { label: "Séjour / Cuisine", rect: [0, 0, 7.45, 3.8], floorColor: WOOD },
-    { rect: [0, 3.8, 3.78, 4.47], floorColor: WOOD, ceiling: 2.15 },
-    { label: "Balcon", rect: [7.73, -0.15, 9.75, 3.5], floorColor: OUTDOOR, outdoor: true },
-    { label: "Cellier", rect: [0.45, 4.47, 3.78, 6.35], floorColor: TILE, ceiling: 2.15 },
-    { label: "Entrée", rect: [3.78, 3.8, 5.12, 5.87], floorColor: WOOD, ceiling: 2.2 },
-    { rect: [3.7, 5.87, 5.86, 8.5], floorColor: WOOD, ceiling: 2.2 },
-    { label: "SdB", rect: [5.12, 3.8, 8.1, 5.87], floorColor: TILE },
-    { label: "WC", rect: [5.86, 5.87, 7.48, 7.35], floorColor: TILE, ceiling: 2.2 },
-    { label: "Dégagement", rect: [5.86, 7.35, 10.36, 8.5], floorColor: WOOD, ceiling: 2.15 },
-    { label: "Chambre 2", rect: [8.1, 3.8, 11.455, 7.35], floorColor: WOOD },
-    { label: "Chambre 1", rect: [11.455, 3.8, 14.25, 8.5], floorColor: WOOD },
-    { rect: [10.36, 7.35, 11.455, 8.5], floorColor: WOOD },
+    {
+      label: "Séjour / Cuisine",
+      rect: [0, 0, 7.45, 3.8],
+      floorColor: WOOD,
+      floorFinish: "parquet",
+    },
+    { rect: [0, 3.8, 3.78, 4.47], floorColor: WOOD, floorFinish: "parquet", ceiling: 2.15 },
+    {
+      label: "Balcon",
+      rect: [7.73, -0.15, 9.75, 3.5],
+      floorColor: OUTDOOR,
+      floorFinish: "tile60",
+      outdoor: true,
+    },
+    {
+      label: "Cellier",
+      rect: [0.45, 4.47, 3.78, 6.35],
+      floorColor: TILE,
+      floorFinish: "tile30",
+      ceiling: 2.15,
+    },
+    {
+      label: "Entrée",
+      rect: [3.78, 3.8, 5.12, 5.87],
+      floorColor: WOOD,
+      floorFinish: "parquet",
+      ceiling: 2.2,
+    },
+    { rect: [3.7, 5.87, 5.86, 8.5], floorColor: WOOD, floorFinish: "parquet", ceiling: 2.2 },
+    { label: "SdB", rect: [5.12, 3.8, 8.1, 5.87], floorColor: TILE, floorFinish: "tile30" },
+    {
+      label: "WC",
+      rect: [5.86, 5.87, 7.48, 7.35],
+      floorColor: TILE,
+      floorFinish: "tile30",
+      ceiling: 2.2,
+    },
+    {
+      label: "Dégagement",
+      rect: [5.86, 7.35, 10.36, 8.5],
+      floorColor: WOOD,
+      floorFinish: "parquet",
+      ceiling: 2.15,
+    },
+    {
+      label: "Chambre 2",
+      rect: [8.1, 3.8, 11.455, 7.35],
+      floorColor: WOOD,
+      floorFinish: "parquet",
+    },
+    {
+      label: "Chambre 1",
+      rect: [11.455, 3.8, 14.25, 8.5],
+      floorColor: WOOD,
+      floorFinish: "parquet",
+    },
+    { rect: [10.36, 7.35, 11.455, 8.5], floorColor: WOOD, floorFinish: "parquet" },
   ],
 
   furniture: [
-    // Kitchen run along the west wall (sage green base units, black worktop,
-    // oak wall cabinets with black open shelves, dark floor tiles)
+    // Kitchen: the whole west wall of the séjour (0 → 4.42 m). Sage green
+    // 60 cm base units, black worktop, oven under the hob, oak wall cabinets
+    // with black open shelves, dark 60 × 60 floor tiles.
     {
       name: "Carrelage cuisine",
-      rect: [0, 0.45, 1.5, 4.42],
+      rect: [0, 0, 1.5, 4.42],
       h: 0.005,
-      color: "#3a3b3d",
+      color: "#4a4a4a",
+      finish: "tile60",
       solid: false,
     },
-    { name: "Plinthe", rect: [0, 0.61, 0.56, 4.42], h: 0.1, color: "#1f2420" },
-    { name: "Colonne frigo", rect: [0, 0.61, 0.62, 1.21], y: 0.1, h: 2.0, color: KITCHEN_GREEN },
-    { name: "Meubles bas", rect: [0, 1.21, 0.6, 4.42], y: 0.1, h: 0.76, color: KITCHEN_GREEN },
-    { name: "Plan de travail", rect: [0, 1.21, 0.64, 4.42], y: 0.86, h: 0.04, color: "#262626" },
-    { name: "Four", rect: [0.6, 1.53, 0.615, 2.08], y: 0.3, h: 0.58, color: "#111111" },
-    { name: "Plaque de cuisson", rect: [0.04, 1.5, 0.56, 2.1], y: 0.9, h: 0.008, color: "#0d0d0d" },
-    { name: "Évier", rect: [0.08, 3.35, 0.5, 4.2], y: 0.9, h: 0.008, color: "#3c3c3c" },
-    { name: "Mitigeur", rect: [0.04, 3.74, 0.1, 3.8], y: 0.9, h: 0.32, color: "#111111" },
-    { name: "Étagère ouverte", rect: [0, 1.0, 0.35, 1.3], y: 1.5, h: 0.7, color: "#151515" },
-    { name: "Meubles hauts", rect: [0, 1.3, 0.35, 2.6], y: 1.5, h: 0.7, color: "#8b6a48" },
-    { name: "Étagère ouverte", rect: [0, 2.6, 0.35, 2.9], y: 1.5, h: 0.7, color: "#151515" },
+    { name: "Plinthe", rect: [0, 0, 0.56, 4.42], h: 0.1, color: "#1f2420" },
+    {
+      name: "Colonne frigo",
+      rect: [0, 0, 0.62, 0.6],
+      y: 0.1,
+      h: 2.0,
+      color: KITCHEN_GREEN,
+      finish: "cabinetTall",
+    },
+    {
+      name: "Meubles bas",
+      rect: [0, 0.6, 0.6, 4.42],
+      y: 0.1,
+      h: 0.76,
+      color: KITCHEN_GREEN,
+      finish: "cabinet",
+    },
+    {
+      name: "Plan de travail",
+      rect: [0, 0.6, 0.64, 4.42],
+      y: 0.86,
+      h: 0.04,
+      color: "#3a3a3a",
+      finish: "stone",
+    },
+    { name: "Four", rect: [0.6, 1.825, 0.615, 2.375], y: 0.3, h: 0.58, color: "#111111" },
+    { name: "Plaque de cuisson", rect: [0.04, 1.8, 0.56, 2.4], y: 0.9, h: 0.008, color: "#0d0d0d" },
+    { name: "Évier", rect: [0.08, 3.4, 0.5, 4.2], y: 0.9, h: 0.008, color: "#3c3c3c" },
+    { name: "Mitigeur", rect: [0.04, 3.77, 0.1, 3.83], y: 0.9, h: 0.32, color: "#111111" },
+    { name: "Étagère ouverte", rect: [0, 1.2, 0.35, 1.5], y: 1.5, h: 0.7, color: "#151515" },
+    {
+      name: "Meubles hauts",
+      rect: [0, 1.5, 0.35, 2.7],
+      y: 1.5,
+      h: 0.7,
+      color: "#a07b55",
+      finish: "oak",
+    },
+    { name: "Étagère ouverte", rect: [0, 2.7, 0.35, 3.0], y: 1.5, h: 0.7, color: "#151515" },
     // Cellier
     { name: "Gaine cellier", rect: [0.45, 4.52, 0.98, 5.08], h: 2.15, color: GAINE },
     { name: "Ballon eau chaude", rect: [2.42, 5.7, 3.03, 6.3], h: 1.8, color: "#f2f4f6" },
-    { name: "Placard cellier", rect: [3.13, 4.52, 3.7, 6.35], h: 2.2, color: "#cfc6b8" },
+    {
+      name: "Placard cellier",
+      rect: [3.13, 4.52, 3.7, 6.35],
+      h: 2.2,
+      color: "#cfc6b8",
+      finish: "cabinetTall",
+    },
     // Entrée
     { name: "Gaine entrée", rect: [3.7, 7.86, 4.38, 8.5], h: 2.2, color: GAINE },
     { name: "Tableau électrique", rect: [5.21, 5.92, 5.81, 6.2], h: 2.0, color: "#e6e2da" },
@@ -260,7 +361,13 @@ export const APARTMENT_DEF: ApartmentDef = {
     { name: "WC", rect: [6.8, 6.0, 7.2, 6.65], h: 0.42, color: "#f2f4f6" },
     { name: "Gaine WC", rect: [7.51, 5.92, 8.065, 7.3], h: 2.2, color: GAINE },
     // Chambre 1
-    { name: "Placard chambre 1", rect: [12.6, 7.9, 14.25, 8.5], h: 2.3, color: "#cfc6b8" },
+    {
+      name: "Placard chambre 1",
+      rect: [12.6, 7.9, 14.25, 8.5],
+      h: 2.3,
+      color: "#cfc6b8",
+      finish: "cabinetTall",
+    },
     // Balcony railings
     { name: "Garde-corps nord", rect: [7.73, -0.23, 9.83, -0.15], h: 1.0, color: "#6b7076" },
     { name: "Garde-corps est", rect: [9.75, -0.23, 9.83, 3.5], h: 1.0, color: "#6b7076" },

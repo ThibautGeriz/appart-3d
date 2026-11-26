@@ -1,6 +1,8 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-import type { ApartmentDef, Rect } from "../data/apartment";
+import type { ApartmentDef, Finish, Rect } from "../data/apartment";
+import { finishSize, surfaceMaterial } from "./textures";
+import { applyWorldUVs } from "./uv";
 import { buildColliders, wallPieces, type Box } from "./plan";
 import type { Collider } from "../player/movement";
 
@@ -66,14 +68,34 @@ function mergedMesh(geometries: THREE.BufferGeometry[], material: THREE.Material
   return mesh;
 }
 
-/** Group geometries by color and merge each group. */
-function mergedByColor(items: { color: string; geometry: THREE.BufferGeometry }[]): THREE.Mesh[] {
-  const byColor = new Map<string, THREE.BufferGeometry[]>();
-  for (const { color, geometry } of items) {
-    byColor.set(color, [...(byColor.get(color) ?? []), geometry]);
+interface Surface {
+  color: string;
+  finish?: Finish;
+  geometry: THREE.BufferGeometry;
+}
+
+/** Texture a geometry in world meters (origin = where the pattern starts). */
+function finished(
+  geometry: THREE.BufferGeometry,
+  finish: Finish | undefined,
+  origin?: [number, number, number],
+): THREE.BufferGeometry {
+  if (finish) applyWorldUVs(geometry, finishSize(finish), origin);
+  return geometry;
+}
+
+/** Group geometries by material (color + finish) and merge each group. */
+function mergedByMaterial(items: Surface[]): THREE.Mesh[] {
+  const groups = new Map<string, Surface[]>();
+  for (const item of items) {
+    const key = `${item.color}|${item.finish ?? ""}`;
+    groups.set(key, [...(groups.get(key) ?? []), item]);
   }
-  return [...byColor].map(([color, geometries]) =>
-    mergedMesh(geometries, new THREE.MeshLambertMaterial({ color })),
+  return [...groups.values()].map((surfaces) =>
+    mergedMesh(
+      surfaces.map((surface) => surface.geometry),
+      surfaceMaterial(surfaces[0].color, surfaces[0].finish),
+    ),
   );
 }
 
@@ -89,15 +111,15 @@ export function buildApartment(def: ApartmentDef): BuiltApartment {
   const leaves: { color: string; geometry: THREE.BufferGeometry }[] = [];
   for (const wall of def.walls) {
     const pieces = wallPieces(wall, wallHeight);
-    wallGeometries.push(...pieces.solid.map(boxGeometry));
+    wallGeometries.push(...pieces.solid.map((b) => finished(boxGeometry(b), def.wallFinish)));
     for (const leaf of pieces.leaves) {
       leaves.push({ color: leaf.color, geometry: boxGeometry(leaf.box) });
     }
     glassGeometries.push(...pieces.glass.map(boxGeometry));
     for (const glass of pieces.glass) frameGeometries.push(...frameBoxes(glass).map(boxGeometry));
   }
-  group.add(mergedMesh(wallGeometries, new THREE.MeshLambertMaterial({ color: def.wallColor })));
-  for (const mesh of mergedByColor(leaves)) group.add(mesh);
+  group.add(mergedMesh(wallGeometries, surfaceMaterial(def.wallColor, def.wallFinish)));
+  for (const mesh of mergedByMaterial(leaves)) group.add(mesh);
   if (glassGeometries.length > 0) {
     const glassMaterial = new THREE.MeshLambertMaterial({
       color: def.glassColor,
@@ -117,28 +139,36 @@ export function buildApartment(def: ApartmentDef): BuiltApartment {
   const ceilingGeometries: THREE.BufferGeometry[] = [];
   for (const area of def.areas) {
     if (area.outdoor) continue;
-    ceilingGeometries.push(horizontalPlane(area.rect, wallHeight, false));
+    ceilingGeometries.push(
+      finished(horizontalPlane(area.rect, wallHeight, false), def.ceilingFinish),
+    );
     if (area.ceiling !== undefined && area.ceiling < wallHeight) {
-      ceilingGeometries.push(boxGeometry(rectBox(area.rect, area.ceiling, wallHeight)));
+      ceilingGeometries.push(
+        finished(boxGeometry(rectBox(area.rect, area.ceiling, wallHeight)), def.ceilingFinish),
+      );
     }
   }
-  for (const mesh of mergedByColor(
+  for (const mesh of mergedByMaterial(
     def.areas.map((area) => ({
       color: area.floorColor,
-      geometry: horizontalPlane(area.rect, 0, true),
+      finish: area.floorFinish,
+      geometry: finished(horizontalPlane(area.rect, 0, true), area.floorFinish),
     })),
   )) {
     group.add(mesh);
   }
-  group.add(
-    mergedMesh(ceilingGeometries, new THREE.MeshLambertMaterial({ color: def.ceilingColor })),
-  );
+  group.add(mergedMesh(ceilingGeometries, surfaceMaterial(def.ceilingColor, def.ceilingFinish)));
 
-  // Furniture (per color)
-  for (const mesh of mergedByColor(
+  // Furniture (per material), patterns start at each item's corner
+  for (const mesh of mergedByMaterial(
     def.furniture.map((item) => {
       const y = item.y ?? 0;
-      return { color: item.color, geometry: boxGeometry(rectBox(item.rect, y, y + item.h)) };
+      const geometry = boxGeometry(rectBox(item.rect, y, y + item.h));
+      return {
+        color: item.color,
+        finish: item.finish,
+        geometry: finished(geometry, item.finish, [item.rect[0], y, item.rect[1]]),
+      };
     }),
   )) {
     group.add(mesh);

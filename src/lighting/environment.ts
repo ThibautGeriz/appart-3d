@@ -2,6 +2,8 @@ import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { ApartmentDef } from "../data/apartment";
 import { apartmentBounds } from "../apartment/plan";
+import { finishSize, surfaceMaterial } from "../apartment/textures";
+import { applyWorldUVs } from "../apartment/uv";
 import {
   clockToSolarHour,
   dayOfYear,
@@ -44,13 +46,13 @@ function buildSurroundings(def: ApartmentDef): THREE.Group {
   const cx = (b.minX + b.maxX) / 2;
   const cz = (b.minZ + b.maxZ) / 2;
 
-  const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(800, 800),
-    new THREE.MeshLambertMaterial({ color: "#8a917c" }),
-  );
-  ground.rotation.x = -Math.PI / 2;
-  ground.position.set(cx, groundY, cz);
-  group.add(ground);
+  const groundGeometry = new THREE.PlaneGeometry(800, 800);
+  groundGeometry.rotateX(-Math.PI / 2);
+  groundGeometry.translate(cx, groundY, cz);
+  applyWorldUVs(groundGeometry, finishSize("grass"));
+  group.add(new THREE.Mesh(groundGeometry, surfaceMaterial("#8a917c", "grass")));
+
+  const facadeSize = finishSize("facade");
 
   // Our own building, below the apartment floor (also the balcony slab)
   // One block under each room, so the footprint follows the plan
@@ -62,6 +64,7 @@ function buildSurroundings(def: ApartmentDef): THREE.Group {
       maxZ - minZ + 0.5,
     );
     block.translate((minX + maxX) / 2, groundY / 2 - 0.02, (minZ + maxZ) / 2);
+    applyWorldUVs(block, facadeSize, [0, groundY, 0]);
     return block;
   });
   const trees: THREE.BufferGeometry[] = [];
@@ -70,10 +73,12 @@ function buildSurroundings(def: ApartmentDef): THREE.Group {
   for (let i = 0; i < 14; i++) {
     const angle = (i / 14) * Math.PI * 2 + random() * 0.2;
     const distance = 60 + random() * 60;
-    const w = 12 + random() * 18;
-    const d = 10 + random() * 12;
-    const h = 8 + random() * 14;
+    // whole bays (2.5 m) and storeys (3 m), so the façade windows line up
+    const w = facadeSize[0] * (5 + Math.floor(random() * 7));
+    const d = facadeSize[0] * (4 + Math.floor(random() * 5));
+    const h = facadeSize[1] * (3 + Math.floor(random() * 5));
     const block = new THREE.BoxGeometry(w, h, d);
+    applyWorldUVs(block, facadeSize, [-w / 2, -h / 2, -d / 2]);
     block.rotateY(angle);
     block.translate(
       cx + Math.cos(angle) * distance,
@@ -94,9 +99,7 @@ function buildSurroundings(def: ApartmentDef): THREE.Group {
     );
     trees.push(canopy);
   }
-  group.add(
-    new THREE.Mesh(mergeGeometries(facades), new THREE.MeshLambertMaterial({ color: "#d9d2c5" })),
-  );
+  group.add(new THREE.Mesh(mergeGeometries(facades), surfaceMaterial("#e3dccf", "facade")));
   group.add(
     new THREE.Mesh(
       mergeGeometries(trees),
