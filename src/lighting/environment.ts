@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import type { ApartmentDef } from "../data/apartment";
 import { apartmentBounds } from "../apartment/plan";
 import { finishSize, surfaceMaterial } from "../apartment/textures";
@@ -26,6 +27,8 @@ export interface Lighting {
 
 const SHADOW_EXTENT = 9; // half-size of the shadow camera, covers the whole plan
 const SUN_DISTANCE = 40;
+/** Reflections strength on the models, matched by eye to the Lambert surfaces. */
+const ENVIRONMENT_INTENSITY = 0.5;
 
 const toColor = (rgb: Rgb) => new THREE.Color(rgb[0], rgb[1], rgb[2]);
 
@@ -161,6 +164,13 @@ export function createLighting(
   renderer.shadowMap.type = THREE.PCFShadowMap;
   renderer.shadowMap.autoUpdate = false;
   renderer.toneMapping = THREE.NeutralToneMapping;
+
+  // Soft studio reflections for the PBR models (chrome, glass, glazed
+  // ceramics); Lambert surfaces ignore it. Prefiltered once, no per-frame cost.
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+  scene.environmentIntensity = ENVIRONMENT_INTENSITY;
+  pmrem.dispose();
 
   const b = apartmentBounds(def);
   const center = new THREE.Vector3((b.minX + b.maxX) / 2, 0, (b.minZ + b.maxZ) / 2);
