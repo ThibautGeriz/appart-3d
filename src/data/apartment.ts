@@ -291,8 +291,9 @@ export const APARTMENT_DEF: ApartmentDef = {
 
   furniture: [
     // Kitchen: the whole west wall of the séjour (0 → 4.42 m), no fridge.
-    // Sage green 60 cm base units, black worktop, oven under the hob, oak
-    // wall cabinets with black open shelves, dark 60 × 60 floor tiles.
+    // Sage green 60 cm base units, black worktop, dark 60 × 60 floor tiles.
+    // Wall cabinets (oak + black open shelves) at the window end, hob and
+    // oven below them, sink toward the cellier end.
     {
       name: "Carrelage cuisine",
       rect: [0, 0, 1.5, 4.42],
@@ -318,20 +319,20 @@ export const APARTMENT_DEF: ApartmentDef = {
       color: "#3a3a3a",
       finish: "stone",
     },
-    { name: "Four", rect: [0.6, 1.825, 0.615, 2.375], y: 0.3, h: 0.58, color: "#111111" },
-    { name: "Plaque de cuisson", rect: [0.04, 1.8, 0.56, 2.4], y: 0.9, h: 0.008, color: "#0d0d0d" },
+    { name: "Four", rect: [0.6, 0.625, 0.615, 1.175], y: 0.3, h: 0.58, color: "#111111" },
+    { name: "Plaque de cuisson", rect: [0.04, 0.6, 0.56, 1.2], y: 0.9, h: 0.008, color: "#0d0d0d" },
     { name: "Évier", rect: [0.08, 3.4, 0.5, 4.2], y: 0.9, h: 0.008, color: "#3c3c3c" },
     { name: "Mitigeur", rect: [0.04, 3.77, 0.1, 3.83], y: 0.9, h: 0.32, color: "#111111" },
-    { name: "Étagère ouverte", rect: [0, 1.2, 0.35, 1.5], y: 1.5, h: 0.7, color: "#151515" },
+    { name: "Étagère ouverte", rect: [0, 0, 0.35, 0.3], y: 1.5, h: 0.7, color: "#151515" },
     {
       name: "Meubles hauts",
-      rect: [0, 1.5, 0.35, 2.7],
+      rect: [0, 0.3, 0.35, 1.5],
       y: 1.5,
       h: 0.7,
       color: "#a07b55",
       finish: "oak",
     },
-    { name: "Étagère ouverte", rect: [0, 2.7, 0.35, 3.0], y: 1.5, h: 0.7, color: "#151515" },
+    { name: "Étagère ouverte", rect: [0, 1.5, 0.35, 1.8], y: 1.5, h: 0.7, color: "#151515" },
     // Cellier
     { name: "Gaine cellier", rect: [0.45, 4.52, 0.98, 5.08], h: 2.15, color: GAINE },
     { name: "Ballon eau chaude", rect: [2.42, 5.7, 3.03, 6.3], h: 1.8, color: "#f2f4f6" },
