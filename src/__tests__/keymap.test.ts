@@ -21,9 +21,22 @@ describe("keyToAction", () => {
     expect(keyToAction("ShiftRight")).toBe("run");
   });
 
+  it("maps Q/E to rotation", () => {
+    expect(keyToAction("KeyQ")).toBe("rotateLeft");
+    expect(keyToAction("KeyE")).toBe("rotateRight");
+  });
+
   it("returns undefined for unrelated keys", () => {
-    expect(keyToAction("KeyE")).toBeUndefined();
+    expect(keyToAction("KeyR")).toBeUndefined();
     expect(keyToAction("Escape")).toBeUndefined();
+  });
+
+  it("does not leak rotation keys into the move intent", () => {
+    expect(intentFromCodes(["KeyQ", "KeyE", "KeyW"])).toEqual({
+      forward: 1,
+      strafe: 0,
+      run: false,
+    });
   });
 });
 

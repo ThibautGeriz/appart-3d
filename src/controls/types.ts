@@ -19,6 +19,8 @@ export const IDLE_INTENT: MoveIntent = { forward: 0, strafe: 0, run: false };
 
 /** Common interface for all input sources. */
 export interface InputSource {
+  /** Advance time-based input (e.g. hold-to-rotate keys). Call once per frame. */
+  update(dt: number): void;
   moveIntent(): MoveIntent;
   consumeLook(): LookDelta;
   dispose(): void;

@@ -106,6 +106,9 @@ export class TouchInput implements InputSource {
     this.hud.joyKnob.style.display = "none";
   }
 
+  /** Touch has no hold-to-rotate keys — nothing time-based to advance. */
+  update(_dt: number): void {}
+
   moveIntent(): MoveIntent {
     return {
       forward: -this.joyVec.y / JOY_RADIUS,

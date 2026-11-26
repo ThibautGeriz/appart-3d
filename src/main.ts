@@ -51,9 +51,11 @@ window.addEventListener("resize", () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-const clock = new THREE.Clock();
+const timer = new THREE.Timer();
 renderer.setAnimationLoop(() => {
-  const dt = Math.min(clock.getDelta(), 0.1); // clamp huge tab-switch deltas
+  timer.update();
+  const dt = Math.min(timer.getDelta(), 0.1); // clamp huge tab-switch deltas
+  input.update(dt);
   player.update(dt, input.moveIntent(), input.consumeLook(), apartment.colliders);
   player.applyToCamera(camera);
   renderer.render(scene, camera);

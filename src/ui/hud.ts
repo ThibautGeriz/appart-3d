@@ -17,7 +17,7 @@ export function createHud(container: HTMLElement, isTouch: boolean): HudHandles 
   hint.className = "hud-hint";
   hint.textContent = isTouch
     ? "Gauche : marcher · Droite : regarder · Bouton : courir"
-    : "Cliquez pour capturer la souris · ZQSD / WASD : se déplacer · Maj : courir";
+    : "Cliquez pour capturer la souris · ZQSD / WASD : se déplacer · Q/E : tourner · Maj : courir";
   hud.appendChild(hint);
 
   let crosshair: HTMLElement | null = null;

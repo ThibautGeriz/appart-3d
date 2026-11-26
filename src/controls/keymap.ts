@@ -1,6 +1,13 @@
 import { IDLE_INTENT, type MoveIntent } from "./types";
 
-export type MoveAction = "forward" | "back" | "left" | "right" | "run";
+export type MoveAction =
+  | "forward"
+  | "back"
+  | "left"
+  | "right"
+  | "run"
+  | "rotateLeft"
+  | "rotateRight";
 
 // Physical key codes (KeyboardEvent.code). On AZERTY keyboards the key
 // labelled "Z" emits code "KeyW", so physical WASD positions work natively
@@ -16,6 +23,8 @@ const KEY_ACTIONS: Record<string, MoveAction> = {
   ArrowRight: "right",
   ShiftLeft: "run",
   ShiftRight: "run",
+  KeyQ: "rotateLeft",
+  KeyE: "rotateRight",
 };
 
 export function keyToAction(code: string): MoveAction | undefined {

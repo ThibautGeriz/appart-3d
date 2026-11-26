@@ -2,6 +2,7 @@ import { intentFromCodes } from "./keymap";
 import { IDLE_LOOK, type InputSource, type LookDelta, type MoveIntent } from "./types";
 
 const MOUSE_SENSITIVITY = 0.0022; // radians per pixel of mouse movement
+const KEY_ROTATE_SPEED = Math.PI / 2; // radians per second (Q/E keys)
 
 export class KeyboardMouseInput implements InputSource {
   private keys = new Set<string>();
@@ -51,6 +52,15 @@ export class KeyboardMouseInput implements InputSource {
 
   get locked(): boolean {
     return document.pointerLockElement === this.canvas;
+  }
+
+  /** Q/E rotate while held — accumulate yaw into the look delta. */
+  update(dt: number): void {
+    const rotate = (this.keys.has("KeyQ") ? 1 : 0) - (this.keys.has("KeyE") ? 1 : 0);
+    if (rotate !== 0) {
+      // Positive yaw turns left (Three.js Y-rotation convention)
+      this.pendingLook.yaw += rotate * KEY_ROTATE_SPEED * dt;
+    }
   }
 
   moveIntent(): MoveIntent {
