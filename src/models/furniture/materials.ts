@@ -1,0 +1,89 @@
+import * as THREE from "three";
+
+/**
+ * Furniture materials. Wood and fabric get photo textures (CC0 scans from
+ * Poly Haven, see src/assets/textures/furniture/README.md) attached at export,
+ * by material name; the color here tints the scan to match the product photos.
+ */
+
+export interface PhotoTexture {
+  /** files in src/assets/textures/furniture/: <scan>_diff.jpg, _nor.jpg, _rough.jpg */
+  scan: string;
+  /** real-world size of one texture repeat, in meters */
+  size: number;
+  /** direction of the wood grain in the image */
+  grain: "u" | "v";
+  /** colour map only (no normal / roughness scans) */
+  flat?: boolean;
+}
+
+function textured(name: string, color: string, roughness = 1): THREE.MeshStandardMaterial {
+  return new THREE.MeshStandardMaterial({ name, color, roughness, metalness: 0 });
+}
+
+/** Valmo: recycled teak, deep red-brown, oiled. */
+export const recycledTeak = textured("recycled teak", "#9c6c54", 0.85);
+/** Willow: solid teak live-edge slab, warm brown. */
+export const teak = textured("teak", "#c99474", 0.85);
+/** Raia: suar (monkeypod), pale gold with darker streaks, oiled. */
+export const suar = textured("suar", "#f2dcbc", 0.85);
+/** Norway: oiled oak. */
+export const oiledOak = textured("oiled oak", "#f2d6ac", 0.9);
+/** Bistrot: recycled elm, sawn and worn. */
+export const recycledElm = textured("recycled elm", "#c99366", 1);
+/** Mackay: light solid elm. */
+export const lightElm = textured("light elm", "#f3dcc2", 0.9);
+/** Westmount: rough sawn fir. */
+export const fir = textured("fir", "#d8a06a", 1);
+/** Norway: brown microfibre, suede look. */
+export const microfibre = textured("microfibre", "#a07658", 1);
+
+/** Kitchen sink: Fragranite "gris ardoise", matte speckled granite composite. */
+export const fragranite = textured("fragranite", "#6c7074", 0.62);
+
+/** Photo scan behind each textured material (by material name). */
+export const PHOTO_TEXTURES: Record<string, PhotoTexture> = {
+  // tables: scans enlarged so the figure reads at the scale of a 2 m slab
+  [recycledTeak.name]: { scan: "rosewood_veneer_02", size: 2.2, grain: "u" },
+  [teak.name]: { scan: "european_walnut_veneer_04", size: 2.4, grain: "u" },
+  [suar.name]: { scan: "ash_veneer", size: 2.4, grain: "u" },
+  [oiledOak.name]: { scan: "oak_veneer_01", size: 1.83, grain: "v" },
+  [recycledElm.name]: { scan: "brown_planks_08", size: 1, grain: "u" },
+  [lightElm.name]: { scan: "ash_veneer", size: 1, grain: "u" },
+  [fir.name]: { scan: "brown_planks_09", size: 1, grain: "u" },
+  [microfibre.name]: { scan: "fabric_leather_01", size: 0.4, grain: "u" },
+  // generated speckle (quartz grains in a dark matrix), not a scan
+  [fragranite.name]: { scan: "fragranite", size: 0.25, grain: "u", flat: true },
+};
+
+/** Aged (vieilli) iron: dark brown-black with a soft sheen. */
+export const agedIron = new THREE.MeshStandardMaterial({
+  name: "aged iron",
+  color: "#2b2521",
+  metalness: 0.7,
+  roughness: 0.55,
+});
+
+/** Black lacquered / powder-coated steel of the table bases. */
+export const blackSteel = new THREE.MeshStandardMaterial({
+  name: "black steel",
+  color: "#121212",
+  metalness: 0.45,
+  roughness: 0.4,
+});
+
+/** Mackay: black aged metal, a little worn. */
+export const agedBlack = new THREE.MeshStandardMaterial({
+  name: "aged black",
+  color: "#1b1b1c",
+  metalness: 0.6,
+  roughness: 0.48,
+});
+
+/** Screw heads, felt pads. */
+export const darkScrew = new THREE.MeshStandardMaterial({
+  name: "screw",
+  color: "#0d0d0d",
+  metalness: 0.8,
+  roughness: 0.35,
+});

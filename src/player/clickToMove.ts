@@ -21,6 +21,8 @@ export interface ClickToMove {
     looking: boolean,
   ): { intent: MoveIntent; turn: number } | null;
   cancel(): void;
+  /** rebuild the walkable grid after the colliders changed (furniture moved) */
+  refresh(): void;
 }
 
 /** Pulsing ring on the floor at the destination. */
@@ -44,7 +46,8 @@ export function createClickToMove(options: {
   bounds: Collider;
   radius: number;
 }): ClickToMove {
-  const grid = buildNavGrid(options.colliders, options.bounds, options.radius + PATH_MARGIN);
+  const build = () => buildNavGrid(options.colliders, options.bounds, options.radius + PATH_MARGIN);
+  let grid = build();
   const raycaster = new THREE.Raycaster();
   const marker = createMarker();
   options.scene.add(marker);
@@ -97,5 +100,9 @@ export function createClickToMove(options: {
     },
 
     cancel,
+
+    refresh() {
+      grid = build();
+    },
   };
 }

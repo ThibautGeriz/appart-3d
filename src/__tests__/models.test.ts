@@ -5,6 +5,7 @@ import { mannequin, MANNEQUIN_HEIGHT } from "../models/mannequin";
 import { toilet } from "../models/toilet";
 import { showerDrain, showerScreen, showerSet } from "../models/shower";
 import { MODEL_FILES } from "../apartment/modelFiles";
+import { basin, basinTap } from "../models/bathroom";
 import { modelFootprint } from "../apartment/facing";
 import { allFurniture } from "../apartment/plan";
 import { APARTMENT_DEF } from "../data/apartment";
@@ -113,5 +114,42 @@ describe("model files", () => {
   it("footprint width follows the facing", () => {
     expect(modelFootprint([0, 0, 2, 1], "+z")).toEqual([2, 1]);
     expect(modelFootprint([0, 0, 2, 1], "-x")).toEqual([1, 2]);
+  });
+});
+
+describe("bathroom basins", () => {
+  const items = allFurniture(APARTMENT_DEF);
+  const basins = items.filter((i) => i.model === "basin");
+  const taps = items.filter((i) => i.model === "basinTap");
+
+  it("two basins, each with its tap centred behind it", () => {
+    expect(basins).toHaveLength(2);
+    expect(taps).toHaveLength(2);
+    for (const b of basins) {
+      const cx = (b.rect[0] + b.rect[2]) / 2;
+      const tap = taps.find((t) => Math.abs((t.rect[0] + t.rect[2]) / 2 - cx) < 1e-6);
+      expect(tap, b.name).toBeDefined();
+      expect(tap!.rect[1]).toBeLessThan(b.rect[1]); // column behind the basin
+      expect(tap!.rect[3]).toBeGreaterThan(b.rect[1] + 0.05); // spout over it
+    }
+  });
+
+  it("the basin model fills its footprint and is hollow", () => {
+    const [w, d] = modelFootprint(basins[0].rect, "+z");
+    const model = basin(w, d, basins[0].h);
+    const b = bbox(model);
+    expect(b.max.x - b.min.x).toBeCloseTo(w, 3);
+    expect(b.max.z - b.min.z).toBeCloseTo(d, 3);
+    expect(b.max.y).toBeCloseTo(basins[0].h, 3);
+    const bottom = bbox(model.getObjectByName("basin bottom")!);
+    expect(bottom.max.y).toBeLessThan(0.03); // the bowl is open down to its floor
+  });
+
+  it("the tap spout ends above the basin", () => {
+    const tap = taps[0];
+    const [w, d] = modelFootprint(tap.rect, "+z");
+    const spout = bbox(basinTap(w, d, tap.h).getObjectByName("spout")!);
+    expect(spout.max.z).toBeGreaterThan(-d / 2 + 0.1);
+    expect(spout.min.y).toBeGreaterThan(basins[0].h); // clears the rim
   });
 });

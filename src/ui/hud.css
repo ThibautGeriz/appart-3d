@@ -141,3 +141,192 @@ body {
 .hud-light.active {
   background: rgba(255, 196, 92, 0.55);
 }
+
+/* ── Furniture toolbar (top left): tabs Meubles / Budget ───────────────── */
+.hud-furniture {
+  right: auto;
+  left: 16px;
+  z-index: 11;
+}
+
+.hud-furniture-panel {
+  position: fixed;
+  top: 56px;
+  left: 16px;
+  z-index: 11;
+  width: min(340px, calc(100vw - 32px));
+  max-height: calc(100dvh - 72px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  background: rgba(16, 18, 22, 0.82);
+  color: #ffffff;
+  border-radius: 10px;
+  font-family: system-ui, sans-serif;
+  font-size: 13px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+}
+
+.hud-furniture-panel[hidden],
+.fp-page[hidden] {
+  display: none;
+}
+
+.fp-tabs {
+  position: sticky;
+  top: 0;
+  display: flex;
+  background: rgba(16, 18, 22, 0.95);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.fp-tab {
+  flex: 1;
+  border: 0;
+  background: none;
+  color: rgba(255, 255, 255, 0.65);
+  padding: 10px 0;
+  font: inherit;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+}
+
+.fp-tab.active {
+  color: #ffffff;
+  border-bottom-color: #ffc45c;
+}
+
+.fp-page {
+  padding: 4px 12px 12px;
+}
+
+.fp-section {
+  margin-top: 10px;
+}
+
+.fp-title {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.fp-options {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fp-row {
+  display: flex;
+  gap: 4px;
+}
+
+.fp-option {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0 8px;
+  text-align: left;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.fp-option.active {
+  border-color: #ffc45c;
+  background: rgba(255, 196, 92, 0.18);
+}
+
+.fp-option.loading {
+  opacity: 0.6;
+}
+
+.fp-name {
+  font-weight: 600;
+}
+
+.fp-size {
+  grid-column: 1;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+}
+
+.fp-price {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.fp-link {
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  color: rgba(255, 255, 255, 0.7);
+  text-decoration: none;
+  border-radius: 6px;
+}
+
+.fp-link:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.fp-budget {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.fp-budget td {
+  padding: 3px 0;
+  vertical-align: top;
+}
+
+.fp-budget a {
+  color: inherit;
+}
+
+.fp-qty {
+  width: 2.6em;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.fp-kind {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.fp-unit {
+  color: rgba(255, 255, 255, 0.55);
+  text-align: right;
+  padding-right: 10px !important;
+  white-space: nowrap;
+}
+
+.fp-amount {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.fp-subtotal td {
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  font-weight: 600;
+}
+
+.fp-total {
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 2px solid rgba(255, 255, 255, 0.3);
+  text-align: right;
+  font-size: 15px;
+  font-weight: 700;
+}

@@ -223,7 +223,11 @@ export function buildApartment(def: ApartmentDef): BuiltApartment {
           color: item.color,
           finish: item.finish,
           opacity: item.opacity,
-          geometry: finished(geometry, item.finish, [item.rect[0], y, item.rect[1]]),
+          geometry: finished(
+            geometry,
+            item.finish,
+            item.uvOrigin ?? [item.rect[0], y, item.rect[1]],
+          ),
         };
       }),
   )) {

@@ -55,6 +55,13 @@ Key rules:
   model or its footprint, run `npm run export:glb` and commit the GLBs:
   CI fails if they are stale or invalid. Export with Node 24 (float output
   differs between Node majors).
+- **Furniture comes from a catalog**: `src/data/catalog.ts` lists real
+  products (seller's dimensions and price). Each one has a builder in
+  `src/models/furniture/` and ships as `models/<id>.glb`; a unit test checks
+  every model's bounding box against the catalog size. Where they go is data
+  (`furnishing` in `src/data/apartment.ts`, layout in
+  `src/apartment/furnishing.ts`); the 🪑 toolbar switches products, swaps
+  their colliders and shows the budget by room.
 
 ## Input Requirements (core feature — treat as spec)
 

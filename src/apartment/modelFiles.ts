@@ -9,5 +9,9 @@ export const MODEL_FILES: Record<ModelName, string> = {
   showerSet: "shower-set",
   showerScreen: "shower-screen",
   showerDrain: "shower-drain",
+  kitchenSink: "kitchen-sink",
+  kitchenTap: "kitchen-tap",
+  basin: "basin",
+  basinTap: "basin-tap",
   avatar: "avatar",
 };

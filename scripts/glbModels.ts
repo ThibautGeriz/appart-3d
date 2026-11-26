@@ -5,16 +5,43 @@ import { MODEL_FILES, type ModelName } from "../src/apartment/modelFiles";
 import { allFurniture } from "../src/apartment/plan";
 import { APARTMENT_DEF, type PropModel } from "../src/data/apartment";
 import { mannequin, PROP_BUILDERS } from "../src/models";
+import { CATALOG } from "../src/data/catalog";
+import { CHAIR_BUILDERS } from "../src/models/furniture/chairs";
+import { TABLE_BUILDERS } from "../src/models/furniture/tables";
+import { PHOTO_TEXTURES } from "../src/models/furniture/materials";
 
 export interface ModelEntry {
   /** output file name, without .glb */
   file: string;
   build: () => THREE.Object3D;
-  /** photo textures to attach after export: material name → image path (repo-relative) */
-  textures?: Record<string, string>;
+  /** photo textures to attach after export, by material name (repo-relative paths) */
+  textures?: Record<string, TextureFiles>;
   /** keep the node hierarchy (named joints) instead of merging meshes */
   rigged?: boolean;
 }
+
+export interface TextureFiles {
+  base: string;
+  normal?: string;
+  roughness?: string;
+}
+
+/** The furniture scans: <scan>_diff / _nor / _rough.jpg (the oak colour map is shared). */
+const FURNITURE_TEXTURES: Record<string, TextureFiles> = Object.fromEntries(
+  Object.entries(PHOTO_TEXTURES).map(([material, { scan, flat }]) => {
+    const dir = "src/assets/textures/furniture";
+    const base =
+      scan === "oak_veneer_01"
+        ? "src/assets/textures/oak_veneer_01.jpg"
+        : `${dir}/${scan}_diff.jpg`;
+    const maps = flat
+      ? {}
+      : { normal: `${dir}/${scan}_nor.jpg`, roughness: `${dir}/${scan}_rough.jpg` };
+    return [material, { base, ...maps }];
+  }),
+);
+
+const FURNITURE_BUILDERS = { ...CHAIR_BUILDERS, ...TABLE_BUILDERS };
 
 /** Build a prop at the size the layout data gives it (first item using it). */
 function prop(model: PropModel): THREE.Object3D {
@@ -29,13 +56,27 @@ function prop(model: PropModel): THREE.Object3D {
 const props = Object.keys(PROP_BUILDERS) as PropModel[];
 
 export const MODELS: ModelEntry[] = [
-  ...props.map((model) => ({ file: MODEL_FILES[model], build: () => prop(model) })),
+  ...props.map((model) => ({
+    file: MODEL_FILES[model],
+    build: () => prop(model),
+    textures: FURNITURE_TEXTURES,
+  })),
   {
     file: MODEL_FILES["avatar" satisfies ModelName],
     build: mannequin,
     rigged: true,
-    textures: { wood: "src/assets/textures/oak_veneer_01.jpg" },
+    textures: { wood: { base: "src/assets/textures/oak_veneer_01.jpg" } },
   },
+  // catalog furniture, at the seller's dimensions
+  ...CATALOG.map((p) => ({
+    file: p.id,
+    build: () => {
+      const g = FURNITURE_BUILDERS[p.id](p);
+      g.name = p.id;
+      return g;
+    },
+    textures: FURNITURE_TEXTURES,
+  })),
 ];
 
 /**

@@ -9,6 +9,8 @@ import { isTouchDevice } from "./controls/device";
 import { createHud } from "./ui/hud";
 import { bindSunControls, defaultHour } from "./ui/sunControls";
 import { createLighting } from "./lighting/environment";
+import { createPipeline } from "./lighting/postprocessing";
+import { usePhysicalSurfaces } from "./apartment/textures";
 import { buildFixtures } from "./lighting/fixtures";
 import { applyRoomMask } from "./lighting/roomMask";
 import type { InputSource } from "./controls/types";
@@ -16,6 +18,8 @@ import { createClickToMove } from "./player/clickToMove";
 import { apartmentBounds } from "./apartment/plan";
 import { cameraObstacles } from "./player/camera";
 import { loadModels } from "./apartment/models";
+import { createFurniture } from "./apartment/furniture";
+import { createFurniturePanel } from "./ui/furniturePanel";
 
 const container = document.getElementById("app") as HTMLElement;
 const isTouch = isTouchDevice();
@@ -29,6 +33,7 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 container.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
+usePhysicalSurfaces(!isTouch); // PBR walls and floors on desktop, Lambert on phones
 const lighting = createLighting(scene, renderer, APARTMENT_DEF, isTouch);
 const fixtures = buildFixtures(APARTMENT_DEF, isTouch);
 scene.add(fixtures.group);
@@ -42,6 +47,7 @@ dimensions.visible = false;
 scene.add(dimensions);
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const pipeline = createPipeline(renderer, scene, camera, !isTouch); // ambient occlusion on desktop
 const player = new Player(APARTMENT_DEF.spawn);
 scene.add(player.avatar);
 // Interior lights stop at their room's walls; again once the GLB models are in
@@ -73,6 +79,16 @@ const clickToMove = createClickToMove({
   bounds: apartmentBounds(APARTMENT_DEF),
   radius: player.radius,
 });
+
+// Movable furniture (catalog products), switched from the toolbar
+const furniture = createFurniture(APARTMENT_DEF, apartment.colliders, isTouch);
+apartment.group.add(furniture.group); // clickable like the rest
+furniture.onChange(() => {
+  clickToMove.refresh();
+  maskLights();
+  renderer.shadowMap.needsUpdate = true;
+});
+createFurniturePanel(container, APARTMENT_DEF, furniture);
 input.onClick((x, y) => clickToMove.goTo(x, y, player));
 
 const toggleDimensions = () => {
@@ -99,7 +115,7 @@ window.addEventListener("keydown", (e) => e.code === "KeyL" && toggleLights());
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
+  pipeline.setSize(window.innerWidth, window.innerHeight);
 });
 
 const timer = new THREE.Timer();
@@ -117,5 +133,5 @@ renderer.setAnimationLoop(() => {
   player.update(dt, intent, look, apartment.colliders);
   player.applyToCamera(camera, obstacles);
   fixtures.update(camera.position.x, camera.position.z);
-  renderer.render(scene, camera);
+  pipeline.render();
 });

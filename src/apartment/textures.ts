@@ -5,6 +5,16 @@ import oakVeneerUrl from "../assets/textures/oak_veneer_01.jpg";
 import concreteUrl from "../assets/textures/smooth_concrete_floor.jpg";
 import glazedTilesUrl from "../assets/textures/long_white_tiles.jpg";
 import stoneTilesUrl from "../assets/textures/tiled_floor_001.jpg";
+import woodFloorNor from "../assets/textures/pbr/wood_floor_nor.jpg";
+import woodFloorRough from "../assets/textures/pbr/wood_floor_rough.jpg";
+import oakNor from "../assets/textures/furniture/oak_veneer_01_nor.jpg";
+import oakRough from "../assets/textures/furniture/oak_veneer_01_rough.jpg";
+import concreteNor from "../assets/textures/pbr/smooth_concrete_floor_nor.jpg";
+import concreteRough from "../assets/textures/pbr/smooth_concrete_floor_rough.jpg";
+import glazedTilesNor from "../assets/textures/pbr/long_white_tiles_nor.jpg";
+import glazedTilesRough from "../assets/textures/pbr/long_white_tiles_rough.jpg";
+import stoneTilesNor from "../assets/textures/pbr/tiled_floor_001_nor.jpg";
+import stoneTilesRough from "../assets/textures/pbr/tiled_floor_001_rough.jpg";
 
 /**
  * Surface textures: CC0 photo scans (wood, stone, see src/assets/textures)
@@ -25,6 +35,15 @@ interface FinishSpec {
   grayscale?: boolean;
   /** rescale the photo so its mean brightness is this (0–1), keeping its colors */
   brightness?: number;
+  /** PBR (desktop): how glossy the surface is, 0 mirror → 1 matte (default 0.9) */
+  roughness?: number;
+  /** PBR (desktop): the scan's normal map (OpenGL convention) and roughness map */
+  normal?: string;
+  roughnessMap?: string;
+  /** strength of the normal map (default 1) */
+  relief?: number;
+  /** procedural paint relief (bump map), on phones too: cheap, and it is what makes paint read */
+  paint?: boolean;
 }
 
 function seeded(seed: number): () => number {
@@ -78,20 +97,51 @@ function tiles(ctx: CanvasRenderingContext2D, random: () => number, perSide: num
 }
 
 const FINISHES: Record<Finish, FinishSpec> = {
+  // Painted walls and ceilings: white, with the fine "orange peel" relief a
+  // paint roller leaves (bump map) and a faint tonal variation
   plaster: {
-    size: [2, 2],
+    size: [0.5, 0.5],
+    roughness: 0.9,
+    paint: true,
     draw: (ctx, random) => {
-      ctx.fillStyle = gray(0.97);
+      // white paint reflects ~85 % of the light: brighter clips to flat white
+      ctx.fillStyle = gray(0.86);
       ctx.fillRect(0, 0, SIZE, SIZE);
-      speckle(ctx, random, 6000, 0.95, 1, 2);
+      // faint clouding of the paint coats, then fine speckles
+      for (let i = 0; i < 40; i++) {
+        const x = random() * SIZE;
+        const y = random() * SIZE;
+        const r = 40 + random() * 90;
+        const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+        g.addColorStop(0, gray(0.82 + random() * 0.07, 0.3));
+        g.addColorStop(1, gray(0.86, 0));
+        ctx.fillStyle = g;
+        ctx.fillRect(x - r, y - r, 2 * r, 2 * r);
+      }
+      speckle(ctx, random, 6000, 0.83, 0.89, 2);
     },
   },
   // Plank floor: 8 planks of 15 cm across, 1.2 m long, staggered joints
   // Oak plank floor (photo scan, planks along v)
-  parquet: { size: [1.7, 1.7], photo: woodFloorUrl, brightness: 0.62 },
+  parquet: {
+    size: [1.7, 1.7],
+    photo: woodFloorUrl,
+    brightness: 0.62,
+    normal: woodFloorNor,
+    roughnessMap: woodFloorRough,
+    roughness: 0.85, // oiled planks: satin, the map adds worn and glossy patches
+  },
   tile30: { size: [0.6, 0.6], draw: (ctx, random) => tiles(ctx, random, 2) },
   tile60: { size: [1.2, 1.2], draw: (ctx, random) => tiles(ctx, random, 2) },
-  oak: { size: [0.9, 0.9], photo: oakVeneerUrl, brightness: 0.5 },
+  oak: {
+    size: [0.9, 0.9],
+    photo: oakVeneerUrl,
+    brightness: 0.5,
+    normal: oakNor,
+    roughnessMap: oakRough,
+    roughness: 0.75,
+    relief: 0.5,
+  },
   // Matte lacquered fronts: fine paint grain and soft vertical roller marks,
   // so flat fronts do not look like plastic
   lacquer: {
@@ -135,16 +185,41 @@ const FINISHES: Record<Finish, FinishSpec> = {
   },
   // Walk-in shower: white vertical glazed tiles (scan), anthracite 30 × 30
   // stone floor (scan turned gray, tinted by the data color)
-  showerWall: { size: [1.27, 1.27], photo: glazedTilesUrl, grayscale: true },
-  showerFloor: { size: [1.5, 1.5], photo: stoneTilesUrl, grayscale: true },
+  showerWall: {
+    size: [1.27, 1.27],
+    photo: glazedTilesUrl,
+    grayscale: true,
+    normal: glazedTilesNor,
+    roughnessMap: glazedTilesRough,
+    roughness: 0.6, // glazed: the map makes the tiles glossy, the joints matte
+  },
+  showerFloor: {
+    size: [1.5, 1.5],
+    photo: stoneTilesUrl,
+    grayscale: true,
+    normal: stoneTilesNor,
+    roughnessMap: stoneTilesRough,
+    roughness: 1,
+  },
   // Dark mottled stone worktop: gray concrete scan tinted near-black
-  stone: { size: [1, 1], photo: concreteUrl, grayscale: true },
+  stone: {
+    size: [1, 1],
+    photo: concreteUrl,
+    grayscale: true,
+    normal: concreteNor,
+    roughnessMap: concreteRough,
+    roughness: 0.55, // honed worktop
+    relief: 0.6,
+  },
   // Large 60 × 120 cm porcelain tiles, concrete look (long side along v,
   // i.e. along a wall running in z)
   kitchenTile: {
     size: [1.2, 1.2],
     photo: concreteUrl,
     grayscale: true,
+    normal: concreteNor,
+    roughnessMap: concreteRough,
+    roughness: 0.8,
     draw: (ctx) => {
       ctx.strokeStyle = gray(0.45, 0.9);
       ctx.lineWidth = 2;
@@ -181,7 +256,89 @@ const FINISHES: Record<Finish, FinishSpec> = {
 };
 
 const textureCache = new Map<Finish, THREE.CanvasTexture>();
-const materialCache = new Map<string, THREE.MeshLambertMaterial>();
+const materialCache = new Map<string, THREE.MeshLambertMaterial | THREE.MeshStandardMaterial>();
+const mapCache = new Map<string, THREE.Texture>();
+
+/** Lacquer, plaster… without a scan: their gloss (PBR only). */
+const ROUGHNESS: Partial<Record<Finish, number>> = {
+  plaster: 0.95,
+  lacquer: 0.45,
+  cabinet: 0.45,
+  cabinetTall: 0.45,
+  tile30: 0.5,
+  tile60: 0.7,
+};
+
+let physical = false;
+
+/** Strength of the paint relief. */
+const PAINT_BUMP = 2;
+
+/**
+ * Desktop: physically based surfaces (normal + roughness maps, reflections of
+ * the environment). Phones keep the cheap Lambert shading. Call before
+ * building the apartment.
+ */
+export function usePhysicalSurfaces(on: boolean): void {
+  physical = on;
+}
+
+let paintBump: THREE.CanvasTexture | null = null;
+
+/**
+ * Height map of roller-applied paint: thousands of soft overlapping bumps
+ * (orange peel), seamless (drawn wrapped). Used as a bump map.
+ */
+function paintRelief(): THREE.CanvasTexture {
+  if (paintBump) return paintBump;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = SIZE;
+  const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
+  const random = seeded(4242);
+  ctx.fillStyle = gray(0.5);
+  ctx.fillRect(0, 0, SIZE, SIZE);
+  for (let i = 0; i < 14000; i++) {
+    const x = random() * SIZE;
+    const y = random() * SIZE;
+    const r = 1.5 + random() * 4.5; // 1.5–6 px ≈ 1.5–6 mm at 0.5 m per tile
+    const up = random() < 0.5;
+    const v = up ? 0.5 + random() * 0.5 : random() * 0.5;
+    for (const [dx, dy] of [
+      [0, 0],
+      [SIZE, 0],
+      [0, SIZE],
+      [SIZE, SIZE],
+      [-SIZE, 0],
+      [0, -SIZE],
+      [-SIZE, -SIZE],
+      [SIZE, -SIZE],
+      [-SIZE, SIZE],
+    ]) {
+      const g = ctx.createRadialGradient(x + dx, y + dy, 0, x + dx, y + dy, r);
+      g.addColorStop(0, gray(v, 0.35));
+      g.addColorStop(1, gray(v, 0));
+      ctx.fillStyle = g;
+      ctx.fillRect(x + dx - r, y + dy - r, 2 * r, 2 * r);
+    }
+  }
+  paintBump = new THREE.CanvasTexture(canvas);
+  paintBump.wrapS = paintBump.wrapT = THREE.RepeatWrapping;
+  paintBump.anisotropy = 4;
+  return paintBump;
+}
+
+/** Non-color data map (normal / roughness), tiled like the color map. */
+function dataMap(url: string): THREE.Texture {
+  let texture = mapCache.get(url);
+  if (!texture) {
+    texture = new THREE.TextureLoader().load(url);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.anisotropy = 4;
+    mapCache.set(url, texture);
+  }
+  return texture;
+}
 
 /** Real-world size of one tile of a finish (for world-space UVs). */
 export function finishSize(finish: Finish): [number, number] {
@@ -254,22 +411,46 @@ function finishTexture(finish: Finish): THREE.CanvasTexture {
   return texture;
 }
 
-/** Shared Lambert material for a color + optional finish (and opacity). */
+/** Shared material for a color + optional finish (and opacity): PBR on desktop, Lambert on phones. */
 export function surfaceMaterial(
   color: string,
   finish?: Finish,
   opacity = 1,
-): THREE.MeshLambertMaterial {
-  const key = `${color}|${finish ?? ""}|${opacity}`;
+): THREE.MeshLambertMaterial | THREE.MeshStandardMaterial {
+  const key = `${color}|${finish ?? ""}|${opacity}|${physical}`;
   const cached = materialCache.get(key);
   if (cached) return cached;
+  if (physical) {
+    const spec = finish ? FINISHES[finish] : undefined;
+    const material = new THREE.MeshStandardMaterial({
+      color,
+      map: finish ? finishTexture(finish) : null,
+      normalMap: spec?.normal ? dataMap(spec.normal) : null,
+      roughnessMap: spec?.roughnessMap ? dataMap(spec.roughnessMap) : null,
+      roughness: spec?.roughness ?? (finish ? ROUGHNESS[finish] : undefined) ?? 0.9,
+      metalness: 0,
+      transparent: opacity < 1,
+      opacity,
+      depthWrite: opacity >= 1,
+    });
+    const relief = spec?.relief ?? 1;
+    material.normalScale.set(relief, relief);
+    if (spec?.paint) Object.assign(material, { bumpMap: paintRelief(), bumpScale: PAINT_BUMP });
+    materialCache.set(key, material);
+    return material;
+  }
+  const spec = finish ? FINISHES[finish] : undefined;
   const material = new THREE.MeshLambertMaterial({
     color,
     map: finish ? finishTexture(finish) : null,
+    bumpMap: spec?.paint ? paintRelief() : null,
+    bumpScale: PAINT_BUMP,
     transparent: opacity < 1,
     opacity,
     depthWrite: opacity >= 1,
   });
+  const relief = spec?.relief ?? 1;
+  material.normalScale.set(relief, relief);
   materialCache.set(key, material);
   return material;
 }
