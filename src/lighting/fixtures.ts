@@ -8,7 +8,7 @@ export { facingVector };
 
 const WARM = new THREE.Color("#ffd8a8");
 const LIT = new THREE.Color("#fff3df");
-const UNLIT = new THREE.Color("#d9d6d0");
+const UNLIT = new THREE.Color("#e4e1db");
 const POOL_DESKTOP = 8;
 const POOL_TOUCH = 4;
 
@@ -93,7 +93,11 @@ function onWall(mesh: THREE.Object3D, facing: Facing, x: number, y: number, z: n
  */
 export function buildFixtures(def: ApartmentDef, isTouch: boolean): Fixtures {
   const group = new THREE.Group();
-  const fittingMaterial = new THREE.MeshBasicMaterial({ color: LIT.clone() });
+  // glowing when on; switched off, a fitting is lit by the room like any object
+  // (a self-lit one would stay visible in a dark apartment)
+  const fittingMaterial = new THREE.MeshBasicMaterial({ color: LIT });
+  const unlitMaterial = new THREE.MeshLambertMaterial({ color: UNLIT });
+  const fittings: THREE.Mesh[] = [];
   const glowMaterials = {
     sconce: new THREE.MeshBasicMaterial({
       map: glowTexture("sconce"),
@@ -149,6 +153,9 @@ export function buildFixtures(def: ApartmentDef, isTouch: boolean): Fixtures {
     }
   }
   group.add(...glows);
+  group.traverse((o) => {
+    if (o instanceof THREE.Mesh && o.material === fittingMaterial) fittings.push(o);
+  });
 
   const positions = def.lights.map((light) => lightPosition(def, light));
   const pool = Array.from(
@@ -170,7 +177,7 @@ export function buildFixtures(def: ApartmentDef, isTouch: boolean): Fixtures {
     group,
     setOn(value) {
       on = value;
-      fittingMaterial.color.copy(on ? LIT : UNLIT);
+      for (const fitting of fittings) fitting.material = on ? fittingMaterial : unlitMaterial;
       for (const glow of glows) glow.visible = on;
       assigned = ""; // force the pool to refresh
     },

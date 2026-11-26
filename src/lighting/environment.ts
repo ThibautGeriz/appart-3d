@@ -8,8 +8,11 @@ import { applyWorldUVs } from "../apartment/uv";
 import {
   clockToSolarHour,
   dayOfYear,
+  ambientLight,
+  environmentScale,
   daylight,
   solarPosition,
+  type Daylight,
   sunDirection,
   type Rgb,
 } from "./sun";
@@ -23,6 +26,8 @@ export interface SunState {
 
 export interface Lighting {
   setTime(state: SunState): void;
+  /** interior lamps on / off (their indirect light) */
+  setLamps(on: boolean): void;
 }
 
 const SHADOW_EXTENT = 9; // half-size of the shadow camera, covers the whole plan
@@ -207,7 +212,24 @@ export function createLighting(
 
   scene.add(buildSurroundings(def));
 
+  let current: Daylight | null = null;
+  let lampsOn = true;
+  const applyAmbient = () => {
+    if (!current) return;
+    const ambient = ambientLight(current, lampsOn);
+    hemisphere.intensity = ambient.intensity;
+    hemisphere.color.copy(toColor(ambient.sky));
+    hemisphere.groundColor.copy(toColor(ambient.ground));
+    // the studio reflections fade with the light: none in a dark apartment
+    scene.environmentIntensity = ENVIRONMENT_INTENSITY * environmentScale(ambient);
+  };
+
   return {
+    setLamps(on) {
+      lampsOn = on;
+      applyAmbient();
+    },
+
     setTime({ month, hour }) {
       const day = dayOfYear(month, 21);
       // Legal offset of the viewer's time zone on that date (summer/winter time)
@@ -228,9 +250,8 @@ export function createLighting(
       sunDisc.position.set(center.x + dir.x * 300, dir.y * 300, center.z + dir.z * 300);
       sunDisc.visible = position.elevation > -0.02;
 
-      hemisphere.intensity = light.ambient;
-      hemisphere.color.copy(toColor(light.ambientSky));
-      hemisphere.groundColor.copy(toColor(light.ambientGround));
+      current = light;
+      applyAmbient();
 
       sky.material.uniforms.zenith.value.copy(toColor(light.skyZenith));
       sky.material.uniforms.horizon.value.copy(toColor(light.skyHorizon));
