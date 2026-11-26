@@ -117,6 +117,12 @@ describe("apartment layout", () => {
     expect(reachable(11, 1.5), "outside, east of the balcony").toBe(false);
   });
 
+  it("opens chambre 2 onto the balcony", () => {
+    // the bedrooms' façade line, across the balcony's width
+    const gaps = findGaps(colliders, "x", 3.65).filter((g) => g.min > 7.73 && g.max < 9.75);
+    expect(gaps.some((g) => g.max - g.min >= 0.7)).toBe(true);
+  });
+
   it("can walk from the front door into every room", () => {
     const reachable = reachableFromSpawn();
     const probes: Record<string, [number, number]> = {
@@ -149,7 +155,7 @@ describe("window guardrails", () => {
   it("puts guardrails outside, on every low window", async () => {
     const { exteriorSide, guardrailBars, wallPieces } = await import("../apartment/plan");
     const guarded = APARTMENT_DEF.walls.filter((w) => (w.openings ?? []).some((o) => o.guardrail));
-    expect(guarded.length).toBe(2); // séjour north façade, bedrooms façade
+    expect(guarded.length).toBe(2); // séjour north façade, bedrooms façade (chambre 1)
     for (const wall of guarded) {
       const side = exteriorSide(APARTMENT_DEF, wall);
       expect(side).toBe(-1); // both façades face north (-z)

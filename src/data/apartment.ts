@@ -295,13 +295,13 @@ export const APARTMENT_DEF: ApartmentDef = {
     { from: [7.48, 5.87], to: [7.48, 7.35], thickness: 0.06 },
 
     // ── Chambres ──────────────────────────────────────────────────────
-    // North façade of the bedrooms (Ch. 2 French window, Ch. 1 window)
+    // North façade of the bedrooms (Ch. 2 French window onto the balcony, Ch. 1 window)
     {
       from: [7.45, 3.65],
       to: [14.43, 3.65],
       thickness: 0.3,
-      // Ch. 2 French window has a guardrail too (hatched on the plan)
-      openings: [{ ...frenchWindow(1.2, 0.75), guardrail: true }, window(4.41, 1.4)],
+      // Ch. 2 French window opens onto the balcony: left open (walkable), no guardrail
+      openings: [frenchWindow(1.2, 0.75, false), window(4.41, 1.4)],
     },
     // East façade
     { from: [14.34, 3.5], to: [14.34, 8.69], thickness: 0.18 },
