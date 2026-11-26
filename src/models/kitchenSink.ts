@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { bowlSpans, KUBUS_2_KNG_120 } from "../data/sink";
 import { brushedSteel, darkGap } from "./materials";
 import { grainUVs } from "./furniture/parts";
@@ -39,24 +40,26 @@ function extrudeDown(shape: THREE.Shape, top: number, depth: number): THREE.Buff
   return g;
 }
 
-/** Stainless strainer basket: rim ring, perforated dish, centre knob. */
-function strainer(r: number): THREE.Group {
+/**
+ * Kubus square drain: a brushed-steel cover set flush in a square opening,
+ * a thin shadow gap all around (water runs off through it). `size` is the
+ * opening's side; the cover sits at the bowl floor, its top at y = 0.
+ */
+function squareDrain(size: number): THREE.Group {
   const g = new THREE.Group();
-  const ring = new THREE.Mesh(new THREE.TorusGeometry(r, 0.004, 10, 48), brushedSteel);
-  ring.rotation.x = Math.PI / 2;
-  g.add(ring);
-  // dark throat seen through the perforations
-  g.add(mesh(new THREE.CylinderGeometry(r - 0.002, r - 0.002, 0.001, 48), darkGap, 0, -0.012, 0));
-  // dish: concentric rings of slots = steel annuli with gaps
-  for (let i = 0; i < 4; i++) {
-    const inner = 0.012 + i * ((r - 0.016) / 4);
-    const outer = inner + (r - 0.016) / 4 - 0.003;
-    const annulus = new THREE.Mesh(new THREE.RingGeometry(inner, outer, 48), brushedSteel);
-    annulus.rotation.x = -Math.PI / 2;
-    annulus.position.y = -0.004 - i * 0.0015;
-    g.add(annulus);
-  }
-  g.add(mesh(new THREE.CylinderGeometry(0.012, 0.014, 0.008, 32), brushedSteel, 0, -0.002, 0));
+  const gap = 0.003;
+  // dark drain throat under the cover, seen through the gap
+  g.add(mesh(new THREE.BoxGeometry(size, 0.002, size), darkGap, 0, -0.008, 0));
+  g.add(
+    mesh(
+      new RoundedBoxGeometry(size - 2 * gap, 0.004, size - 2 * gap, 2, 0.0015),
+      brushedSteel,
+      0,
+      -0.002,
+      0,
+      "drain cover",
+    ),
+  );
   return g;
 }
 
@@ -106,7 +109,7 @@ export function kitchenSink(): THREE.Group {
     );
     // bottom, with the drain hole (rear centre in the large bowl, centre in the small one)
     const drainZ = i === 0 ? -0.06 : 0;
-    const drainR = i === 0 ? 0.057 : 0.045;
+    const drainSize = i === 0 ? 0.11 : 0.09;
     const bottom = roundedRect(
       cx,
       0,
@@ -114,9 +117,7 @@ export function kitchenSink(): THREE.Group {
       spec.bowlWidth + 2 * t,
       spec.radius + t,
     ) as THREE.Shape;
-    const hole = new THREE.Path();
-    hole.absarc(cx, drainZ, drainR, 0, Math.PI * 2, true);
-    bottom.holes.push(hole);
+    bottom.holes.push(roundedRect(cx, drainZ, drainSize, drainSize, 0.004, new THREE.Path()));
     g.add(
       mesh(
         grainUVs(extrudeDown(bottom, -spec.bowlDepth, t), fragranite, "x"),
@@ -127,9 +128,9 @@ export function kitchenSink(): THREE.Group {
         "bowl bottom",
       ),
     );
-    const basket = strainer(drainR);
-    basket.position.set(cx, -spec.bowlDepth + 0.001, drainZ);
-    g.add(basket);
+    const drain = squareDrain(drainSize);
+    drain.position.set(cx, -spec.bowlDepth, drainZ);
+    g.add(drain);
   }
   return g;
 }
