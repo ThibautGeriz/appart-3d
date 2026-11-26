@@ -1,3 +1,4 @@
+import { bowlSpans, KUBUS_2_KNG_120 } from "../data/sink";
 import type { FurnitureDef, KitchenDef, KitchenModule, Rect } from "../data/apartment";
 
 /** Gap between adjacent fronts (shadow line between doors/drawers). */
@@ -51,7 +52,13 @@ export function expandKitchen(k: KitchenDef): FurnitureDef[] {
     solid: false,
   });
   add("Plinthe", [x0, zMin, front - 0.05, zMax], 0, k.plinth, k.plinthColor);
-  add("Caissons", [x0, zMin, front - FRONT, zMax], k.plinth, top - k.plinth, k.carcassColor);
+  // Carcasses, hollowed under the sink: the bowls hang into the sink cabinet
+  const carcass = (z0: number, z1: number, h = top - k.plinth) =>
+    add("Caissons", [x0, z0, front - FRONT, z1], k.plinth, h, k.carcassColor);
+  const underSink = top - KUBUS_2_KNG_120.bowlDepth - 0.03 - k.plinth;
+  carcass(zMin, k.sink[0]);
+  carcass(k.sink[0], k.sink[1], underSink);
+  carcass(k.sink[1], zMax);
 
   /** A front panel, with a bar handle near its top edge unless `handleWidth` is 0. */
   const panel = (
@@ -124,39 +131,56 @@ export function expandKitchen(k: KitchenDef): FurnitureDef[] {
     }
   }
 
-  // Worktop with a small front overhang, then what sits on it
+  // Worktop with a small front overhang, cut out over the undermount sink's
+  // bowls; all pieces share one texture origin, so the stone runs across them
   const worktopTop = top + k.worktop.thickness;
-  add(
-    "Plan de travail",
-    [x0, zMin, front + k.worktop.overhang, zMax],
-    top,
-    k.worktop.thickness,
-    k.worktop.color,
-    {
+  const worktopFront = front + k.worktop.overhang;
+  const worktop = (rect: Rect) =>
+    add("Plan de travail", rect, top, k.worktop.thickness, k.worktop.color, {
       finish: k.worktop.finish,
-    },
-  );
-  add("Évier", [x0 + 0.08, k.sink[0], front - 0.08, k.sink[1]], worktopTop, 0.004, "#1b1b1b", {
-    solid: false,
-  });
-  const tapZ = k.tapZ ?? (k.sink[0] + k.sink[1]) / 2;
+      uvOrigin: [x0, top, zMin],
+    });
+  const sinkCenter = (k.sink[0] + k.sink[1]) / 2;
+  const sinkX0 = x0 + k.sinkBack;
+  const bowlX0 = sinkX0 + (KUBUS_2_KNG_120.width - KUBUS_2_KNG_120.bowlWidth) / 2;
+  const bowlX1 = bowlX0 + KUBUS_2_KNG_120.bowlWidth;
+  // the large bowl towards +z: the sink's local +x runs along -z (it faces +x)
+  const openings = bowlSpans(KUBUS_2_KNG_120)
+    .map(([a, b]) => [sinkCenter - b, sinkCenter - a] as [number, number])
+    .sort((a, b) => a[0] - b[0]);
+  let z = zMin;
+  for (const [o0, o1] of openings) {
+    worktop([x0, z, worktopFront, o0]);
+    worktop([x0, o0, bowlX0, o1]); // behind the bowl
+    worktop([bowlX1, o0, worktopFront, o1]); // in front of it
+    z = o1;
+  }
+  worktop([x0, z, worktopFront, zMax]);
+
   add(
-    "Mitigeur",
-    [x0 + 0.05, tapZ - 0.025, x0 + 0.1, tapZ + 0.025],
-    worktopTop,
-    0.34,
-    k.handleColor,
+    "Évier",
+    [sinkX0, k.sink[0], sinkX0 + KUBUS_2_KNG_120.width, k.sink[1]],
+    top,
+    KUBUS_2_KNG_120.bowlDepth,
+    "#5b5f63",
     {
+      model: "kitchenSink",
+      facing: "+x",
       solid: false,
     },
   );
+  // Mixer behind the sink, centred on it
+  const tapZ = k.tapZ ?? sinkCenter;
+  const tapX = x0 + k.sinkBack / 2 + 0.005;
   add(
-    "Bec du mitigeur",
-    [x0 + 0.05, tapZ - 0.012, x0 + 0.27, tapZ + 0.012],
-    worktopTop + 0.31,
-    0.025,
+    "Mitigeur",
+    [tapX - 0.03, tapZ - 0.03, tapX + 0.27, tapZ + 0.03],
+    worktopTop,
+    0.36,
     k.handleColor,
     {
+      model: "kitchenTap",
+      facing: "+x",
       solid: false,
     },
   );

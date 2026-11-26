@@ -12,18 +12,22 @@ const urls = import.meta.glob("../../models/*.glb", {
 }) as Record<string, string>;
 
 const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder); // models are meshopt-compressed
-const cache = new Map<ModelName, Promise<THREE.Object3D>>();
+const cache = new Map<string, Promise<THREE.Object3D>>();
 
-function load(name: ModelName): Promise<THREE.Object3D> {
-  let pending = cache.get(name);
+/** models/<file>.glb, loaded once and shared (clone it before adding it). */
+export function loadFile(file: string): Promise<THREE.Object3D> {
+  let pending = cache.get(file);
   if (!pending) {
-    const url = urls[`../../models/${MODEL_FILES[name]}.glb`];
-    if (!url) throw new Error(`models/${MODEL_FILES[name]}.glb is missing (npm run export:glb)`);
+    const url = urls[`../../models/${file}.glb`];
+    if (!url)
+      return Promise.reject(new Error(`models/${file}.glb is missing (npm run export:glb)`));
     pending = loader.loadAsync(url).then((gltf) => gltf.scene);
-    cache.set(name, pending);
+    cache.set(file, pending);
   }
   return pending;
 }
+
+const load = (name: ModelName) => loadFile(MODEL_FILES[name]);
 
 /** Clearcoat costs a second specular lobe: on phones, plain standard PBR. */
 function simplify(material: THREE.Material): THREE.Material {
@@ -34,7 +38,8 @@ function simplify(material: THREE.Material): THREE.Material {
   return simple;
 }
 
-function prepare(model: THREE.Object3D, isTouch: boolean): THREE.Object3D {
+/** Shadows (not for glass), and plain PBR on phones. */
+export function prepare(model: THREE.Object3D, isTouch: boolean): THREE.Object3D {
   const swapped = new Map<THREE.Material, THREE.Material>();
   model.traverse((o) => {
     if (!(o instanceof THREE.Mesh)) return;
@@ -65,8 +70,10 @@ export async function loadModels(
     model.rotation.y = rotationY;
     parent.add(model);
   };
-  await Promise.all([
+  // one missing or broken model must not keep the others (and the shadows) from updating
+  const results = await Promise.allSettled([
     ...slots.map(({ model, slot }) => fill(model, slot)),
     fill("avatar", avatar, Math.PI),
   ]);
+  for (const r of results) if (r.status === "rejected") console.warn(r.reason);
 }

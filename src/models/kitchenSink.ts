@@ -1,0 +1,135 @@
+import * as THREE from "three";
+import { bowlSpans, KUBUS_2_KNG_120 } from "../data/sink";
+import { brushedSteel, darkGap } from "./materials";
+import { grainUVs } from "./furniture/parts";
+import { fragranite } from "./furniture/materials";
+import { mesh } from "./shapes";
+
+/** Rounded rectangle path centred on (cx, cz) in the plan (x, z). */
+function roundedRect(
+  cx: number,
+  cz: number,
+  w: number,
+  d: number,
+  r: number,
+  path: THREE.Path = new THREE.Shape(),
+) {
+  const x0 = cx - w / 2;
+  const x1 = cx + w / 2;
+  const z0 = cz - d / 2;
+  const z1 = cz + d / 2;
+  path.moveTo(x0 + r, z0);
+  path.lineTo(x1 - r, z0);
+  path.quadraticCurveTo(x1, z0, x1, z0 + r);
+  path.lineTo(x1, z1 - r);
+  path.quadraticCurveTo(x1, z1, x1 - r, z1);
+  path.lineTo(x0 + r, z1);
+  path.quadraticCurveTo(x0, z1, x0, z1 - r);
+  path.lineTo(x0, z0 + r);
+  path.quadraticCurveTo(x0, z0, x0 + r, z0);
+  return path;
+}
+
+/** Plan shape extruded downwards from y = top, `depth` deep (no bevel). */
+function extrudeDown(shape: THREE.Shape, top: number, depth: number): THREE.BufferGeometry {
+  const g = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: false, curveSegments: 6 });
+  g.rotateX(Math.PI / 2); // shape y → world z, extrusion → down
+  g.translate(0, top, 0);
+  g.computeVertexNormals();
+  return g;
+}
+
+/** Stainless strainer basket: rim ring, perforated dish, centre knob. */
+function strainer(r: number): THREE.Group {
+  const g = new THREE.Group();
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(r, 0.004, 10, 48), brushedSteel);
+  ring.rotation.x = Math.PI / 2;
+  g.add(ring);
+  // dark throat seen through the perforations
+  g.add(mesh(new THREE.CylinderGeometry(r - 0.002, r - 0.002, 0.001, 48), darkGap, 0, -0.012, 0));
+  // dish: concentric rings of slots = steel annuli with gaps
+  for (let i = 0; i < 4; i++) {
+    const inner = 0.012 + i * ((r - 0.016) / 4);
+    const outer = inner + (r - 0.016) / 4 - 0.003;
+    const annulus = new THREE.Mesh(new THREE.RingGeometry(inner, outer, 48), brushedSteel);
+    annulus.rotation.x = -Math.PI / 2;
+    annulus.position.y = -0.004 - i * 0.0015;
+    g.add(annulus);
+  }
+  g.add(mesh(new THREE.CylinderGeometry(0.012, 0.014, 0.008, 32), brushedSteel, 0, -0.002, 0));
+  return g;
+}
+
+/**
+ * Franke Kubus 2.0 KNG 120 in Fragranite, undermount: two square bowls (large
+ * + small) under the worktop cut-outs. Origin: centre of the rim's top face
+ * (= underside of the worktop), the bowls hang below; length along x, front
+ * (room side) towards +z.
+ */
+export function kitchenSink(): THREE.Group {
+  const spec = KUBUS_2_KNG_120;
+  const g = new THREE.Group();
+  g.name = "kitchen sink";
+  const t = spec.wall;
+  const bowls = bowlSpans(spec);
+
+  // Rim flange under the worktop, with the two bowl openings
+  const flange = roundedRect(0, 0, spec.length, spec.width, 0.02) as THREE.Shape;
+  for (const [a, b] of bowls) {
+    flange.holes.push(
+      roundedRect((a + b) / 2, 0, b - a, spec.bowlWidth, spec.radius, new THREE.Path()),
+    );
+  }
+  g.add(mesh(grainUVs(extrudeDown(flange, 0, t), fragranite, "x"), fragranite, 0, 0, 0, "rim"));
+
+  for (const [i, [a, b]] of bowls.entries()) {
+    const cx = (a + b) / 2;
+    const w = b - a;
+    // walls: outer outline minus the inner one, the full bowl depth
+    const wall = roundedRect(
+      cx,
+      0,
+      w + 2 * t,
+      spec.bowlWidth + 2 * t,
+      spec.radius + t,
+    ) as THREE.Shape;
+    wall.holes.push(roundedRect(cx, 0, w, spec.bowlWidth, spec.radius, new THREE.Path()));
+    g.add(
+      mesh(
+        grainUVs(extrudeDown(wall, -t, spec.bowlDepth - t), fragranite, "x"),
+        fragranite,
+        0,
+        0,
+        0,
+        "bowl",
+      ),
+    );
+    // bottom, with the drain hole (rear centre in the large bowl, centre in the small one)
+    const drainZ = i === 0 ? -0.06 : 0;
+    const drainR = i === 0 ? 0.057 : 0.045;
+    const bottom = roundedRect(
+      cx,
+      0,
+      w + 2 * t,
+      spec.bowlWidth + 2 * t,
+      spec.radius + t,
+    ) as THREE.Shape;
+    const hole = new THREE.Path();
+    hole.absarc(cx, drainZ, drainR, 0, Math.PI * 2, true);
+    bottom.holes.push(hole);
+    g.add(
+      mesh(
+        grainUVs(extrudeDown(bottom, -spec.bowlDepth, t), fragranite, "x"),
+        fragranite,
+        0,
+        0,
+        0,
+        "bowl bottom",
+      ),
+    );
+    const basket = strainer(drainR);
+    basket.position.set(cx, -spec.bowlDepth + 0.001, drainZ);
+    g.add(basket);
+  }
+  return g;
+}

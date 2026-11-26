@@ -6,12 +6,13 @@
  *                  read compressed buffers, so CI also validates this variant)
  */
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { basename, resolve } from "node:path";
 import { parseArgs } from "node:util";
-import { Document, WebIO } from "@gltf-transform/core";
+import { Document, WebIO, type Texture } from "@gltf-transform/core";
 import {
   EXTMeshoptCompression,
   KHRMaterialsClearcoat,
+  KHRMaterialsUnlit,
   KHRMeshQuantization,
 } from "@gltf-transform/extensions";
 import { dedup, flatten, join, meshopt, prune, quantize, weld } from "@gltf-transform/functions";
@@ -43,7 +44,12 @@ const { values: args } = parseArgs({
 });
 await MeshoptEncoder.ready;
 const io = new WebIO()
-  .registerExtensions([KHRMaterialsClearcoat, KHRMeshQuantization, EXTMeshoptCompression])
+  .registerExtensions([
+    KHRMaterialsClearcoat,
+    KHRMaterialsUnlit,
+    KHRMeshQuantization,
+    EXTMeshoptCompression,
+  ])
   .registerDependencies({ "meshopt.encoder": MeshoptEncoder });
 
 /**
@@ -71,20 +77,41 @@ async function optimize(
   return io.writeBinary(doc);
 }
 
-async function attachTextures(doc: Document, textures: Record<string, string>) {
-  for (const [materialName, path] of Object.entries(textures)) {
+/**
+ * Attach JPEG maps to the materials of that name (skipped when the model has
+ * none): base color, normal (OpenGL convention, as glTF) and roughness. The
+ * roughness scan is grey, so it also lands in the metalness channel: keep the
+ * metallic factor at 0 for those materials.
+ */
+async function attachTextures(doc: Document, textures: Record<string, TextureFiles>) {
+  const images = new Map<string, Texture>();
+  const image = async (path: string) => {
+    let texture = images.get(path);
+    if (!texture) {
+      texture = doc
+        .createTexture(basename(path, ".jpg"))
+        .setImage(new Uint8Array(await readFile(resolve(root, path))))
+        .setMimeType("image/jpeg");
+      images.set(path, texture);
+    }
+    return texture;
+  };
+  for (const [materialName, files] of Object.entries(textures)) {
     const materials = doc
       .getRoot()
       .listMaterials()
       .filter((m) => m.getName() === materialName);
-    if (materials.length === 0) throw new Error(`no material named "${materialName}"`);
-    const texture = doc
-      .createTexture(materialName)
-      .setImage(new Uint8Array(await readFile(resolve(root, path))))
-      .setMimeType("image/jpeg");
-    for (const m of materials) m.setBaseColorTexture(texture);
+    for (const m of materials) {
+      m.setBaseColorTexture(await image(files.base));
+      if (files.normal) m.setNormalTexture(await image(files.normal));
+      if (files.roughness) {
+        m.setMetallicRoughnessTexture(await image(files.roughness)).setMetallicFactor(0);
+      }
+    }
   }
 }
+
+type TextureFiles = import("./glbModels").TextureFiles;
 
 const { module: entry } = await runnerImport<typeof import("./glbModels")>(
   resolve(import.meta.dirname, "glbModels.ts"),

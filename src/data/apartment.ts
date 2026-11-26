@@ -8,6 +8,8 @@
  * Rectangles are [minX, minZ, maxX, maxZ].
  */
 
+import type { FurnishingDef } from "../apartment/furnishing";
+
 export type Rect = [minX: number, minZ: number, maxX: number, maxZ: number];
 
 export interface OpeningDef {
@@ -71,7 +73,14 @@ export interface AreaDef {
  * Detailed model drawn instead of a box: models/<file>.glb, exported from
  * src/models/ (see src/apartment/modelFiles.ts).
  */
-export type PropModel = "washingMachine" | "toilet" | "showerSet" | "showerScreen" | "showerDrain";
+export type PropModel =
+  | "washingMachine"
+  | "toilet"
+  | "showerSet"
+  | "showerScreen"
+  | "showerDrain"
+  | "kitchenSink"
+  | "kitchenTap";
 
 export interface FurnitureDef {
   name: string;
@@ -85,6 +94,8 @@ export interface FurnitureDef {
   y?: number;
   /** below 1 = see-through (glass), does not cast shadows */
   opacity?: number;
+  /** world point the finish texture starts from (default: the item's corner), to run one pattern across several pieces */
+  uvOrigin?: [number, number, number];
   /** draw a detailed model in the footprint instead of a box (exported at this size) */
   model?: PropModel;
   /** direction the model's front faces (default +z) */
@@ -120,9 +131,11 @@ export interface KitchenDef {
   ovenColor: string;
   ovenGlassColor: string;
   worktop: { thickness: number; overhang: number; color: string; finish?: Finish };
-  /** z ranges on the worktop */
+  /** z range of the undermount sink (its length, see src/data/sink.ts) */
   sink: [number, number];
-  /** tap position (defaults to the sink center) */
+  /** distance from the wall to the back of the sink */
+  sinkBack: number;
+  /** tap position along the run (defaults to the sink centre) */
   tapZ?: number;
   hob: [number, number];
   wallCabinets: {
@@ -191,6 +204,8 @@ export interface ApartmentDef {
   kitchen: KitchenDef;
   closets: ClosetDef[];
   lights: LightDef[];
+  /** movable furniture (catalog products, switched from the toolbar) */
+  furnishing: FurnishingDef;
   spawn: { x: number; z: number; yaw: number };
 }
 
@@ -574,9 +589,9 @@ export const APARTMENT_DEF: ApartmentDef = {
     ovenColor: "#141414",
     ovenGlassColor: "#2a2622",
     worktop: { thickness: 0.04, overhang: 0.02, color: "#3a3a3a", finish: "stone" },
-    // wide sink over the first two doors, tap toward its right
-    sink: [3.47, 4.37],
-    tapZ: 3.75,
+    // Franke Kubus 2.0 (76 cm) centred over the first two doors, tap centred on it
+    sink: [3.54, 4.3],
+    sinkBack: 0.09,
     hob: [1.44, 2.0],
     wallCabinets: {
       z: [0, 2.1],
@@ -643,5 +658,14 @@ export const APARTMENT_DEF: ApartmentDef = {
   ],
 
   // Just inside the front door (x 4.85–5.75), looking up the entrée toward the séjour
+  furnishing: {
+    // dining table: its end against the north wall, centred on the 2.04 m
+    // pier between the two windows (x 2.16 → 4.20), running into the room
+    dining: { wall: [3.18, 0], towards: "+z", gap: 0.05, maxChairs: 6 },
+    // living area, east side of the séjour
+    coffeeTable: { center: [6.1, 2.35], along: "+x" },
+    defaults: { table: "table-valmo-220", chair: "chair-norway", coffeeTable: "coffee-norway" },
+  },
+
   spawn: { x: 5.0, z: 8.15, yaw: 0.2 },
 };
