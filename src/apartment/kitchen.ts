@@ -139,7 +139,7 @@ export function expandKitchen(k: KitchenDef): FurnitureDef[] {
   add("Évier", [x0 + 0.08, k.sink[0], front - 0.08, k.sink[1]], worktopTop, 0.004, "#1b1b1b", {
     solid: false,
   });
-  const tapZ = (k.sink[0] + k.sink[1]) / 2;
+  const tapZ = k.tapZ ?? (k.sink[0] + k.sink[1]) / 2;
   add(
     "Mitigeur",
     [x0 + 0.05, tapZ - 0.025, x0 + 0.1, tapZ + 0.025],

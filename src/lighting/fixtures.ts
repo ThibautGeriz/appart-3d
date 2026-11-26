@@ -49,17 +49,14 @@ function glowTexture(kind: "sconce" | "strip"): THREE.CanvasTexture {
   canvas.height = 256;
   const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
   if (kind === "sconce") {
-    for (const [cy, r] of [
-      [70, 120],
-      [186, 120],
-    ]) {
-      const g = ctx.createRadialGradient(64, cy, 0, 64, cy, r);
-      g.addColorStop(0, "rgba(255,255,255,0.9)");
-      g.addColorStop(0.4, "rgba(255,255,255,0.35)");
-      g.addColorStop(1, "rgba(255,255,255,0)");
-      ctx.fillStyle = g;
-      ctx.fillRect(0, 0, 128, 256);
-    }
+    // One tall ellipse that fades to zero before every edge (no hard borders)
+    ctx.scale(1, 2);
+    const g = ctx.createRadialGradient(64, 64, 0, 64, 64, 62);
+    g.addColorStop(0, "rgba(255,255,255,0.9)");
+    g.addColorStop(0.35, "rgba(255,255,255,0.4)");
+    g.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 128, 128);
   } else {
     const g = ctx.createLinearGradient(0, 0, 0, 256);
     g.addColorStop(0, "rgba(255,255,255,0.95)");

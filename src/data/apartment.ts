@@ -106,6 +106,8 @@ export interface KitchenDef {
   worktop: { thickness: number; overhang: number; color: string; finish?: Finish };
   /** z ranges on the worktop */
   sink: [number, number];
+  /** tap position (defaults to the sink center) */
+  tapZ?: number;
   hob: [number, number];
   wallCabinets: {
     z: [number, number];
@@ -494,7 +496,9 @@ export const APARTMENT_DEF: ApartmentDef = {
     ovenColor: "#141414",
     ovenGlassColor: "#2a2622",
     worktop: { thickness: 0.04, overhang: 0.02, color: "#3a3a3a", finish: "stone" },
-    sink: [3.45, 3.88],
+    // wide sink over the first two doors, tap toward its right
+    sink: [3.47, 4.37],
+    tapZ: 3.75,
     hob: [1.44, 2.0],
     wallCabinets: {
       z: [0, 2.1],
@@ -510,7 +514,9 @@ export const APARTMENT_DEF: ApartmentDef = {
   },
 
   lights: [
-    // Ceiling light points from the plan
+    // Ceiling light points from the plan (red ✕ and "SP" marks). The red
+    // dots next to the doors are switches and the circled D is a smoke
+    // detector, so they are not lights.
     { kind: "ceiling", x: 1.42, z: 1.89 }, // séjour, kitchen side
     { kind: "ceiling", x: 4.78, z: 1.89 }, // séjour
     { kind: "ceiling", x: 6.23, z: 4.87 }, // salle de bain
@@ -520,18 +526,13 @@ export const APARTMENT_DEF: ApartmentDef = {
     { kind: "ceiling", x: 4.71, z: 6.47 }, // entrée
     { kind: "ceiling", x: 6.26, z: 6.6 }, // WC
     { kind: "ceiling", x: 8.08, z: 7.89 }, // dégagement
-    // Under-cabinet LED strip washing the kitchen wall (architect's render)
+    // Wall lights from the plan
+    { kind: "sconce", x: 6.64, z: 3.8, y: 2.05, facing: "+z" }, // SdB, above the mirror
+    { kind: "sconce", x: 7.73, z: 0.3, y: 2.0, facing: "+x" }, // balcony, outdoor
+    // Not on the plan, as requested: LED strip under the kitchen wall
+    // cabinets (architect's render) and a light above the kitchen sink
     { kind: "strip", x: 0, z: 1.05, y: 1.47, length: 2.1, facing: "+x" },
-    // Light above the kitchen sink (no wall cabinet there)
-    { kind: "sconce", x: 0, z: 3.665, y: 1.75, facing: "+x" },
-    // Wall sconces (placement to confirm)
-    { kind: "sconce", x: 5.9, z: 3.695, y: 1.8, facing: "-z" }, // séjour, wall D
-    { kind: "sconce", x: 6.9, z: 3.695, y: 1.8, facing: "-z" }, // séjour, wall D
-    { kind: "sconce", x: 3.78, z: 7.0, y: 1.8, facing: "+x" }, // entrée
-    { kind: "sconce", x: 14.25, z: 4.6, y: 1.2, facing: "-x" }, // chambre 1, bedside
-    { kind: "sconce", x: 14.25, z: 6.7, y: 1.2, facing: "-x" }, // chambre 1, bedside
-    { kind: "sconce", x: 11.41, z: 4.4, y: 1.2, facing: "-x" }, // chambre 2, bedside
-    { kind: "sconce", x: 11.41, z: 6.3, y: 1.2, facing: "-x" }, // chambre 2, bedside
+    { kind: "sconce", x: 0, z: 3.92, y: 1.75, facing: "+x" },
   ],
 
   // Just inside the front door (x 4.85–5.75), looking up the entrée toward the séjour

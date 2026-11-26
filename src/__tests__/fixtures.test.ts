@@ -31,6 +31,14 @@ describe("light fixtures", () => {
     }
   });
 
+  it("matches the plan: 9 ceiling points, 2 wall lights, plus the kitchen extras", () => {
+    const byKind = (kind: string) => APARTMENT_DEF.lights.filter((l) => l.kind === kind);
+    expect(byKind("ceiling")).toHaveLength(9);
+    expect(byKind("strip")).toHaveLength(1); // under the kitchen wall cabinets
+    const sconces = byKind("sconce");
+    expect(sconces).toHaveLength(3); // SdB mirror, balcony, kitchen sink
+  });
+
   it("maps facings to unit vectors", () => {
     expect(facingVector("+x")).toEqual([1, 0]);
     expect(facingVector("-z")).toEqual([0, -1]);

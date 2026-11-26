@@ -31,7 +31,7 @@ describe("kitchen", () => {
     const over = (range: [number, number]) =>
       spans.filter(({ z0, z1 }) => z0 < range[1] && z1 > range[0]).map((s) => s.module.kind);
     expect(over(kitchen.hob)).toEqual(["oven"]);
-    expect(new Set(over(kitchen.sink))).toEqual(new Set(["door"]));
+    expect(over(kitchen.sink)).toEqual(["door", "door"]); // wide sink over two doors
   });
 
   it("has no fridge or tall unit", () => {
