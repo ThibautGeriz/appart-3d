@@ -108,3 +108,53 @@ body {
 .hud-dim.active {
   background: rgba(255, 255, 255, 0.35);
 }
+
+.hud-sun {
+  top: 56px;
+}
+
+.hud-light {
+  top: 96px;
+}
+
+.hud-sun-panel {
+  position: fixed;
+  top: 136px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: auto;
+  background: rgba(0, 0, 0, 0.55);
+  color: #ffffff;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.hud-sun-panel[hidden] {
+  display: none;
+}
+
+.hud-sun-panel label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hud-sun-panel span {
+  min-width: 3.2em;
+  font-variant-numeric: tabular-nums;
+}
+
+.hud-sun-panel input[type="range"] {
+  width: 160px;
+}
+
+.hud-sun-panel select {
+  font-size: 14px;
+}
+
+.hud-light.active {
+  background: rgba(255, 196, 92, 0.55);
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatMeters, formatSize, roomLabelText, wallLength } from "../apartment/labels";
+import { ceilingText, formatMeters, formatSize, roomLabelText } from "../apartment/labels";
 
 describe("labels", () => {
   it("formats meters with a French decimal comma", () => {
@@ -16,8 +16,16 @@ describe("labels", () => {
     expect(text.split("\n")).toEqual(["Chambre", "4,80 m × 4,30 m"]);
   });
 
-  it("uses the long side as the wall length", () => {
-    expect(wallLength({ w: 3.4, d: 0.2 })).toBe(3.4);
-    expect(wallLength({ w: 0.2, d: 8 })).toBe(8);
+  it("shows ceiling heights like the plan (HSP / HSFP)", () => {
+    expect(ceilingText(2.5, false)).toBe("HSP 2,50 m");
+    expect(ceilingText(2.15, true)).toBe("HSFP 2,15 m");
+    const text = roomLabelText({
+      label: "Cellier",
+      w: 2.58,
+      d: 1.83,
+      ceiling: 2.15,
+      lowered: true,
+    });
+    expect(text.split("\n")).toEqual(["Cellier", "2,58 m × 1,83 m", "HSFP 2,15 m"]);
   });
 });

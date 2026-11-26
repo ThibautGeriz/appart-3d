@@ -1,9 +1,41 @@
 import type { Collider } from "../player/movement";
-import type { WallDef, ApartmentDef } from "../data/apartment";
+import type { ApartmentDef, FurnitureDef, OpeningDef, Rect, WallDef } from "../data/apartment";
+import { expandKitchen } from "./kitchen";
+import { expandCloset } from "./closet";
+
+/** Pieces starting above this height do not block the player (lintels, wall cabinets). */
+const BLOCKING_HEIGHT = 1.8;
+const GLASS_THICKNESS = 0.03;
+const LEAF_THICKNESS = 0.05;
 
 export interface Interval {
   min: number;
   max: number;
+}
+
+/** 3D axis-aligned box. */
+export interface Box {
+  minX: number;
+  maxX: number;
+  minY: number;
+  maxY: number;
+  minZ: number;
+  maxZ: number;
+}
+
+export interface WallPieces {
+  /** opaque wall boxes (solid parts, sills, lintels) */
+  solid: Box[];
+  /** glazing panes filling glass openings */
+  glass: Box[];
+  /** the openings themselves, as boxes (for frames and labels) */
+  openings: Box[];
+  /** glazed leaves per glass opening (same order as `glass`) */
+  panes: number[];
+  /** openings that get a guardrail */
+  guarded: Box[];
+  /** closed door leaves: color + box, and lever handles on both faces */
+  leaves: { color: string; box: Box; handles: Box[] }[];
 }
 
 /** Merge overlapping intervals (sorted output). Pure. */
@@ -22,13 +54,13 @@ export function mergeIntervals(intervals: Interval[]): Interval[] {
 }
 
 /**
- * Gaps (e.g. doorways) between colliders crossing a given z line.
- * Used to verify the apartment plan stays walkable.
+ * Gaps (e.g. doorways) between colliders crossing a given line.
+ * `axis: "x"` probes the horizontal line z = `at`, `"z"` the vertical line x = `at`.
  */
-export function findGapsAlongZ(colliders: Collider[], z: number): Interval[] {
+export function findGaps(colliders: Collider[], axis: "x" | "z", at: number): Interval[] {
   const row = colliders
-    .filter((c) => c.minZ <= z && c.maxZ >= z)
-    .map((c) => ({ min: c.minX, max: c.maxX }));
+    .filter((c) => (axis === "x" ? c.minZ <= at && c.maxZ >= at : c.minX <= at && c.maxX >= at))
+    .map((c) => (axis === "x" ? { min: c.minX, max: c.maxX } : { min: c.minZ, max: c.maxZ }));
   const merged = mergeIntervals(row);
   const gaps: Interval[] = [];
   for (let i = 1; i < merged.length; i++) {
@@ -39,19 +71,209 @@ export function findGapsAlongZ(colliders: Collider[], z: number): Interval[] {
   return gaps;
 }
 
-/** AABB colliders for a wall segment. Pure. */
-export function wallCollider(wall: WallDef): Collider {
-  return {
-    minX: wall.x - wall.w / 2,
-    maxX: wall.x + wall.w / 2,
-    minZ: wall.z - wall.d / 2,
-    maxZ: wall.z + wall.d / 2,
-  };
+export function wallLength(wall: WallDef): number {
+  return Math.abs(wall.to[0] - wall.from[0]) + Math.abs(wall.to[1] - wall.from[1]);
 }
 
-/** The apartment outer bounds (including wall thickness), for validation. */
+/**
+ * Split a wall into boxes: full-height parts between openings, sills below
+ * and lintels above each opening, and glass panes. Pure.
+ */
+export function wallPieces(wall: WallDef, wallHeight: number): WallPieces {
+  const alongX = wall.from[1] === wall.to[1];
+  if (!alongX && wall.from[0] !== wall.to[0]) {
+    throw new Error(`Wall must be axis-aligned: ${JSON.stringify(wall)}`);
+  }
+  const start = alongX ? Math.min(wall.from[0], wall.to[0]) : Math.min(wall.from[1], wall.to[1]);
+  const end = start + wallLength(wall);
+  const center = alongX ? wall.from[1] : wall.from[0];
+  const half = wall.thickness / 2;
+
+  const box = (a: number, b: number, minY: number, maxY: number, halfT = half): Box =>
+    alongX
+      ? { minX: a, maxX: b, minY, maxY, minZ: center - halfT, maxZ: center + halfT }
+      : { minX: center - halfT, maxX: center + halfT, minY, maxY, minZ: a, maxZ: b };
+
+  const openings: OpeningDef[] = [...(wall.openings ?? [])].sort((a, b) => a.at - b.at);
+  const pieces: WallPieces = {
+    solid: [],
+    glass: [],
+    openings: [],
+    panes: [],
+    guarded: [],
+    leaves: [],
+  };
+  let cursor = start;
+  for (const opening of openings) {
+    const a = start + opening.at;
+    const b = a + opening.width;
+    if (a < cursor - 1e-9 || b > end + 1e-9) {
+      throw new Error(`Opening out of wall bounds or overlapping: ${JSON.stringify(opening)}`);
+    }
+    if (a > cursor) pieces.solid.push(box(cursor, a, 0, wallHeight));
+    if (opening.sill > 0) pieces.solid.push(box(a, b, 0, opening.sill));
+    if (opening.head < wallHeight) pieces.solid.push(box(a, b, opening.head, wallHeight));
+    pieces.openings.push(box(a, b, opening.sill, opening.head));
+    if (opening.guardrail) pieces.guarded.push(box(a, b, opening.sill, opening.head));
+    if (opening.leaf) {
+      // Lever handle at 1.05 m, near the opening's far end (lock side)
+      const handleAt = b - 0.09;
+      const lever = (side: number): Box => {
+        const t = LEAF_THICKNESS / 2;
+        const [n0, n1] = side > 0 ? [t, t + 0.06] : [-t - 0.06, -t];
+        return alongX
+          ? {
+              minX: handleAt - 0.12,
+              maxX: handleAt,
+              minY: 1.04,
+              maxY: 1.06,
+              minZ: center + n0,
+              maxZ: center + n1,
+            }
+          : {
+              minX: center + n0,
+              maxX: center + n1,
+              minY: 1.04,
+              maxY: 1.06,
+              minZ: handleAt - 0.12,
+              maxZ: handleAt,
+            };
+      };
+      pieces.leaves.push({
+        color: opening.leaf,
+        box: box(a, b, opening.sill, opening.head, LEAF_THICKNESS / 2),
+        handles: [lever(1), lever(-1)],
+      });
+    }
+    if (opening.glass) {
+      pieces.glass.push(box(a, b, opening.sill, opening.head, GLASS_THICKNESS / 2));
+      pieces.panes.push(opening.panes ?? 1);
+    }
+    cursor = b;
+  }
+  if (cursor < end) pieces.solid.push(box(cursor, end, 0, wallHeight));
+  return pieces;
+}
+
+export function rectCollider(rect: Rect): Collider {
+  const [minX, minZ, maxX, maxZ] = rect;
+  return { minX, minZ, maxX, maxZ };
+}
+
+function boxCollider(box: Box): Collider {
+  return { minX: box.minX, maxX: box.maxX, minZ: box.minZ, maxZ: box.maxZ };
+}
+
+export function blocksPlayer(item: FurnitureDef): boolean {
+  return item.solid !== false && (item.y ?? 0) < BLOCKING_HEIGHT;
+}
+
+/** All XZ colliders of the apartment: walls, glazing, solid furniture. Pure. */
+export function buildColliders(def: ApartmentDef): Collider[] {
+  const colliders: Collider[] = [];
+  for (const wall of def.walls) {
+    const pieces = wallPieces(wall, def.wallHeight);
+    for (const piece of [...pieces.solid, ...pieces.glass, ...pieces.leaves.map((l) => l.box)]) {
+      if (piece.minY < BLOCKING_HEIGHT) colliders.push(boxCollider(piece));
+    }
+  }
+  for (const item of allFurniture(def)) {
+    if (blocksPlayer(item)) colliders.push(rectCollider(item.rect));
+  }
+  return colliders;
+}
+
+/** Ceiling height at a plan point (lowered ceilings included). */
+export function ceilingAt(def: ApartmentDef, x: number, z: number): number {
+  const area = def.areas.find(
+    ({ rect }) => x >= rect[0] && x <= rect[2] && z >= rect[1] && z <= rect[3],
+  );
+  return area?.ceiling ?? def.wallHeight;
+}
+
+/** Room of an area: its label, or the room it is open to. */
+export function roomOf(area: { label?: string; room?: string }, index: number): string {
+  return area.room ?? area.label ?? `#${index}`;
+}
+
+/** Rectangles of the room containing a plan point (all its areas). Pure. */
+export function roomRectsAt(def: ApartmentDef, x: number, z: number): Rect[] {
+  const index = def.areas.findIndex(
+    ({ rect }) => x >= rect[0] && x <= rect[2] && z >= rect[1] && z <= rect[3],
+  );
+  if (index < 0) return [];
+  const room = roomOf(def.areas[index], index);
+  return def.areas.filter((area, i) => roomOf(area, i) === room).map((area) => area.rect);
+}
+
+const RAIL = { top: 1.0, bottom: 0.27, size: 0.035, baluster: 0.016, spacing: 0.11, offset: 0.03 };
+
+/** +1 / -1: which side of a wall (along its normal) is outside the apartment, 0 if neither. Pure. */
+export function exteriorSide(def: ApartmentDef, wall: WallDef): number {
+  const alongX = wall.from[1] === wall.to[1];
+  const mid = alongX ? (wall.from[0] + wall.to[0]) / 2 : (wall.from[1] + wall.to[1]) / 2;
+  const center = alongX ? wall.from[1] : wall.from[0];
+  const probe = center + (wall.thickness / 2 + 0.1);
+  const inside = (n: number) => {
+    const [x, z] = alongX ? [mid, n] : [n, mid];
+    return def.areas.some(
+      ({ rect }) => x >= rect[0] && x <= rect[2] && z >= rect[1] && z <= rect[3],
+    );
+  };
+  const plus = inside(probe);
+  const minus = inside(center - (wall.thickness / 2 + 0.1));
+  if (plus === minus) return 0;
+  return plus ? -1 : 1;
+}
+
+/**
+ * Black metal guardrail for a window opening: top and bottom rails plus
+ * balusters, just outside the façade face. Pure.
+ */
+export function guardrailBars(wall: WallDef, opening: Box, side: number): Box[] {
+  const alongX = wall.from[1] === wall.to[1];
+  const center = alongX ? wall.from[1] : wall.from[0];
+  const plane = center + side * (wall.thickness / 2 + RAIL.offset);
+  const [s0, s1] = alongX ? [opening.minX, opening.maxX] : [opening.minZ, opening.maxZ];
+  const bar = (a0: number, a1: number, y0: number, y1: number, depth: number): Box =>
+    alongX
+      ? { minX: a0, maxX: a1, minY: y0, maxY: y1, minZ: plane - depth / 2, maxZ: plane + depth / 2 }
+      : {
+          minX: plane - depth / 2,
+          maxX: plane + depth / 2,
+          minY: y0,
+          maxY: y1,
+          minZ: a0,
+          maxZ: a1,
+        };
+  const bars = [
+    bar(s0, s1, RAIL.top - RAIL.size, RAIL.top, RAIL.size),
+    bar(s0, s1, RAIL.bottom, RAIL.bottom + RAIL.size * 0.6, RAIL.size * 0.6),
+  ];
+  const count = Math.max(1, Math.round((s1 - s0) / RAIL.spacing));
+  const step = (s1 - s0) / count;
+  for (let i = 0; i <= count; i++) {
+    const a = Math.min(s1 - RAIL.baluster / 2, Math.max(s0 + RAIL.baluster / 2, s0 + i * step));
+    bars.push(
+      bar(a - RAIL.baluster / 2, a + RAIL.baluster / 2, RAIL.bottom, RAIL.top, RAIL.baluster),
+    );
+  }
+  return bars;
+}
+
+/** Loose furniture plus the expanded kitchen and cupboards. */
+export function allFurniture(def: ApartmentDef): FurnitureDef[] {
+  return [...def.furniture, ...expandKitchen(def.kitchen), ...def.closets.flatMap(expandCloset)];
+}
+
+/** Bounding rectangle of all areas (the walkable footprint). */
 export function apartmentBounds(def: ApartmentDef): Collider {
-  const hx = def.width / 2 + def.wallThickness;
-  const hz = def.depth / 2 + def.wallThickness;
-  return { minX: -hx, maxX: hx, minZ: -hz, maxZ: hz };
+  const bounds = { minX: Infinity, maxX: -Infinity, minZ: Infinity, maxZ: -Infinity };
+  for (const { rect } of def.areas) {
+    bounds.minX = Math.min(bounds.minX, rect[0]);
+    bounds.minZ = Math.min(bounds.minZ, rect[1]);
+    bounds.maxX = Math.max(bounds.maxX, rect[2]);
+    bounds.maxZ = Math.max(bounds.maxZ, rect[3]);
+  }
+  return bounds;
 }
