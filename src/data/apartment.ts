@@ -67,8 +67,11 @@ export interface AreaDef {
   outdoor?: boolean;
 }
 
-/** Detailed model drawn instead of a box (see src/apartment/props.ts). */
-export type PropModel = "washingMachine" | "toilet";
+/**
+ * Detailed model drawn instead of a box: models/<file>.glb, exported from
+ * src/models/ (see src/apartment/modelFiles.ts).
+ */
+export type PropModel = "washingMachine" | "toilet" | "showerSet" | "showerScreen" | "showerDrain";
 
 export interface FurnitureDef {
   name: string;
@@ -82,7 +85,7 @@ export interface FurnitureDef {
   y?: number;
   /** below 1 = see-through (glass), does not cast shadows */
   opacity?: number;
-  /** draw a detailed model in the footprint instead of a box */
+  /** draw a detailed model in the footprint instead of a box (exported at this size) */
   model?: PropModel;
   /** direction the model's front faces (default +z) */
   facing?: Facing;
@@ -492,82 +495,31 @@ export const APARTMENT_DEF: ApartmentDef = {
       finish: "showerWall",
       solid: false,
     },
-    { name: "Caniveau", rect: [7.4, 5.7, 8.03, 5.77], h: 0.007, color: "#a9adb2", solid: false },
     {
-      name: "Caniveau (grille)",
-      rect: [7.42, 5.725, 8.01, 5.745],
-      h: 0.008,
-      color: "#5b5f63",
+      name: "Caniveau",
+      rect: [7.4, 5.7, 8.03, 5.77],
+      h: 0.005,
+      color: "#a9adb2",
+      model: "showerDrain",
       solid: false,
     },
+    // panel along the west edge, fixed to the north wall (local +x)
     {
       name: "Paroi de douche",
       rect: [7.35, 4.2, 7.37, 5.2],
       h: 2.0,
       color: "#dfeef3",
-      opacity: 0.22,
+      model: "showerScreen",
+      facing: "+x",
     },
-    {
-      name: "Profilé paroi",
-      rect: [7.345, 4.2, 7.375, 5.2],
-      y: 2.0,
-      h: 0.02,
-      color: "#151515",
-      solid: false,
-    },
-    {
-      name: "Profilé paroi (sol)",
-      rect: [7.345, 4.2, 7.375, 5.2],
-      h: 0.02,
-      color: "#151515",
-      solid: false,
-    },
+    // thermostatic column on the east wall: mixer, riser, rain head, hand shower
     {
       name: "Colonne de douche",
-      rect: [8.025, 4.985, 8.05, 5.01],
-      y: 1.0,
-      h: 1.08,
+      rect: [7.62, 4.86, 8.052, 5.16],
+      h: 2.05,
       color: "#151515",
-      solid: false,
-    },
-    {
-      name: "Bras de douche",
-      rect: [7.9, 4.987, 8.05, 5.008],
-      y: 2.06,
-      h: 0.02,
-      color: "#151515",
-      solid: false,
-    },
-    {
-      name: "Pomme de douche",
-      rect: [7.78, 4.87, 8.02, 5.11],
-      y: 2.04,
-      h: 0.012,
-      color: "#151515",
-      solid: false,
-    },
-    {
-      name: "Mitigeur thermostatique",
-      rect: [8.03, 4.9, 8.052, 5.1],
-      y: 1.0,
-      h: 0.07,
-      color: "#151515",
-      solid: false,
-    },
-    {
-      name: "Douchette",
-      rect: [8.01, 5.12, 8.04, 5.15],
-      y: 1.15,
-      h: 0.22,
-      color: "#151515",
-      solid: false,
-    },
-    {
-      name: "Support douchette",
-      rect: [8.04, 5.115, 8.052, 5.155],
-      y: 1.3,
-      h: 0.04,
-      color: "#151515",
+      model: "showerSet",
+      facing: "-x",
       solid: false,
     },
     // WC
@@ -582,7 +534,7 @@ export const APARTMENT_DEF: ApartmentDef = {
     {
       name: "WC",
       rect: [6.92, 6.12, 7.28, 6.68],
-      h: 0.42,
+      h: 0.46,
       color: "#f2f4f6",
       model: "toilet",
       facing: "+z",

@@ -72,10 +72,12 @@ float inRoomRect( vec4 r, vec2 p ) {
 #endif
 `;
 
-/** Patch a Lambert / Phong material so pooled point lights stop at their room's walls. */
+/** Patch a Lambert / Phong / PBR material so pooled point lights stop at their room's walls. */
 export function applyRoomMask(material: THREE.Material): void {
   const lit =
-    material instanceof THREE.MeshLambertMaterial || material instanceof THREE.MeshPhongMaterial;
+    material instanceof THREE.MeshLambertMaterial ||
+    material instanceof THREE.MeshPhongMaterial ||
+    material instanceof THREE.MeshStandardMaterial;
   if (!lit || material.userData.roomMask) return;
   material.userData.roomMask = true;
   material.customProgramCacheKey = () => `roomMask-${material.type}`;

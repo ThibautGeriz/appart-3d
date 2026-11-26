@@ -15,6 +15,7 @@ import type { InputSource } from "./controls/types";
 import { createClickToMove } from "./player/clickToMove";
 import { apartmentBounds } from "./apartment/plan";
 import { cameraObstacles } from "./player/camera";
+import { loadModels } from "./apartment/models";
 
 const container = document.getElementById("app") as HTMLElement;
 const isTouch = isTouchDevice();
@@ -39,13 +40,18 @@ scene.add(apartment.group);
 const dimensions = buildDimensions(APARTMENT_DEF);
 dimensions.visible = false;
 scene.add(dimensions);
-// Interior lights stop at their room's walls
-scene.traverse((o) => o instanceof THREE.Mesh && applyRoomMask(o.material));
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const player = new Player(APARTMENT_DEF.spawn);
 scene.add(player.avatar);
-player.avatar.traverse((o) => o instanceof THREE.Mesh && applyRoomMask(o.material));
+// Interior lights stop at their room's walls; again once the GLB models are in
+const maskLights = () =>
+  scene.traverse((o) => o instanceof THREE.Mesh && [o.material].flat().forEach(applyRoomMask));
+maskLights();
+void loadModels(apartment.models, player.avatar, isTouch).then(() => {
+  maskLights();
+  renderer.shadowMap.needsUpdate = true; // static shadows: include the models
+});
 const obstacles = cameraObstacles(APARTMENT_DEF); // keeps the third-person camera inside
 
 const hud = createHud(container, isTouch);

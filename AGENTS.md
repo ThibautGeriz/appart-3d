@@ -30,6 +30,9 @@ src/
   controls/        # input: keyboard+mouse (desktop), touch (mobile)
   ui/              # HUD overlays (joysticks, buttons, help)
   data/            # apartment layout: rooms, walls, openings, furniture
+  models/          # detailed model sources (toilet, shower, mannequin…), export only
+models/            # exported *.glb, loaded by the app (committed, checked in CI)
+scripts/           # export-glb.ts: src/models → models/*.glb
 ```
 
 Key rules:
@@ -44,6 +47,14 @@ Key rules:
   (no full physics engine unless the need is proven). The player is a
   vertical capsule/cylinder; sliding along walls must work smoothly.
 - Eye height ~1.6m; realistic scale (rooms in meters).
+- **Detailed models are GLBs**: a furniture item with `model: "…"` gets
+  `models/<file>.glb` (see `src/apartment/modelFiles.ts`), loaded
+  asynchronously into a slot at its footprint. The sources live in
+  `src/models/` (PBR materials, origin on the floor, front facing +z,
+  built at the footprint size from the layout data). After changing a
+  model or its footprint, run `npm run export:glb` and commit the GLBs:
+  CI fails if they are stale or invalid. Export with Node 24 (float output
+  differs between Node majors).
 
 ## Input Requirements (core feature — treat as spec)
 
@@ -92,6 +103,8 @@ npm run dev        # Vite dev server (test on a real phone via LAN URL)
 npm run build      # production build
 npm run preview    # serve the build
 npm test           # unit tests (Vitest) — must pass before any commit
+npm run export:glb   # rebuild models/*.glb from src/models
+npm run validate:glb # Khronos glTF validator on every model (as in CI)
 ```
 
 ## Conventions

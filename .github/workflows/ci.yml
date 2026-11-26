@@ -19,8 +19,37 @@ jobs:
       - run: npm test
       - run: npm run build
 
+  models:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # Float output differs in the last bits between Node majors (V8 math),
+          # so export with the same major as the committed models.
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Re-export the GLB models
+        run: npm run export:glb
+      - name: Check the committed models are up to date
+        run: |
+          if ! git diff --quiet -- models/; then
+            echo "::error::models/*.glb are stale: run 'npm run export:glb' and commit the result"
+            git status --short models/
+            exit 1
+          fi
+      - name: Upload the re-exported models
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: models
+          path: models/
+      - name: Validate the models (Khronos glTF validator)
+        run: npm run validate:glb
+
   deploy:
-    needs: check
+    needs: [check, models]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:

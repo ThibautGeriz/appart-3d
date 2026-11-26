@@ -3,7 +3,6 @@ import type { LookDelta, MoveIntent } from "../controls/types";
 import { computeVelocity, stepPlayer, type Collider } from "./movement";
 import type { Box } from "../apartment/plan";
 import { cameraDistance, FIRST_PERSON, viewDirection, zoomTarget } from "./camera";
-import { createAvatar } from "./avatar";
 
 const MAX_PITCH = Math.PI / 2 - 0.05;
 
@@ -34,8 +33,8 @@ export class Player {
   private zoomGoal = 0;
   /** camera orbit around the player (left drag in third person) */
   orbitYaw = 0;
-  /** shown in third person */
-  readonly avatar = createAvatar();
+  /** shown in third person; the mannequin model is loaded into it (loadModels) */
+  readonly avatar = new THREE.Group();
 
   constructor(spawn: PlayerSpawn) {
     this.x = spawn.x;
