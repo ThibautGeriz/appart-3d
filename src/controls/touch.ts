@@ -1,13 +1,21 @@
-import { IDLE_LOOK, type InputSource, type LookDelta, type MoveIntent } from "./types";
+import {
+  IDLE_LOOK,
+  type ClickHandler,
+  type InputSource,
+  type LookDelta,
+  type MoveIntent,
+} from "./types";
 import type { HudHandles } from "../ui/hud";
 
 const JOY_RADIUS = 64; // px — max thumb travel
 const TOUCH_LOOK_SENSITIVITY = 0.0045; // radians per px
+const TAP_SLOP = 10; // px — a look touch moving less than this is a tap
+const TAP_TIME = 300; // ms
 
 /**
  * Touch input:
  *  - left ~45% of the screen: virtual joystick (move)
- *  - rest of the screen: drag to look
+ *  - rest of the screen: drag to look, tap to walk there (click-to-move)
  *  - HUD run button: hold to run
  */
 export class TouchInput implements InputSource {
@@ -16,6 +24,8 @@ export class TouchInput implements InputSource {
   private joyVec = { x: 0, y: 0 }; // clamped px offset
   private lookId: number | null = null;
   private lookLast = { x: 0, y: 0 };
+  private lookStart = { x: 0, y: 0, t: 0, moved: false };
+  private clickHandlers: ClickHandler[] = [];
   private pendingLook: LookDelta = { ...IDLE_LOOK };
   private running = false;
   private attached = true;
@@ -63,6 +73,7 @@ export class TouchInput implements InputSource {
       if (this.lookId !== null) return;
       this.lookId = e.pointerId;
       this.lookLast = { x: e.clientX, y: e.clientY };
+      this.lookStart = { x: e.clientX, y: e.clientY, t: performance.now(), moved: false };
     }
   };
 
@@ -75,6 +86,9 @@ export class TouchInput implements InputSource {
       this.joyVec = { x: dx * scale, y: dy * scale };
       this.showJoystick(this.joyOrigin.x, this.joyOrigin.y, this.joyVec.x, this.joyVec.y);
     } else if (e.pointerId === this.lookId) {
+      const start = this.lookStart;
+      if (!start.moved && Math.hypot(e.clientX - start.x, e.clientY - start.y) < TAP_SLOP) return;
+      start.moved = true;
       this.pendingLook.yaw -= (e.clientX - this.lookLast.x) * TOUCH_LOOK_SENSITIVITY;
       this.pendingLook.pitch -= (e.clientY - this.lookLast.y) * TOUCH_LOOK_SENSITIVITY;
       this.lookLast = { x: e.clientX, y: e.clientY };
@@ -88,6 +102,10 @@ export class TouchInput implements InputSource {
       this.hideJoystick();
     } else if (e.pointerId === this.lookId) {
       this.lookId = null;
+      const start = this.lookStart;
+      if (!start.moved && performance.now() - start.t < TAP_TIME && e.type === "pointerup") {
+        for (const handler of this.clickHandlers) handler(start.x, start.y);
+      }
     }
   };
 
@@ -121,6 +139,14 @@ export class TouchInput implements InputSource {
     const look = this.pendingLook;
     this.pendingLook = { ...IDLE_LOOK };
     return look;
+  }
+
+  looking(): boolean {
+    return this.lookId !== null && this.lookStart.moved;
+  }
+
+  onClick(handler: ClickHandler): void {
+    this.clickHandlers.push(handler);
   }
 
   dispose(): void {

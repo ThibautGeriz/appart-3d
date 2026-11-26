@@ -38,8 +38,8 @@ export function createHud(container: HTMLElement, isTouch: boolean): HudHandles 
   const hint = document.createElement("div");
   hint.className = "hud-hint";
   hint.textContent = isTouch
-    ? "Gauche : marcher · Droite : regarder · Bouton : courir"
-    : "Cliquez pour capturer la souris · ZQSD / WASD : se déplacer · Q/E : tourner · Tab : cotes · O/P : heure · L : lumières · Maj : courir";
+    ? "Gauche : marcher · Droite : regarder · Toucher : aller ici · Bouton : courir"
+    : "Clic : aller ici · Glisser : regarder · 2 boutons : avancer · ZQSD : avancer / tourner · A/E : de côté · Maj : courir · Tab : cotes · L : lumières";
   hud.appendChild(hint);
 
   let crosshair: HTMLElement | null = null;

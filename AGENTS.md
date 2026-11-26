@@ -51,12 +51,20 @@ Desktop:
 
 - **WASD / ZQSD-aware**: detect keyboard layout so French AZERTY keyboards
   work natively (prefer `event.code` `KeyW/KeyA/...` over `key` characters).
-- Mouse look via Pointer Lock (click canvas to capture, ESC to release).
+- **World of Warcraft controls**, cursor always visible (no pointer lock):
+  - W/S forward/back, A/D turn, Q/E strafe (ZQSD + A/E on AZERTY), arrows
+    like W/S/A/D.
+  - Left drag = look around; right drag = turn (mouselook: A/D strafe while
+    held); both buttons = walk forward.
+  - Click (left or right, no drag) on the floor = click-to-move: walk there
+    along a path around walls (A* on a walkable grid). Movement keys or ESC
+    cancel it.
 - Shift = run, Space handled later (jump is optional; do not block on it).
 
 Mobile (touch):
 
-- **Left virtual joystick** = move, **right side drag** = look.
+- **Left virtual joystick** = move, **right side drag** = look, **tap** =
+  click-to-move.
 - On-screen Run button.
 - Must work with the canvas fullscreened; handle `visualViewport` and
   `100dvh` correctly (not `100vh`).
@@ -97,7 +105,8 @@ npm test           # unit tests (Vitest) — must pass before any commit
 - Unit-test pure logic: layout parsing, collider generation, input mapping
   (code→intent), player movement math.
 - Manual test checklist before considering a feature done:
-  - desktop: WASD + AZERTY + mouse look + pointer lock + run
+  - desktop: WASD + AZERTY, A/D turn, Q/E strafe, left/right drag, both
+    buttons forward, click-to-move (through doors), run
   - mobile: both joysticks, no scroll/zoom hijack, correct fullscreen height,
     playable framerate
   - collision: cannot walk through walls; smooth sliding in corridors
