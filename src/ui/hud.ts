@@ -7,7 +7,27 @@ export interface HudHandles {
   joyKnob: HTMLElement;
   runButton: HTMLElement;
   dimButton: HTMLElement;
+  sunButton: HTMLElement;
+  sunPanel: HTMLElement;
+  hourInput: HTMLInputElement;
+  hourLabel: HTMLElement;
+  monthSelect: HTMLSelectElement;
 }
+
+const MONTHS = [
+  "Janvier",
+  "Février",
+  "Mars",
+  "Avril",
+  "Mai",
+  "Juin",
+  "Juillet",
+  "Août",
+  "Septembre",
+  "Octobre",
+  "Novembre",
+  "Décembre",
+];
 
 /** Build the HUD overlay (hint, crosshair, touch joystick + run button). */
 export function createHud(container: HTMLElement, isTouch: boolean): HudHandles {
@@ -18,7 +38,7 @@ export function createHud(container: HTMLElement, isTouch: boolean): HudHandles 
   hint.className = "hud-hint";
   hint.textContent = isTouch
     ? "Gauche : marcher · Droite : regarder · Bouton : courir"
-    : "Cliquez pour capturer la souris · ZQSD / WASD : se déplacer · Q/E : tourner · Tab : cotes · Maj : courir";
+    : "Cliquez pour capturer la souris · ZQSD / WASD : se déplacer · Q/E : tourner · Tab : cotes · O/P : heure · Maj : courir";
   hud.appendChild(hint);
 
   let crosshair: HTMLElement | null = null;
@@ -50,7 +70,41 @@ export function createHud(container: HTMLElement, isTouch: boolean): HudHandles 
   dimButton.type = "button";
   hud.appendChild(dimButton);
 
+  // Sun panel: time of day + month
+  const sunButton = document.createElement("button");
+  sunButton.className = "hud-dim hud-sun";
+  sunButton.textContent = "☀ SOLEIL";
+  sunButton.type = "button";
+  hud.appendChild(sunButton);
+
+  const sunPanel = document.createElement("div");
+  sunPanel.className = "hud-sun-panel";
+  sunPanel.hidden = true;
+  const hourRow = document.createElement("label");
+  const hourLabel = document.createElement("span");
+  const hourInput = document.createElement("input");
+  Object.assign(hourInput, { type: "range", min: "4", max: "23", step: "0.25" });
+  hourRow.append(hourLabel, hourInput);
+  const monthSelect = document.createElement("select");
+  MONTHS.forEach((name, i) => monthSelect.add(new Option(name, String(i))));
+  sunPanel.append(hourRow, monthSelect);
+  // Keep touches on the panel from driving the joystick / look controls
+  sunPanel.addEventListener("pointerdown", (e) => e.stopPropagation());
+  hud.appendChild(sunPanel);
+
   container.appendChild(hud);
 
-  return { hint, crosshair, joyBase, joyKnob, runButton, dimButton };
+  return {
+    hint,
+    crosshair,
+    joyBase,
+    joyKnob,
+    runButton,
+    dimButton,
+    sunButton,
+    sunPanel,
+    hourInput,
+    hourLabel,
+    monthSelect,
+  };
 }

@@ -1,9 +1,10 @@
 import * as THREE from "three";
 import type { ApartmentDef } from "../data/apartment";
-import { roomLabelText, wallLength } from "./labels";
+import { formatMeters, roomLabelText } from "./labels";
+import { wallPieces, type Box } from "./plan";
 
 const PX_PER_UNIT = 90; // canvas px per world meter (sprite scale)
-const MIN_WALL_LABEL = 1.5; // skip short segments (door jambs)
+const MIN_WALL_LABEL = 0.5; // skip short segments (door jambs, corner posts)
 const LINE_HEIGHT = 38;
 const PADDING = 14;
 const FONT = "600 30px system-ui, sans-serif";
@@ -33,7 +34,7 @@ function makeTextSprite(text: string, color: string): THREE.Sprite {
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
-  const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+  const material = new THREE.SpriteMaterial({ map: texture, transparent: true, toneMapped: false });
   const sprite = new THREE.Sprite(material);
   sprite.scale.set(canvas.width / PX_PER_UNIT, canvas.height / PX_PER_UNIT, 1);
   return sprite;
@@ -56,25 +57,40 @@ function roundRect(
   ctx.closePath();
 }
 
+/** Horizontal length of a box (its long side in the XZ plane). */
+function boxLength(box: Box): number {
+  return Math.max(box.maxX - box.minX, box.maxZ - box.minZ);
+}
+
 /**
  * Dimension overlay ("cotes"): room name + size over each room,
- * wall lengths at wall midpoints. Toggle with Tab / the HUD button.
+ * lengths of wall parts and openings along each wall. Toggle with Tab / the HUD button.
  */
 export function buildDimensions(def: ApartmentDef): THREE.Group {
   const group = new THREE.Group();
 
-  for (const room of def.rooms) {
-    const sprite = makeTextSprite(roomLabelText(room), "#1a1a2e");
-    sprite.position.set(room.x, 2.1, room.z);
+  for (const area of def.areas) {
+    if (!area.label) continue;
+    const [minX, minZ, maxX, maxZ] = area.rect;
+    const text = roomLabelText({ label: area.label, w: maxX - minX, d: maxZ - minZ });
+    const sprite = makeTextSprite(text, "#1a1a2e");
+    sprite.position.set((minX + maxX) / 2, 2.0, (minZ + maxZ) / 2);
     group.add(sprite);
   }
 
-  for (const wall of def.walls) {
-    const length = wallLength(wall);
-    if (length < MIN_WALL_LABEL) continue;
-    const sprite = makeTextSprite(`${length.toFixed(2).replace(".", ",")} m`, "#333333");
-    sprite.position.set(wall.x, 0.45, wall.z);
+  const addLength = (box: Box, y: number, color: string) => {
+    const length = boxLength(box);
+    if (length < MIN_WALL_LABEL) return;
+    const sprite = makeTextSprite(formatMeters(length), color);
+    sprite.position.set((box.minX + box.maxX) / 2, y, (box.minZ + box.maxZ) / 2);
     group.add(sprite);
+  };
+  for (const wall of def.walls) {
+    const pieces = wallPieces(wall, def.wallHeight);
+    for (const piece of pieces.solid) {
+      if (piece.minY === 0 && piece.maxY === def.wallHeight) addLength(piece, 0.45, "#333333");
+    }
+    for (const opening of pieces.openings) addLength(opening, 1.2, "#1d5fa8");
   }
 
   return group;

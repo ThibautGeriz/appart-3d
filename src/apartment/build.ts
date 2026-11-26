@@ -1,6 +1,7 @@
 import * as THREE from "three";
-import type { ApartmentDef } from "../data/apartment";
-import { wallCollider } from "./plan";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import type { ApartmentDef, Rect } from "../data/apartment";
+import { buildColliders, wallPieces, type Box } from "./plan";
 import type { Collider } from "../player/movement";
 
 export interface BuiltApartment {
@@ -8,68 +9,143 @@ export interface BuiltApartment {
   colliders: Collider[];
 }
 
+const FRAME = 0.05;
+
+function boxGeometry(box: Box): THREE.BufferGeometry {
+  const geometry = new THREE.BoxGeometry(
+    box.maxX - box.minX,
+    box.maxY - box.minY,
+    box.maxZ - box.minZ,
+  );
+  geometry.translate(
+    (box.minX + box.maxX) / 2,
+    (box.minY + box.maxY) / 2,
+    (box.minZ + box.maxZ) / 2,
+  );
+  return geometry;
+}
+
+function rectBox(rect: Rect, minY: number, maxY: number): Box {
+  const [minX, minZ, maxX, maxZ] = rect;
+  return { minX, maxX, minY, maxY, minZ, maxZ };
+}
+
+function horizontalPlane(rect: Rect, y: number, facingUp: boolean): THREE.BufferGeometry {
+  const [minX, minZ, maxX, maxZ] = rect;
+  const geometry = new THREE.PlaneGeometry(maxX - minX, maxZ - minZ);
+  geometry.rotateX(facingUp ? -Math.PI / 2 : Math.PI / 2);
+  geometry.translate((minX + maxX) / 2, y, (minZ + maxZ) / 2);
+  return geometry;
+}
+
+/** Four thin bars around an opening, flush with the glass. */
+function frameBoxes(opening: Box): Box[] {
+  const alongX = opening.maxX - opening.minX > opening.maxZ - opening.minZ;
+  const cx = (opening.minX + opening.maxX) / 2;
+  const cz = (opening.minZ + opening.maxZ) / 2;
+  const thin = (b: Box): Box =>
+    alongX
+      ? { ...b, minZ: cz - FRAME, maxZ: cz + FRAME }
+      : { ...b, minX: cx - FRAME, maxX: cx + FRAME };
+  const start = alongX ? opening.minX : opening.minZ;
+  const end = alongX ? opening.maxX : opening.maxZ;
+  const span = (a: number, b: number): Partial<Box> =>
+    alongX ? { minX: a, maxX: b } : { minZ: a, maxZ: b };
+  return [
+    thin({ ...opening, maxY: opening.minY + FRAME }),
+    thin({ ...opening, minY: opening.maxY - FRAME }),
+    thin({ ...opening, ...span(start, start + FRAME) }),
+    thin({ ...opening, ...span(end - FRAME, end) }),
+  ];
+}
+
+/** Merge geometries into one mesh (one draw call). */
+function mergedMesh(geometries: THREE.BufferGeometry[], material: THREE.Material): THREE.Mesh {
+  const mesh = new THREE.Mesh(mergeGeometries(geometries), material);
+  for (const geometry of geometries) geometry.dispose();
+  return mesh;
+}
+
+/** Group geometries by color and merge each group. */
+function mergedByColor(items: { color: string; geometry: THREE.BufferGeometry }[]): THREE.Mesh[] {
+  const byColor = new Map<string, THREE.BufferGeometry[]>();
+  for (const { color, geometry } of items) {
+    byColor.set(color, [...(byColor.get(color) ?? []), geometry]);
+  }
+  return [...byColor].map(([color, geometries]) =>
+    mergedMesh(geometries, new THREE.MeshLambertMaterial({ color })),
+  );
+}
+
 /** Build the apartment scene graph and colliders from the layout data. */
 export function buildApartment(def: ApartmentDef): BuiltApartment {
   const group = new THREE.Group();
-  const colliders: Collider[] = [];
+  const { wallHeight } = def;
 
-  const { width, depth, wallHeight } = def;
-
-  // Floor
-  const floor = new THREE.Mesh(
-    new THREE.PlaneGeometry(width, depth),
-    new THREE.MeshLambertMaterial({ color: def.floorColor }),
-  );
-  floor.rotation.x = -Math.PI / 2;
-  group.add(floor);
-
-  // Ceiling
-  const ceiling = new THREE.Mesh(
-    new THREE.PlaneGeometry(width, depth),
-    new THREE.MeshLambertMaterial({ color: def.ceilingColor }),
-  );
-  ceiling.rotation.x = Math.PI / 2;
-  ceiling.position.y = wallHeight;
-  group.add(ceiling);
-
-  // Walls
-  const wallMaterial = new THREE.MeshLambertMaterial({ color: def.wallColor });
+  // Walls, glazing and window frames
+  const wallGeometries: THREE.BufferGeometry[] = [];
+  const glassGeometries: THREE.BufferGeometry[] = [];
+  const frameGeometries: THREE.BufferGeometry[] = [];
   for (const wall of def.walls) {
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(wall.w, wallHeight, wall.d), wallMaterial);
-    mesh.position.set(wall.x, wallHeight / 2, wall.z);
-    group.add(mesh);
-    colliders.push(wallCollider(wall));
+    const pieces = wallPieces(wall, wallHeight);
+    wallGeometries.push(...pieces.solid.map(boxGeometry));
+    glassGeometries.push(...pieces.glass.map(boxGeometry));
+    for (const glass of pieces.glass) frameGeometries.push(...frameBoxes(glass).map(boxGeometry));
+  }
+  group.add(mergedMesh(wallGeometries, new THREE.MeshLambertMaterial({ color: def.wallColor })));
+  if (glassGeometries.length > 0) {
+    const glassMaterial = new THREE.MeshLambertMaterial({
+      color: def.glassColor,
+      transparent: true,
+      opacity: 0.12,
+      depthWrite: false,
+    });
+    const glass = mergedMesh(glassGeometries, glassMaterial);
+    glass.name = "glass";
+    group.add(glass);
+    group.add(
+      mergedMesh(frameGeometries, new THREE.MeshLambertMaterial({ color: def.frameColor })),
+    );
   }
 
-  // Furniture
-  for (const item of def.furniture) {
-    const mesh = new THREE.Mesh(
-      new THREE.BoxGeometry(item.w, item.h, item.d),
-      new THREE.MeshLambertMaterial({ color: item.color }),
-    );
-    mesh.position.set(item.x, item.h / 2, item.z);
-    group.add(mesh);
-    if (item.solid !== false) {
-      colliders.push({
-        minX: item.x - item.w / 2,
-        maxX: item.x + item.w / 2,
-        minZ: item.z - item.d / 2,
-        maxZ: item.z + item.d / 2,
-      });
+  // Floors (per color), ceilings and lowered-ceiling soffits (HSFP)
+  const ceilingGeometries: THREE.BufferGeometry[] = [];
+  for (const area of def.areas) {
+    if (area.outdoor) continue;
+    ceilingGeometries.push(horizontalPlane(area.rect, wallHeight, false));
+    if (area.ceiling !== undefined && area.ceiling < wallHeight) {
+      ceilingGeometries.push(boxGeometry(rectBox(area.rect, area.ceiling, wallHeight)));
     }
   }
+  for (const mesh of mergedByColor(
+    def.areas.map((area) => ({
+      color: area.floorColor,
+      geometry: horizontalPlane(area.rect, 0, true),
+    })),
+  )) {
+    group.add(mesh);
+  }
+  group.add(
+    mergedMesh(ceilingGeometries, new THREE.MeshLambertMaterial({ color: def.ceilingColor })),
+  );
 
-  // Decor (windows…)
-  for (const deco of def.decor) {
-    const material = new THREE.MeshLambertMaterial({
-      color: deco.color,
-      transparent: (deco.opacity ?? 1) < 1,
-      opacity: deco.opacity ?? 1,
-    });
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(deco.w, deco.h, deco.d), material);
-    mesh.position.set(deco.x, deco.y, deco.z);
+  // Furniture (per color)
+  for (const mesh of mergedByColor(
+    def.furniture.map((item) => {
+      const y = item.y ?? 0;
+      return { color: item.color, geometry: boxGeometry(rectBox(item.rect, y, y + item.h)) };
+    }),
+  )) {
     group.add(mesh);
   }
 
-  return { group, colliders };
+  // Everything casts and receives sun shadows, except the glazing (lets the light in)
+  group.traverse((object) => {
+    if (object instanceof THREE.Mesh && object.name !== "glass") {
+      object.castShadow = true;
+      object.receiveShadow = true;
+    }
+  });
+
+  return { group, colliders: buildColliders(def) };
 }
