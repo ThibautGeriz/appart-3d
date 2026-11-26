@@ -22,6 +22,8 @@ export interface OpeningDef {
   glass?: boolean;
   /** glazed leaves side by side (2 = casement opening in the middle) */
   panes?: number;
+  /** black metal guardrail on the outside face (low sills) */
+  guardrail?: boolean;
   /** closed door leaf filling the opening (blocks the player), as a color */
   leaf?: string;
 }
@@ -63,6 +65,9 @@ export interface AreaDef {
   outdoor?: boolean;
 }
 
+/** Detailed model drawn instead of a box (see src/apartment/props.ts). */
+export type PropModel = "washingMachine" | "toilet";
+
 export interface FurnitureDef {
   name: string;
   rect: Rect;
@@ -75,6 +80,10 @@ export interface FurnitureDef {
   y?: number;
   /** below 1 = see-through (glass), does not cast shadows */
   opacity?: number;
+  /** draw a detailed model in the footprint instead of a box */
+  model?: PropModel;
+  /** direction the model's front faces (default +z) */
+  facing?: Facing;
   /** blocks the player (default true) */
   solid?: boolean;
 }
@@ -195,6 +204,7 @@ const window = (at: number, width: number): OpeningDef => ({
   at,
   width,
   panes: 2,
+  guardrail: true,
   sill: 0.2,
   head: 2.15,
   glass: true,
@@ -290,7 +300,8 @@ export const APARTMENT_DEF: ApartmentDef = {
       from: [7.45, 3.65],
       to: [14.43, 3.65],
       thickness: 0.3,
-      openings: [frenchWindow(1.2, 0.75), window(4.41, 1.4)],
+      // Ch. 2 French window has a guardrail too (hatched on the plan)
+      openings: [{ ...frenchWindow(1.2, 0.75), guardrail: true }, window(4.41, 1.4)],
     },
     // East façade
     { from: [14.34, 3.5], to: [14.34, 8.69], thickness: 0.18 },
@@ -401,7 +412,14 @@ export const APARTMENT_DEF: ApartmentDef = {
     { name: "Gaine entrée", rect: [3.7, 7.86, 4.38, 8.5], h: 2.2, color: GAINE },
     { name: "Tableau électrique", rect: [5.21, 5.92, 5.81, 6.2], h: 2.0, color: "#e6e2da" },
     // Salle de bain
-    { name: "Lave-linge", rect: [5.22, 3.8, 5.84, 4.4], h: 0.85, color: "#f2f4f6" },
+    {
+      name: "Lave-linge",
+      rect: [5.22, 3.8, 5.82, 4.4],
+      h: 0.85,
+      color: "#f2f4f6",
+      model: "washingMachine",
+      facing: "+z",
+    },
     // Double vanity: wall-hung oak cabinet, white top with two basins, mirror
     {
       name: "Meuble vasque",
@@ -481,7 +499,22 @@ export const APARTMENT_DEF: ApartmentDef = {
       solid: false,
     },
     // WC
-    { name: "WC", rect: [6.8, 6.0, 7.2, 6.65], h: 0.42, color: "#f2f4f6" },
+    // Wall-hung toilet on the boxed-in cistern ("tablette medium" on the plan)
+    {
+      name: "Coffrage WC",
+      rect: [6.75, 5.92, 7.45, 6.12],
+      h: 1.12,
+      color: "#ffffff",
+      finish: "plaster",
+    },
+    {
+      name: "WC",
+      rect: [6.92, 6.12, 7.28, 6.68],
+      h: 0.42,
+      color: "#f2f4f6",
+      model: "toilet",
+      facing: "+z",
+    },
     { name: "Gaine WC", rect: [7.51, 5.92, 8.065, 7.3], h: 2.2, color: GAINE },
     // Chambre 1
     // Balcony railings

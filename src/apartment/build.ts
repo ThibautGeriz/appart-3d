@@ -3,7 +3,16 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import type { ApartmentDef, Finish, Rect } from "../data/apartment";
 import { finishSize, surfaceMaterial } from "./textures";
 import { applyWorldUVs } from "./uv";
-import { allFurniture, buildColliders, wallPieces, type Box } from "./plan";
+import { buildProp } from "./props";
+import { facingVector } from "./facing";
+import {
+  allFurniture,
+  buildColliders,
+  exteriorSide,
+  guardrailBars,
+  wallPieces,
+  type Box,
+} from "./plan";
 import type { Collider } from "../player/movement";
 
 export interface BuiltApartment {
@@ -147,6 +156,10 @@ export function buildApartment(def: ApartmentDef): BuiltApartment {
       }
     }
     glassGeometries.push(...pieces.glass.map(boxGeometry));
+    const side = exteriorSide(def, wall);
+    for (const opening of pieces.guarded) {
+      frameGeometries.push(...guardrailBars(wall, opening, side || 1).map(boxGeometry));
+    }
     pieces.glass.forEach((glass, i) =>
       frameGeometries.push(...frameBoxes(glass, pieces.panes[i]).map(boxGeometry)),
     );
@@ -194,23 +207,44 @@ export function buildApartment(def: ApartmentDef): BuiltApartment {
 
   // Furniture (per material), patterns start at each item's corner
   for (const mesh of mergedByMaterial(
-    allFurniture(def).map((item) => {
-      const y = item.y ?? 0;
-      const geometry = boxGeometry(rectBox(item.rect, y, y + item.h));
-      return {
-        color: item.color,
-        finish: item.finish,
-        opacity: item.opacity,
-        geometry: finished(geometry, item.finish, [item.rect[0], y, item.rect[1]]),
-      };
-    }),
+    allFurniture(def)
+      .filter((item) => !item.model)
+      .map((item) => {
+        const y = item.y ?? 0;
+        const geometry = boxGeometry(rectBox(item.rect, y, y + item.h));
+        return {
+          color: item.color,
+          finish: item.finish,
+          opacity: item.opacity,
+          geometry: finished(geometry, item.finish, [item.rect[0], y, item.rect[1]]),
+        };
+      }),
   )) {
     group.add(mesh);
   }
 
+  // Detailed models (washing machine, toilet), rotated to face the room
+  const props = new THREE.Group();
+  for (const item of allFurniture(def).filter((i) => i.model)) {
+    const [minX, minZ, maxX, maxZ] = item.rect;
+    const [fx, fz] = facingVector(item.facing ?? "+z");
+    const alongX = fx === 0; // front faces ±z: model width runs along x
+    const w = alongX ? maxX - minX : maxZ - minZ;
+    const d = alongX ? maxZ - minZ : maxX - minX;
+    const prop = buildProp(item.model!, w, d, item.h);
+    prop.position.set((minX + maxX) / 2, item.y ?? 0, (minZ + maxZ) / 2);
+    prop.rotation.y = Math.atan2(fx, fz);
+    props.add(prop);
+  }
+  group.add(props);
+
   // Everything casts and receives sun shadows, except the glazing (lets the light in)
   group.traverse((object) => {
-    if (object instanceof THREE.Mesh && object.name !== "glass") {
+    if (
+      object instanceof THREE.Mesh &&
+      object.name !== "glass" &&
+      !props.children.includes(object.parent as THREE.Object3D)
+    ) {
       object.castShadow = true;
       object.receiveShadow = true;
     }

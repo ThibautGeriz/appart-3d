@@ -32,6 +32,8 @@ export interface WallPieces {
   openings: Box[];
   /** glazed leaves per glass opening (same order as `glass`) */
   panes: number[];
+  /** openings that get a guardrail */
+  guarded: Box[];
   /** closed door leaves: color + box, and lever handles on both faces */
   leaves: { color: string; box: Box; handles: Box[] }[];
 }
@@ -93,7 +95,14 @@ export function wallPieces(wall: WallDef, wallHeight: number): WallPieces {
       : { minX: center - halfT, maxX: center + halfT, minY, maxY, minZ: a, maxZ: b };
 
   const openings: OpeningDef[] = [...(wall.openings ?? [])].sort((a, b) => a.at - b.at);
-  const pieces: WallPieces = { solid: [], glass: [], openings: [], panes: [], leaves: [] };
+  const pieces: WallPieces = {
+    solid: [],
+    glass: [],
+    openings: [],
+    panes: [],
+    guarded: [],
+    leaves: [],
+  };
   let cursor = start;
   for (const opening of openings) {
     const a = start + opening.at;
@@ -105,6 +114,7 @@ export function wallPieces(wall: WallDef, wallHeight: number): WallPieces {
     if (opening.sill > 0) pieces.solid.push(box(a, b, 0, opening.sill));
     if (opening.head < wallHeight) pieces.solid.push(box(a, b, opening.head, wallHeight));
     pieces.openings.push(box(a, b, opening.sill, opening.head));
+    if (opening.guardrail) pieces.guarded.push(box(a, b, opening.sill, opening.head));
     if (opening.leaf) {
       // Lever handle at 1.05 m, near the opening's far end (lock side)
       const handleAt = b - 0.09;
@@ -194,6 +204,61 @@ export function roomRectsAt(def: ApartmentDef, x: number, z: number): Rect[] {
   if (index < 0) return [];
   const room = roomOf(def.areas[index], index);
   return def.areas.filter((area, i) => roomOf(area, i) === room).map((area) => area.rect);
+}
+
+const RAIL = { top: 1.0, bottom: 0.27, size: 0.035, baluster: 0.016, spacing: 0.11, offset: 0.03 };
+
+/** +1 / -1: which side of a wall (along its normal) is outside the apartment, 0 if neither. Pure. */
+export function exteriorSide(def: ApartmentDef, wall: WallDef): number {
+  const alongX = wall.from[1] === wall.to[1];
+  const mid = alongX ? (wall.from[0] + wall.to[0]) / 2 : (wall.from[1] + wall.to[1]) / 2;
+  const center = alongX ? wall.from[1] : wall.from[0];
+  const probe = center + (wall.thickness / 2 + 0.1);
+  const inside = (n: number) => {
+    const [x, z] = alongX ? [mid, n] : [n, mid];
+    return def.areas.some(
+      ({ rect }) => x >= rect[0] && x <= rect[2] && z >= rect[1] && z <= rect[3],
+    );
+  };
+  const plus = inside(probe);
+  const minus = inside(center - (wall.thickness / 2 + 0.1));
+  if (plus === minus) return 0;
+  return plus ? -1 : 1;
+}
+
+/**
+ * Black metal guardrail for a window opening: top and bottom rails plus
+ * balusters, just outside the façade face. Pure.
+ */
+export function guardrailBars(wall: WallDef, opening: Box, side: number): Box[] {
+  const alongX = wall.from[1] === wall.to[1];
+  const center = alongX ? wall.from[1] : wall.from[0];
+  const plane = center + side * (wall.thickness / 2 + RAIL.offset);
+  const [s0, s1] = alongX ? [opening.minX, opening.maxX] : [opening.minZ, opening.maxZ];
+  const bar = (a0: number, a1: number, y0: number, y1: number, depth: number): Box =>
+    alongX
+      ? { minX: a0, maxX: a1, minY: y0, maxY: y1, minZ: plane - depth / 2, maxZ: plane + depth / 2 }
+      : {
+          minX: plane - depth / 2,
+          maxX: plane + depth / 2,
+          minY: y0,
+          maxY: y1,
+          minZ: a0,
+          maxZ: a1,
+        };
+  const bars = [
+    bar(s0, s1, RAIL.top - RAIL.size, RAIL.top, RAIL.size),
+    bar(s0, s1, RAIL.bottom, RAIL.bottom + RAIL.size * 0.6, RAIL.size * 0.6),
+  ];
+  const count = Math.max(1, Math.round((s1 - s0) / RAIL.spacing));
+  const step = (s1 - s0) / count;
+  for (let i = 0; i <= count; i++) {
+    const a = Math.min(s1 - RAIL.baluster / 2, Math.max(s0 + RAIL.baluster / 2, s0 + i * step));
+    bars.push(
+      bar(a - RAIL.baluster / 2, a + RAIL.baluster / 2, RAIL.bottom, RAIL.top, RAIL.baluster),
+    );
+  }
+  return bars;
 }
 
 /** Loose furniture plus the expanded kitchen and cupboards. */

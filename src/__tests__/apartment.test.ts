@@ -144,3 +144,24 @@ describe("apartment layout", () => {
     }
   });
 });
+
+describe("window guardrails", () => {
+  it("puts guardrails outside, on every low window", async () => {
+    const { exteriorSide, guardrailBars, wallPieces } = await import("../apartment/plan");
+    const guarded = APARTMENT_DEF.walls.filter((w) => (w.openings ?? []).some((o) => o.guardrail));
+    expect(guarded.length).toBe(2); // séjour north façade, bedrooms façade
+    for (const wall of guarded) {
+      const side = exteriorSide(APARTMENT_DEF, wall);
+      expect(side).toBe(-1); // both façades face north (-z)
+      const pieces = wallPieces(wall, APARTMENT_DEF.wallHeight);
+      for (const opening of pieces.guarded) {
+        const bars = guardrailBars(wall, opening, side);
+        const top = Math.max(...bars.map((b) => b.maxY));
+        expect(top).toBeCloseTo(1.0); // 1 m high, the regulatory minimum
+        for (const bar of bars)
+          expect(bar.maxZ).toBeLessThan(wall.from[1] - wall.thickness / 2 + 1e-9);
+        expect(bars.length).toBeGreaterThan(5); // rails + balusters
+      }
+    }
+  });
+});
