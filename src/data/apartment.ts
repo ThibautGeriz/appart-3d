@@ -684,9 +684,39 @@ export const APARTMENT_DEF: ApartmentDef = {
     // dining table: its end against the north wall, centred on the 2.04 m
     // pier between the two windows (x 2.16 → 4.20), running into the room
     dining: { wall: [3.18, 0], towards: "+z", gap: 0.05, maxChairs: 6 },
-    // living area, east side of the séjour
-    coffeeTable: { center: [6.1, 2.35], along: "+x" },
-    defaults: { table: "table-valmo-220", chair: "chair-norway", coffeeTable: "coffee-norway" },
+    // Living area (east side of the séjour), one layout per sofa:
+    living: {
+      // Option 4, corner sofa 312 × 197: long side along the north wall, 20 cm
+      // from it, ending 10 cm from the east wall (x 4.23 → 7.35, z 0.20 → 2.17);
+      // coffee table 40 cm from both sofa sides
+      "sofa-roma-corner": {
+        sofa: { center: [5.79, 1.185], facing: "+z" },
+        coffeeTable: { anchor: [5.67, 1.64], align: [-1, -1], along: "+x" },
+        // TV unit against the bathroom wall, facing the sofa (plan: hi-fi at x 5.6 → 7.0)
+        tvUnit: { anchor: [6.3, 3.695], align: [0, 1], along: "-x" },
+      },
+      // Option 2, straight sofa 210: back 20 cm from the bathroom wall (z 3.695),
+      // right arm against the east wall (x 5.35 → 7.45, z 2.455 → 3.495);
+      // coffee table 43 cm in front of it, 66 cm from the east wall
+      "sofa-roma-210": {
+        sofa: { center: [6.4, 2.975], facing: "-z" },
+        coffeeTable: { anchor: [6.79, 2.025], align: [1, 1], along: "+x" },
+        // TV unit against the north wall, right of the window (plan: hi-fi at x 5.85 → 7.05)
+        tvUnit: { anchor: [6.45, 0], align: [0, -1], along: "+x" },
+      },
+    },
+    // sideboard on the séjour's south wall, its right end at the living-room
+    // entrance (x 3.70), facing the room; the wall is 1.53 m long between the
+    // cellier door (ends x 2.17) and the entrance
+    sideboard: { anchor: [3.7, 4.42], align: [1, 1], along: "-x" },
+    defaults: {
+      table: "table-valmo-220",
+      chair: "chair-norway",
+      coffeeTable: "coffee-norway",
+      sofa: "sofa-roma-corner",
+      sideboard: "sideboard-norway",
+      tvUnit: "tv-norway",
+    },
   },
 
   spawn: { x: 5.0, z: 8.15, yaw: 0.2 },

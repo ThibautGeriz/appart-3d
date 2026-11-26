@@ -21,14 +21,32 @@ export interface DiningDef {
 }
 
 export interface CoffeeTableDef {
-  center: [number, number];
+  /**
+   * where the table goes: its edge(s) picked by `align` sit on `anchor`
+   * (align -1 = min side, 1 = max side, 0 = centre, per axis), so the gaps to
+   * the sofa and walls hold whatever coffee table is chosen
+   */
+  anchor: [number, number];
+  align: [number, number];
   /** direction of the table's length */
   along: Facing;
 }
 
+/** A living-room arrangement, tied to the sofa it is drawn for. */
+export interface LivingDef {
+  /** sofa centre (of its bounding box) and the way its long side's front faces */
+  sofa: { center: [number, number]; facing: Facing };
+  coffeeTable: CoffeeTableDef;
+  /** TV unit facing the sofa */
+  tvUnit: CoffeeTableDef;
+}
+
 export interface FurnishingDef {
   dining: DiningDef;
-  coffeeTable: CoffeeTableDef;
+  /** living-room layout per sofa product id */
+  living: Record<string, LivingDef>;
+  /** sideboard against a wall (along "-x": its front faces -z, …) */
+  sideboard: CoffeeTableDef;
   /** selection when nothing is saved yet */
   defaults: Selection;
 }
@@ -43,6 +61,8 @@ export interface Placement {
   rotationY: number;
   /** footprint on the plan, for the colliders */
   rect: Rect;
+  /** several rectangles when the footprint is not one (corner sofa) */
+  rects?: Rect[];
 }
 
 /** Minimum width per diner along the table. */
@@ -115,7 +135,10 @@ export function diningLayout(def: DiningDef, table: Product, chair: Product): Pl
 
 export function coffeeTableLayout(def: CoffeeTableDef, table: Product): Placement {
   const dir = facingVector(def.along);
-  const [x, z] = def.center;
+  const alongX = dir[1] === 0;
+  const [sx, sz] = alongX ? [table.w, table.d] : [table.d, table.w];
+  const x = def.anchor[0] - (def.align[0] * sx) / 2;
+  const z = def.anchor[1] - (def.align[1] * sz) / 2;
   return {
     product: table,
     x,
@@ -125,11 +148,56 @@ export function coffeeTableLayout(def: CoffeeTableDef, table: Product): Placemen
   };
 }
 
-/** Everything to place for a selection. Pure. */
+/** Model-frame rectangle → plan rectangle, for a model at (x, z) turned by `rotationY`. Pure. */
+export function placeRect(
+  [x0, z0, x1, z1]: [number, number, number, number],
+  x: number,
+  z: number,
+  rotationY: number,
+): Rect {
+  const c = Math.round(Math.cos(rotationY));
+  const s = Math.round(Math.sin(rotationY)); // quarter turns only
+  const corners = [
+    [x0, z0],
+    [x1, z1],
+  ].map(([px, pz]) => [x + px * c + pz * s, z - px * s + pz * c]);
+  return [
+    Math.min(corners[0][0], corners[1][0]),
+    Math.min(corners[0][1], corners[1][1]),
+    Math.max(corners[0][0], corners[1][0]),
+    Math.max(corners[0][1], corners[1][1]),
+  ];
+}
+
+export function sofaLayout(def: LivingDef, sofa: Product): Placement {
+  const [x, z] = def.sofa.center;
+  const rotationY = rotationFacing(facingVector(def.sofa.facing));
+  const whole: [number, number, number, number] = [
+    -sofa.w / 2,
+    -sofa.d / 2,
+    sofa.w / 2,
+    sofa.d / 2,
+  ];
+  return {
+    product: sofa,
+    x,
+    z,
+    rotationY,
+    rect: placeRect(whole, x, z, rotationY),
+    rects: (sofa.parts ?? [whole]).map((part) => placeRect(part, x, z, rotationY)),
+  };
+}
+
+/** Everything to place for a selection: the living room follows the sofa. Pure. */
 export function furnishingLayout(def: FurnishingDef, selection: Selection): Placement[] {
+  const living = def.living[selection.sofa];
+  if (!living) throw new Error(`no living-room layout for ${selection.sofa}`);
   return [
     ...diningLayout(def.dining, product(selection.table), product(selection.chair)),
-    coffeeTableLayout(def.coffeeTable, product(selection.coffeeTable)),
+    sofaLayout(living, product(selection.sofa)),
+    coffeeTableLayout(living.coffeeTable, product(selection.coffeeTable)),
+    coffeeTableLayout(living.tvUnit, product(selection.tvUnit)),
+    coffeeTableLayout(def.sideboard, product(selection.sideboard)),
   ];
 }
 
@@ -171,8 +239,12 @@ export function budget(def: ApartmentDef, placements: Placement[]): BudgetRoom[]
   });
 }
 
-/** 1234.5 → "1 235 €" (French grouping). Pure. */
+/** 1234 → "1 234 €", 3386.46 → "3 386,46 €" (French grouping, cents only when there are some). Pure. */
 export function formatEuros(amount: number): string {
-  const rounded = Math.round(amount).toString();
-  return `${rounded.replace(/\B(?=(\d{3})+(?!\d))/g, " ")} €`;
+  const cents = Math.round(amount * 100);
+  const euros = Math.floor(cents / 100)
+    .toString()
+    .replace(/\B(?=(\d{3})+(?!\d))/g, "\u202f");
+  const rest = cents % 100;
+  return rest === 0 ? `${euros} €` : `${euros},${String(rest).padStart(2, "0")} €`;
 }

@@ -12,9 +12,11 @@ import {
 } from "../apartment/furnishing";
 import { CHAIR_BUILDERS } from "../models/furniture/chairs";
 import { segmentDistance, TABLE_BUILDERS } from "../models/furniture/tables";
+import { SOFA_BUILDERS } from "../models/furniture/sofa";
+import { SIDEBOARD_BUILDERS } from "../models/furniture/sideboards";
 import { liveEdge } from "../models/furniture/parts";
 
-const BUILDERS = { ...CHAIR_BUILDERS, ...TABLE_BUILDERS };
+const BUILDERS = { ...CHAIR_BUILDERS, ...TABLE_BUILDERS, ...SOFA_BUILDERS, ...SIDEBOARD_BUILDERS };
 
 describe("catalog models", () => {
   // "Must respect dimension": each model's bounding box is the seller's size
@@ -114,13 +116,16 @@ describe("budget", () => {
       table: "table-raia-220",
       chair: "chair-bistrot",
       coffeeTable: "coffee-dustin",
+      sofa: "sofa-roma-210",
+      sideboard: "sideboard-biwa",
+      tvUnit: "tv-biwa",
     });
     const rooms = budget(APARTMENT_DEF, placements);
     expect(rooms.map((r) => r.room)).toEqual(["Séjour / Cuisine"]);
     const lines = Object.fromEntries(rooms[0].lines.map((l) => [l.product.id, l]));
     expect(lines["chair-bistrot"].quantity).toBe(6);
     expect(lines["chair-bistrot"].total).toBe(6 * 99);
-    expect(rooms[0].total).toBe(795 + 6 * 99 + 329);
+    expect(rooms[0].total).toBeCloseTo(795 + 6 * 99 + 329 + 3386.46 + 489 + 359, 2);
   });
 
   it("names the room at a point", () => {
@@ -131,6 +136,8 @@ describe("budget", () => {
   it("formats euros the French way", () => {
     expect(formatEuros(1817)).toBe("1 817 €");
     expect(formatEuros(99)).toBe("99 €");
+    expect(formatEuros(3386.46)).toBe("3\u202f386,46 €");
+    expect(formatEuros(6780)).toBe("6\u202f780 €");
   });
 });
 
