@@ -1,11 +1,12 @@
 /** Pure label formatting for the dimension overlay ("cotes"). */
 
-export function formatMeters(value: number): string {
-  return `${value.toFixed(2).replace(".", ",")} m`;
+/** Whole centimeters, as on a plan: "245 cm". */
+export function formatCentimeters(value: number): string {
+  return `${Math.round(value * 100)} cm`;
 }
 
 export function formatSize(w: number, d: number): string {
-  return `${formatMeters(w)} × ${formatMeters(d)}`;
+  return `${Math.round(w * 100)} × ${formatCentimeters(d)}`;
 }
 
 export interface RoomLabelData {
@@ -17,9 +18,9 @@ export interface RoomLabelData {
   lowered?: boolean;
 }
 
-/** "HSFP 2,15 m" for a lowered ceiling (hauteur sous faux plafond), "HSP 2,50 m" otherwise. */
+/** "HSFP 215 cm" for a lowered ceiling (hauteur sous faux plafond), "HSP 250 cm" otherwise. */
 export function ceilingText(height: number, lowered: boolean): string {
-  return `${lowered ? "HSFP" : "HSP"} ${formatMeters(height)}`;
+  return `${lowered ? "HSFP" : "HSP"} ${formatCentimeters(height)}`;
 }
 
 export function roomLabelText(room: RoomLabelData): string {
