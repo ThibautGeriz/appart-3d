@@ -419,7 +419,6 @@ export const APARTMENT_DEF: ApartmentDef = {
       color: "#ffffff",
       finish: "plaster",
     },
-    { name: "Tableau électrique", rect: [5.21, 5.92, 5.81, 6.2], h: 2.0, color: "#e6e2da" },
     // Salle de bain
     {
       name: "Lave-linge",
