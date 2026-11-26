@@ -25,7 +25,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          # Float output differs in the last bits between Node majors (V8 math),
+          # so export with the same major as the committed models.
+          node-version: 24
           cache: npm
       - run: npm ci
       - name: Re-export the GLB models
