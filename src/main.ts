@@ -12,6 +12,9 @@ import { createLighting } from "./lighting/environment";
 import { buildFixtures } from "./lighting/fixtures";
 import { applyRoomMask } from "./lighting/roomMask";
 import type { InputSource } from "./controls/types";
+import { createClickToMove } from "./player/clickToMove";
+import { apartmentBounds } from "./apartment/plan";
+import { cameraObstacles } from "./player/camera";
 
 const container = document.getElementById("app") as HTMLElement;
 const isTouch = isTouchDevice();
@@ -41,6 +44,9 @@ scene.traverse((o) => o instanceof THREE.Mesh && applyRoomMask(o.material));
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const player = new Player(APARTMENT_DEF.spawn);
+scene.add(player.avatar);
+player.avatar.traverse((o) => o instanceof THREE.Mesh && applyRoomMask(o.material));
+const obstacles = cameraObstacles(APARTMENT_DEF); // keeps the third-person camera inside
 
 const hud = createHud(container, isTouch);
 const now = new Date();
@@ -49,13 +55,19 @@ const input: InputSource = isTouch
   ? new TouchInput(container, hud)
   : new KeyboardMouseInput(renderer.domElement);
 
-if (isTouch) {
-  // Fade the hint out once the user has had time to read it.
-  setTimeout(() => (hud.hint.style.opacity = "0"), 6000);
-} else {
-  const onLockChange = () => (hud.hint.style.display = document.pointerLockElement ? "none" : "");
-  document.addEventListener("pointerlockchange", onLockChange);
-}
+// Fade the hint out once the user has had time to read it.
+setTimeout(() => (hud.hint.style.opacity = "0"), 8000);
+
+// Click / tap to walk there (WoW click-to-move)
+const clickToMove = createClickToMove({
+  scene,
+  camera,
+  targets: apartment.group,
+  colliders: apartment.colliders,
+  bounds: apartmentBounds(APARTMENT_DEF),
+  radius: player.radius,
+});
+input.onClick((x, y) => clickToMove.goTo(x, y, player));
 
 const toggleDimensions = () => {
   dimensions.visible = !dimensions.visible;
@@ -89,8 +101,15 @@ renderer.setAnimationLoop(() => {
   timer.update();
   const dt = Math.min(timer.getDelta(), 0.1); // clamp huge tab-switch deltas
   input.update(dt);
-  player.update(dt, input.moveIntent(), input.consumeLook(), apartment.colliders);
-  player.applyToCamera(camera);
+  let intent = input.moveIntent();
+  const look = input.consumeLook();
+  const auto = clickToMove.update(dt, player, intent, input.looking());
+  if (auto) {
+    intent = auto.intent;
+    look.yaw += auto.turn;
+  }
+  player.update(dt, intent, look, apartment.colliders);
+  player.applyToCamera(camera, obstacles);
   fixtures.update(camera.position.x, camera.position.z);
   renderer.render(scene, camera);
 });

@@ -1,21 +1,41 @@
-import { intentFromCodes } from "./keymap";
-import { IDLE_LOOK, type InputSource, type LookDelta, type MoveIntent } from "./types";
+import { intentFromCodes, mouseMode, turnFromCodes } from "./keymap";
+import {
+  IDLE_LOOK,
+  type ClickHandler,
+  type InputSource,
+  type LookDelta,
+  type MoveIntent,
+} from "./types";
 
-const MOUSE_SENSITIVITY = 0.0022; // radians per pixel of mouse movement
-const KEY_ROTATE_SPEED = Math.PI / 2; // radians per second (Q/E keys)
+const MOUSE_SENSITIVITY = 0.004; // radians per pixel while dragging
+const KEY_TURN_SPEED = Math.PI * 0.75; // radians per second (A/D, ←/→)
+/** A press that moves less than this and is released quickly is a click, not a drag. */
+const CLICK_SLOP = 5; // px
+const CLICK_TIME = 350; // ms
 
+/**
+ * World of Warcraft style keyboard + mouse, cursor always visible:
+ *  - left drag: look around; right drag: turn (mouselook, A/D then strafe)
+ *  - both buttons: walk forward
+ *  - click (left or right, no drag): click-to-move
+ *  - wheel: zoom out to a third-person view and back
+ */
 export class KeyboardMouseInput implements InputSource {
   private keys = new Set<string>();
   private pendingLook: LookDelta = { ...IDLE_LOOK };
-  private canvas: HTMLElement;
+  private buttons = 0;
+  private press: { x: number; y: number; t: number; moved: boolean } | null = null;
+  private clickHandlers: ClickHandler[] = [];
   private attached = true;
 
-  constructor(canvas: HTMLElement) {
-    this.canvas = canvas;
+  constructor(private canvas: HTMLElement) {
     window.addEventListener("keydown", this.onKeyDown);
     window.addEventListener("keyup", this.onKeyUp);
-    canvas.addEventListener("click", this.onClick);
-    window.addEventListener("mousemove", this.onMouseMove);
+    canvas.addEventListener("pointerdown", this.onPointerDown);
+    window.addEventListener("pointermove", this.onPointerMove);
+    window.addEventListener("pointerup", this.onPointerUp);
+    canvas.addEventListener("contextmenu", this.onContextMenu);
+    canvas.addEventListener("wheel", this.onWheel, { passive: false });
     window.addEventListener("blur", this.onBlur);
   }
 
@@ -27,44 +47,72 @@ export class KeyboardMouseInput implements InputSource {
     this.keys.delete(e.code);
   };
 
-  private onClick = () => {
-    if (document.pointerLockElement !== this.canvas) {
-      try {
-        const result = this.canvas.requestPointerLock() as unknown as Promise<void> | undefined;
-        result?.catch(() => {
-          /* user gesture invalid or lock cooldown — ignore */
-        });
-      } catch {
-        /* pointer lock unsupported — ignore */
-      }
+  private onPointerDown = (e: PointerEvent) => {
+    if (e.pointerType !== "mouse") return; // touch is handled by TouchInput
+    this.buttons = e.buttons;
+    if (!this.press)
+      this.press = { x: e.clientX, y: e.clientY, t: performance.now(), moved: false };
+    try {
+      this.canvas.setPointerCapture(e.pointerId);
+    } catch {
+      /* capture unsupported — window listeners still work */
     }
   };
 
-  private onMouseMove = (e: MouseEvent) => {
-    if (document.pointerLockElement !== this.canvas) return;
+  private onPointerMove = (e: PointerEvent) => {
+    if (e.pointerType !== "mouse" || !this.buttons) return;
+    this.buttons = e.buttons;
+    const press = this.press;
+    if (press && !press.moved) {
+      if (Math.hypot(e.clientX - press.x, e.clientY - press.y) < CLICK_SLOP) return;
+      press.moved = true;
+    }
+    this.canvas.style.cursor = "grabbing";
     this.pendingLook.yaw -= e.movementX * MOUSE_SENSITIVITY;
     this.pendingLook.pitch -= e.movementY * MOUSE_SENSITIVITY;
+    // left button alone: orbit the camera (third person); right button: turn
+    this.pendingLook.orbit = !mouseMode(this.buttons).mouselook;
   };
+
+  /** Wheel: zoom out to third person / back in (trackpads send small deltas). */
+  private onWheel = (e: WheelEvent) => {
+    e.preventDefault(); // keep the page from scrolling
+    const notches = e.deltaMode === WheelEvent.DOM_DELTA_LINE ? e.deltaY / 3 : e.deltaY / 100;
+    this.pendingLook.zoom = (this.pendingLook.zoom ?? 0) + Math.max(-1, Math.min(1, notches));
+  };
+
+  private onPointerUp = (e: PointerEvent) => {
+    if (e.pointerType !== "mouse") return;
+    this.buttons = e.buttons;
+    if (this.buttons) return; // another button still held
+    const press = this.press;
+    this.press = null;
+    this.canvas.style.cursor = "";
+    if (press && !press.moved && performance.now() - press.t < CLICK_TIME) {
+      for (const handler of this.clickHandlers) handler(press.x, press.y);
+    }
+  };
+
+  private onContextMenu = (e: Event) => e.preventDefault();
 
   private onBlur = () => {
     this.keys.clear();
+    this.buttons = 0;
+    this.press = null;
   };
 
-  get locked(): boolean {
-    return document.pointerLockElement === this.canvas;
-  }
-
-  /** Q/E rotate while held — accumulate yaw into the look delta. */
+  /** Turn keys rotate while held — accumulate yaw into the look delta. */
   update(dt: number): void {
-    const rotate = (this.keys.has("KeyQ") ? 1 : 0) - (this.keys.has("KeyE") ? 1 : 0);
-    if (rotate !== 0) {
-      // Positive yaw turns left (Three.js Y-rotation convention)
-      this.pendingLook.yaw += rotate * KEY_ROTATE_SPEED * dt;
-    }
+    const turn = turnFromCodes(this.keys, mouseMode(this.buttons).mouselook);
+    // Positive yaw turns left (Three.js Y-rotation convention)
+    if (turn !== 0) this.pendingLook.yaw += turn * KEY_TURN_SPEED * dt;
   }
 
   moveIntent(): MoveIntent {
-    return intentFromCodes(this.keys);
+    const mode = mouseMode(this.buttons);
+    const intent = intentFromCodes(this.keys, mode.mouselook);
+    if (mode.forward) intent.forward = Math.max(intent.forward, 1);
+    return intent;
   }
 
   consumeLook(): LookDelta {
@@ -73,13 +121,24 @@ export class KeyboardMouseInput implements InputSource {
     return look;
   }
 
+  looking(): boolean {
+    return this.press?.moved ?? false;
+  }
+
+  onClick(handler: ClickHandler): void {
+    this.clickHandlers.push(handler);
+  }
+
   dispose(): void {
     if (!this.attached) return;
     this.attached = false;
     window.removeEventListener("keydown", this.onKeyDown);
     window.removeEventListener("keyup", this.onKeyUp);
-    this.canvas.removeEventListener("click", this.onClick);
-    window.removeEventListener("mousemove", this.onMouseMove);
+    this.canvas.removeEventListener("pointerdown", this.onPointerDown);
+    window.removeEventListener("pointermove", this.onPointerMove);
+    window.removeEventListener("pointerup", this.onPointerUp);
+    this.canvas.removeEventListener("contextmenu", this.onContextMenu);
+    this.canvas.removeEventListener("wheel", this.onWheel);
     window.removeEventListener("blur", this.onBlur);
     this.keys.clear();
   }

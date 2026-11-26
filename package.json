@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
+    "export:glb": "node scripts/export-glb.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "oxlint",

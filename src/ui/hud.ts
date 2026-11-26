@@ -5,7 +5,6 @@ export interface HudHandles {
   crosshair: HTMLElement | null;
   joyBase: HTMLElement;
   joyKnob: HTMLElement;
-  runButton: HTMLElement;
   dimButton: HTMLElement;
   sunButton: HTMLElement;
   lightButton: HTMLElement;
@@ -30,7 +29,7 @@ const MONTHS = [
   "Décembre",
 ];
 
-/** Build the HUD overlay (hint, crosshair, touch joystick + run button). */
+/** Build the HUD overlay (hint, crosshair, touch joystick, toggles). */
 export function createHud(container: HTMLElement, isTouch: boolean): HudHandles {
   const hud = document.createElement("div");
   hud.className = "hud";
@@ -38,8 +37,8 @@ export function createHud(container: HTMLElement, isTouch: boolean): HudHandles 
   const hint = document.createElement("div");
   hint.className = "hud-hint";
   hint.textContent = isTouch
-    ? "Gauche : marcher · Droite : regarder · Bouton : courir"
-    : "Cliquez pour capturer la souris · ZQSD / WASD : se déplacer · Q/E : tourner · Tab : cotes · O/P : heure · L : lumières · Maj : courir";
+    ? "Joystick : marcher · Glisser : regarder · Toucher : aller ici"
+    : "Clic : aller ici · Glisser : regarder · 2 boutons : avancer · Molette : vue 3e personne · ZQSD : avancer / tourner · A/E : de côté · Tab : cotes · L : lumières";
   hud.appendChild(hint);
 
   let crosshair: HTMLElement | null = null;
@@ -53,16 +52,10 @@ export function createHud(container: HTMLElement, isTouch: boolean): HudHandles 
   joyBase.className = "hud-joy-base";
   hud.appendChild(joyBase);
 
+  // small fixed joystick, bottom-left (touch only, shown by TouchInput)
   const joyKnob = document.createElement("div");
   joyKnob.className = "hud-joy-knob";
-  hud.appendChild(joyKnob);
-
-  const runButton = document.createElement("button");
-  runButton.className = "hud-run";
-  runButton.textContent = "COURIR";
-  runButton.type = "button";
-  if (!isTouch) runButton.style.display = "none";
-  hud.appendChild(runButton);
+  joyBase.appendChild(joyKnob);
 
   // "Cotes" (dimensions) toggle — usable on both desktop and touch
   const dimButton = document.createElement("button");
@@ -106,7 +99,6 @@ export function createHud(container: HTMLElement, isTouch: boolean): HudHandles 
     crosshair,
     joyBase,
     joyKnob,
-    runButton,
     dimButton,
     sunButton,
     lightButton,

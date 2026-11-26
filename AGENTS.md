@@ -38,7 +38,7 @@ Key rules:
   `src/data/` and produces meshes. Adding/moving a wall should be a data
   edit, not a code edit.
 - **Player physics is decoupled from input**: the controller exposes
-  "move forward/back/strafe, look yaw/pitch, run"; the input layer only
+  "move forward/back/strafe, look yaw/pitch, zoom"; the input layer only
   produces those intents. This keeps desktop and mobile identical.
 - **Collision**: use simple AABB/box colliders derived from the wall data
   (no full physics engine unless the need is proven). The player is a
@@ -51,13 +51,24 @@ Desktop:
 
 - **WASD / ZQSD-aware**: detect keyboard layout so French AZERTY keyboards
   work natively (prefer `event.code` `KeyW/KeyA/...` over `key` characters).
-- Mouse look via Pointer Lock (click canvas to capture, ESC to release).
-- Shift = run, Space handled later (jump is optional; do not block on it).
+- **World of Warcraft controls**, cursor always visible (no pointer lock):
+  - W/S forward/back, A/D turn, Q/E strafe (ZQSD + A/E on AZERTY), arrows
+    like W/S/A/D.
+  - Left drag = look around; right drag = turn (mouselook: A/D strafe while
+    held); both buttons = walk forward.
+  - Click (left or right, no drag) on the floor = click-to-move: walk there
+    along a path around walls (A* on a walkable grid). Movement keys or ESC
+    cancel it.
+- Mouse wheel = zoom out to a third-person view (camera behind an avatar,
+  pulled in by walls / ceilings) and back to first person; in third person
+  left drag orbits the camera, right drag turns the player.
+- No running (single walking speed). Space handled later (jump is optional;
+  do not block on it).
 
 Mobile (touch):
 
-- **Left virtual joystick** = move, **right side drag** = look.
-- On-screen Run button.
+- **Small fixed joystick** (bottom-left) = move, **swipe** anywhere else =
+  move the camera, **tap** anywhere else = click-to-move.
 - Must work with the canvas fullscreened; handle `visualViewport` and
   `100dvh` correctly (not `100vh`).
 - Pointer events (`pointerdown/move/up`) uniformly; never assume mouse-only.
@@ -97,7 +108,8 @@ npm test           # unit tests (Vitest) — must pass before any commit
 - Unit-test pure logic: layout parsing, collider generation, input mapping
   (code→intent), player movement math.
 - Manual test checklist before considering a feature done:
-  - desktop: WASD + AZERTY + mouse look + pointer lock + run
-  - mobile: both joysticks, no scroll/zoom hijack, correct fullscreen height,
+  - desktop: WASD + AZERTY, A/D turn, Q/E strafe, left/right drag, both
+    buttons forward, click-to-move (through doors), wheel zoom
+  - mobile: joystick, swipe to look, tap to move, no scroll/zoom hijack, correct fullscreen height,
     playable framerate
   - collision: cannot walk through walls; smooth sliding in corridors

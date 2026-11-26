@@ -1,23 +1,45 @@
-import { IDLE_LOOK, type InputSource, type LookDelta, type MoveIntent } from "./types";
+import {
+  IDLE_LOOK,
+  type ClickHandler,
+  type InputSource,
+  type LookDelta,
+  type MoveIntent,
+} from "./types";
 import type { HudHandles } from "../ui/hud";
 
-const JOY_RADIUS = 64; // px — max thumb travel
 const TOUCH_LOOK_SENSITIVITY = 0.0045; // radians per px
+const TAP_SLOP = 10; // px — a touch moving less than this is a tap
+const TAP_TIME = 300; // ms
+/** Touches this much outside the joystick ring still grab it. */
+const JOY_GRAB = 1.35;
+
+/** Thumb offset (px) → move intent, clamped to the ring. Pure. */
+export function joystickIntent(dx: number, dy: number, radius: number): MoveIntent {
+  const len = Math.hypot(dx, dy);
+  const scale = len > radius ? radius / len : 1;
+  return { forward: (-dy * scale) / radius, strafe: (dx * scale) / radius };
+}
+
+/** Is a touch on the joystick (its ring, a bit generous)? Pure. */
+export function onJoystick(x: number, y: number, cx: number, cy: number, radius: number): boolean {
+  return Math.hypot(x - cx, y - cy) <= radius * JOY_GRAB;
+}
 
 /**
  * Touch input:
- *  - left ~45% of the screen: virtual joystick (move)
- *  - rest of the screen: drag to look
- *  - HUD run button: hold to run
+ *  - small fixed joystick, bottom-left: move
+ *  - swipe anywhere else: move the camera
+ *  - tap anywhere else: walk there (click-to-move)
  */
 export class TouchInput implements InputSource {
   private joyId: number | null = null;
-  private joyOrigin = { x: 0, y: 0 };
-  private joyVec = { x: 0, y: 0 }; // clamped px offset
+  private joyCenter = { x: 0, y: 0, radius: 1 };
+  private joyVec = { x: 0, y: 0 }; // px offset, clamped to the ring
   private lookId: number | null = null;
   private lookLast = { x: 0, y: 0 };
+  private lookStart = { x: 0, y: 0, t: 0, moved: false };
   private pendingLook: LookDelta = { ...IDLE_LOOK };
-  private running = false;
+  private clickHandlers: ClickHandler[] = [];
   private attached = true;
 
   constructor(
@@ -28,55 +50,42 @@ export class TouchInput implements InputSource {
     container.addEventListener("pointermove", this.onPointerMove);
     container.addEventListener("pointerup", this.onPointerUp);
     container.addEventListener("pointercancel", this.onPointerUp);
-    const run = hud.runButton;
-    run.addEventListener("pointerdown", this.onRunDown);
-    run.addEventListener("pointerup", this.onRunUp);
-    run.addEventListener("pointercancel", this.onRunUp);
+    hud.joyBase.style.display = "block";
   }
-
-  private onRunDown = (e: PointerEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    try {
-      this.hud.runButton.setPointerCapture(e.pointerId);
-    } catch {
-      /* pointer capture unsupported — ignore */
-    }
-    this.running = true;
-    this.hud.runButton.classList.add("active");
-  };
-
-  private onRunUp = () => {
-    this.running = false;
-    this.hud.runButton.classList.remove("active");
-  };
 
   private onPointerDown = (e: PointerEvent) => {
     if (e.pointerType === "mouse") return; // desktop path handles mice
-    if (e.clientX < window.innerWidth * 0.45) {
-      if (this.joyId !== null) return;
+    const rect = this.hud.joyBase.getBoundingClientRect();
+    const center = {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2,
+      radius: rect.width / 2,
+    };
+    if (
+      this.joyId === null &&
+      onJoystick(e.clientX, e.clientY, center.x, center.y, center.radius)
+    ) {
       this.joyId = e.pointerId;
-      this.joyOrigin = { x: e.clientX, y: e.clientY };
-      this.joyVec = { x: 0, y: 0 };
-      this.showJoystick(e.clientX, e.clientY, 0, 0);
-    } else {
-      if (this.lookId !== null) return;
+      this.joyCenter = center;
+      this.moveKnob(e.clientX - center.x, e.clientY - center.y);
+    } else if (this.lookId === null) {
       this.lookId = e.pointerId;
       this.lookLast = { x: e.clientX, y: e.clientY };
+      this.lookStart = { x: e.clientX, y: e.clientY, t: performance.now(), moved: false };
     }
   };
 
   private onPointerMove = (e: PointerEvent) => {
     if (e.pointerId === this.joyId) {
-      const dx = e.clientX - this.joyOrigin.x;
-      const dy = e.clientY - this.joyOrigin.y;
-      const len = Math.hypot(dx, dy);
-      const scale = len > JOY_RADIUS ? JOY_RADIUS / len : 1;
-      this.joyVec = { x: dx * scale, y: dy * scale };
-      this.showJoystick(this.joyOrigin.x, this.joyOrigin.y, this.joyVec.x, this.joyVec.y);
+      this.moveKnob(e.clientX - this.joyCenter.x, e.clientY - this.joyCenter.y);
     } else if (e.pointerId === this.lookId) {
+      const start = this.lookStart;
+      if (!start.moved && Math.hypot(e.clientX - start.x, e.clientY - start.y) < TAP_SLOP) return;
+      start.moved = true;
       this.pendingLook.yaw -= (e.clientX - this.lookLast.x) * TOUCH_LOOK_SENSITIVITY;
       this.pendingLook.pitch -= (e.clientY - this.lookLast.y) * TOUCH_LOOK_SENSITIVITY;
+      // a swipe moves the camera (orbits it in third person)
+      this.pendingLook.orbit = true;
       this.lookLast = { x: e.clientX, y: e.clientY };
     }
   };
@@ -84,43 +93,44 @@ export class TouchInput implements InputSource {
   private onPointerUp = (e: PointerEvent) => {
     if (e.pointerId === this.joyId) {
       this.joyId = null;
-      this.joyVec = { x: 0, y: 0 };
-      this.hideJoystick();
+      this.moveKnob(0, 0);
     } else if (e.pointerId === this.lookId) {
       this.lookId = null;
+      const start = this.lookStart;
+      if (!start.moved && performance.now() - start.t < TAP_TIME && e.type === "pointerup") {
+        for (const handler of this.clickHandlers) handler(start.x, start.y);
+      }
     }
   };
 
-  private showJoystick(originX: number, originY: number, knobX: number, knobY: number): void {
-    const { joyBase, joyKnob } = this.hud;
-    joyBase.style.display = "block";
-    joyKnob.style.display = "block";
-    joyBase.style.left = `${originX}px`;
-    joyBase.style.top = `${originY}px`;
-    joyKnob.style.left = `${originX + knobX}px`;
-    joyKnob.style.top = `${originY + knobY}px`;
+  /** Clamp the thumb to the ring and draw the knob there. */
+  private moveKnob(dx: number, dy: number): void {
+    const radius = this.joyCenter.radius;
+    const len = Math.hypot(dx, dy);
+    const scale = len > radius ? radius / len : 1;
+    this.joyVec = { x: dx * scale, y: dy * scale };
+    this.hud.joyKnob.style.transform = `translate(calc(-50% + ${this.joyVec.x}px), calc(-50% + ${this.joyVec.y}px))`;
   }
 
-  private hideJoystick(): void {
-    this.hud.joyBase.style.display = "none";
-    this.hud.joyKnob.style.display = "none";
-  }
-
-  /** Touch has no hold-to-rotate keys — nothing time-based to advance. */
+  /** Nothing time-based to advance on touch. */
   update(_dt: number): void {}
 
   moveIntent(): MoveIntent {
-    return {
-      forward: -this.joyVec.y / JOY_RADIUS,
-      strafe: this.joyVec.x / JOY_RADIUS,
-      run: this.running,
-    };
+    return joystickIntent(this.joyVec.x, this.joyVec.y, this.joyCenter.radius);
   }
 
   consumeLook(): LookDelta {
     const look = this.pendingLook;
     this.pendingLook = { ...IDLE_LOOK };
     return look;
+  }
+
+  looking(): boolean {
+    return this.lookId !== null && this.lookStart.moved;
+  }
+
+  onClick(handler: ClickHandler): void {
+    this.clickHandlers.push(handler);
   }
 
   dispose(): void {
@@ -130,9 +140,6 @@ export class TouchInput implements InputSource {
     this.container.removeEventListener("pointermove", this.onPointerMove);
     this.container.removeEventListener("pointerup", this.onPointerUp);
     this.container.removeEventListener("pointercancel", this.onPointerUp);
-    this.hud.runButton.removeEventListener("pointerdown", this.onRunDown);
-    this.hud.runButton.removeEventListener("pointerup", this.onRunUp);
-    this.hud.runButton.removeEventListener("pointercancel", this.onRunUp);
-    this.hideJoystick();
+    this.hud.joyBase.style.display = "none";
   }
 }
