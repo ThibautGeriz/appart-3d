@@ -113,9 +113,13 @@ body {
   top: 56px;
 }
 
+.hud-light {
+  top: 96px;
+}
+
 .hud-sun-panel {
   position: fixed;
-  top: 96px;
+  top: 136px;
   right: 16px;
   display: flex;
   flex-direction: column;
@@ -149,4 +153,8 @@ body {
 
 .hud-sun-panel select {
   font-size: 14px;
+}
+
+.hud-light.active {
+  background: rgba(255, 196, 92, 0.55);
 }

@@ -20,6 +20,8 @@ export interface OpeningDef {
   head: number;
   /** closed glazing (blocks the player) */
   glass?: boolean;
+  /** glazed leaves side by side (2 = casement opening in the middle) */
+  panes?: number;
   /** closed door leaf filling the opening (blocks the player), as a color */
   leaf?: string;
 }
@@ -42,6 +44,8 @@ export type Finish =
   | "cabinet"
   | "cabinetTall"
   | "stone"
+  | "kitchenTile"
+  | "lacquer"
   | "grass"
   | "facade";
 
@@ -67,9 +71,67 @@ export interface FurnitureDef {
   finish?: Finish;
   /** elevation of the bottom face (default 0) */
   y?: number;
+  /** below 1 = see-through (glass), does not cast shadows */
+  opacity?: number;
   /** blocks the player (default true) */
   solid?: boolean;
 }
+
+export type KitchenModule =
+  | { kind: "door"; width: number }
+  /** drawer front heights, top to bottom (sum = carcass height above the plinth) */
+  | { kind: "drawers"; width: number; fronts: number[] }
+  /** built-in oven with filler strips `below` / `above` it */
+  | { kind: "oven"; width: number; below: number; above: number };
+
+/** Straight kitchen run against the wall x = `wallX`, facing +x. */
+export interface KitchenDef {
+  wallX: number;
+  /** modules are laid out from startZ toward endZ (left → right when facing the run) */
+  startZ: number;
+  endZ: number;
+  modules: KitchenModule[];
+  depth: number;
+  plinth: number;
+  /** carcass top (worktop underside) */
+  height: number;
+  frontColor: string;
+  frontFinish?: Finish;
+  plinthColor: string;
+  /** seen through the gaps between fronts */
+  carcassColor: string;
+  handleColor: string;
+  ovenColor: string;
+  ovenGlassColor: string;
+  worktop: { thickness: number; overhang: number; color: string; finish?: Finish };
+  /** z ranges on the worktop */
+  sink: [number, number];
+  hob: [number, number];
+  wallCabinets: {
+    z: [number, number];
+    doors: number;
+    bottom: number;
+    height: number;
+    depth: number;
+    color: string;
+    finish?: Finish;
+    /** integrated hood under this z range */
+    hood?: [number, number];
+  };
+  /** tiles in front of the run */
+  floor: { depth: number; color: string; finish?: Finish };
+}
+
+/** Direction a wall light faces, into the room. */
+export type Facing = "+x" | "-x" | "+z" | "-z";
+
+export type LightDef =
+  /** ceiling light point (plan: red ✕ / SP), hangs under the local ceiling */
+  | { kind: "ceiling"; x: number; z: number }
+  /** wall sconce on the wall face at (x, z), washing the wall up and down */
+  | { kind: "sconce"; x: number; z: number; y: number; facing: Facing }
+  /** LED strip (under cabinets) at (x, z), lighting the wall below it */
+  | { kind: "strip"; x: number; z: number; y: number; length: number; facing: Facing };
 
 export interface SiteDef {
   latitude: number;
@@ -92,14 +154,16 @@ export interface ApartmentDef {
   walls: WallDef[];
   areas: AreaDef[];
   furniture: FurnitureDef[];
+  kitchen: KitchenDef;
+  lights: LightDef[];
   spawn: { x: number; z: number; yaw: number };
 }
 
-const WOOD = "#b98a5e";
+const WOOD = "#ffffff"; // the oak plank scan carries its own color
 const TILE = "#d9d6cf";
 const OUTDOOR = "#9a9fa5";
-const GAINE = "#a7a39b";
-const KITCHEN_GREEN = "#6f8578";
+const GAINE = "#f4f3f0"; // boxed-in shafts, painted white like the walls
+const KITCHEN_TILE = "#6a6a6a";
 
 const OUTER = 0.25;
 const INNER = 0.1;
@@ -109,6 +173,7 @@ const door = (at: number, width = 0.8): OpeningDef => ({ at, width, sill: 0, hea
 const window = (at: number, width: number): OpeningDef => ({
   at,
   width,
+  panes: 2,
   sill: 0.2,
   head: 2.15,
   glass: true,
@@ -125,9 +190,9 @@ export const APARTMENT_DEF: ApartmentDef = {
   // Annecy, 4th floor (4 levels × ~3 m above the street)
   site: { latitude: 45.9, longitude: 6.13, northAngleDeg: 25, floorElevation: 12 },
   wallHeight: 2.5,
-  wallColor: "#e8e4dc",
+  wallColor: "#ffffff",
   wallFinish: "plaster",
-  ceilingColor: "#f5f5f0",
+  ceilingColor: "#ffffff",
   ceilingFinish: "plaster",
   glassColor: "#e6f4fb",
   frameColor: "#1c1c1c",
@@ -236,7 +301,8 @@ export const APARTMENT_DEF: ApartmentDef = {
       floorColor: WOOD,
       floorFinish: "parquet",
     },
-    { rect: [0, 3.8, 3.78, 4.47], floorColor: WOOD, floorFinish: "parquet", ceiling: 2.15 },
+    // Lowered ceiling band along the séjour's south side, up to the entrée wall (plan: HSFP 2.15)
+    { rect: [0, 3.8, 5.12, 4.47], floorColor: WOOD, floorFinish: "parquet", ceiling: 2.15 },
     {
       label: "Balcon",
       rect: [7.73, -0.15, 9.75, 3.5],
@@ -247,13 +313,14 @@ export const APARTMENT_DEF: ApartmentDef = {
     {
       label: "Cellier",
       rect: [0.45, 4.47, 3.78, 6.35],
-      floorColor: TILE,
-      floorFinish: "tile30",
+      // same dark 60 × 120 tiles as the kitchen
+      floorColor: KITCHEN_TILE,
+      floorFinish: "kitchenTile",
       ceiling: 2.15,
     },
     {
       label: "Entrée",
-      rect: [3.78, 3.8, 5.12, 5.87],
+      rect: [3.78, 4.47, 5.12, 5.87],
       floorColor: WOOD,
       floorFinish: "parquet",
       ceiling: 2.2,
@@ -290,49 +357,6 @@ export const APARTMENT_DEF: ApartmentDef = {
   ],
 
   furniture: [
-    // Kitchen: the whole west wall of the séjour (0 → 4.42 m), no fridge.
-    // Sage green 60 cm base units, black worktop, dark 60 × 60 floor tiles.
-    // Wall cabinets (oak + black open shelves) at the window end, hob and
-    // oven below them, sink toward the cellier end.
-    {
-      name: "Carrelage cuisine",
-      rect: [0, 0, 1.5, 4.42],
-      h: 0.005,
-      color: "#4a4a4a",
-      finish: "tile60",
-      solid: false,
-    },
-    { name: "Plinthe", rect: [0, 0, 0.56, 4.42], h: 0.1, color: "#1f2420" },
-    {
-      name: "Meubles bas",
-      rect: [0, 0, 0.6, 4.42],
-      y: 0.1,
-      h: 0.76,
-      color: KITCHEN_GREEN,
-      finish: "cabinet",
-    },
-    {
-      name: "Plan de travail",
-      rect: [0, 0, 0.64, 4.42],
-      y: 0.86,
-      h: 0.04,
-      color: "#3a3a3a",
-      finish: "stone",
-    },
-    { name: "Four", rect: [0.6, 0.625, 0.615, 1.175], y: 0.3, h: 0.58, color: "#111111" },
-    { name: "Plaque de cuisson", rect: [0.04, 0.6, 0.56, 1.2], y: 0.9, h: 0.008, color: "#0d0d0d" },
-    { name: "Évier", rect: [0.08, 3.4, 0.5, 4.2], y: 0.9, h: 0.008, color: "#3c3c3c" },
-    { name: "Mitigeur", rect: [0.04, 3.77, 0.1, 3.83], y: 0.9, h: 0.32, color: "#111111" },
-    { name: "Étagère ouverte", rect: [0, 0, 0.35, 0.3], y: 1.5, h: 0.7, color: "#151515" },
-    {
-      name: "Meubles hauts",
-      rect: [0, 0.3, 0.35, 1.5],
-      y: 1.5,
-      h: 0.7,
-      color: "#a07b55",
-      finish: "oak",
-    },
-    { name: "Étagère ouverte", rect: [0, 1.5, 0.35, 1.8], y: 1.5, h: 0.7, color: "#151515" },
     // Cellier
     { name: "Gaine cellier", rect: [0.45, 4.52, 0.98, 5.08], h: 2.15, color: GAINE },
     { name: "Ballon eau chaude", rect: [2.42, 5.7, 3.03, 6.3], h: 1.8, color: "#f2f4f6" },
@@ -348,8 +372,84 @@ export const APARTMENT_DEF: ApartmentDef = {
     { name: "Tableau électrique", rect: [5.21, 5.92, 5.81, 6.2], h: 2.0, color: "#e6e2da" },
     // Salle de bain
     { name: "Lave-linge", rect: [5.22, 3.8, 5.84, 4.4], h: 0.85, color: "#f2f4f6" },
-    { name: "Double vasque", rect: [5.9, 3.8, 7.26, 4.3], h: 0.85, color: "#f2f4f6" },
-    { name: "Baignoire", rect: [7.36, 4.2, 8.065, 5.82], h: 0.55, color: "#f8f9fa" },
+    // Double vanity: wall-hung oak cabinet, white top with two basins, mirror
+    {
+      name: "Meuble vasque",
+      rect: [5.9, 3.8, 7.26, 4.3],
+      y: 0.3,
+      h: 0.52,
+      color: "#ffffff",
+      finish: "oak",
+    },
+    { name: "Plan vasque", rect: [5.9, 3.8, 7.26, 4.32], y: 0.82, h: 0.03, color: "#f4f4f2" },
+    { name: "Vasque 1", rect: [6.13, 3.88, 6.57, 4.24], y: 0.85, h: 0.12, color: "#fbfbfa" },
+    { name: "Vasque 2", rect: [6.65, 3.88, 7.09, 4.24], y: 0.85, h: 0.12, color: "#fbfbfa" },
+    {
+      name: "Robinet 1",
+      rect: [6.33, 3.82, 6.37, 3.88],
+      y: 0.85,
+      h: 0.25,
+      color: "#151515",
+      solid: false,
+    },
+    {
+      name: "Robinet 2",
+      rect: [6.85, 3.82, 6.89, 3.88],
+      y: 0.85,
+      h: 0.25,
+      color: "#151515",
+      solid: false,
+    },
+    {
+      name: "Miroir",
+      rect: [6.0, 3.8, 7.16, 3.82],
+      y: 1.15,
+      h: 0.8,
+      color: "#c9d6dc",
+      solid: false,
+    },
+    // Italian (walk-in) shower in place of the bath: flush floor, fixed glass
+    // screen on the room side, black shower column on the wall
+    {
+      name: "Sol douche",
+      rect: [7.36, 4.2, 8.065, 5.82],
+      h: 0.004,
+      color: "#7b7d80",
+      finish: "tile30",
+      solid: false,
+    },
+    { name: "Caniveau", rect: [7.38, 5.7, 8.04, 5.76], h: 0.006, color: "#2a2a2a", solid: false },
+    {
+      name: "Paroi de douche",
+      rect: [7.35, 4.2, 7.37, 5.2],
+      h: 2.0,
+      color: "#dfeef3",
+      opacity: 0.25,
+    },
+    {
+      name: "Profilé paroi",
+      rect: [7.345, 4.2, 7.375, 5.2],
+      y: 2.0,
+      h: 0.02,
+      color: "#151515",
+      solid: false,
+    },
+    {
+      name: "Colonne de douche",
+      rect: [8.02, 4.98, 8.05, 5.01],
+      y: 0.9,
+      h: 1.15,
+      color: "#151515",
+      solid: false,
+    },
+    {
+      name: "Pomme de douche",
+      rect: [7.78, 4.86, 8.05, 5.13],
+      y: 2.05,
+      h: 0.015,
+      color: "#151515",
+      solid: false,
+    },
     // WC
     { name: "WC", rect: [6.8, 6.0, 7.2, 6.65], h: 0.42, color: "#f2f4f6" },
     { name: "Gaine WC", rect: [7.51, 5.92, 8.065, 7.3], h: 2.2, color: GAINE },
@@ -364,6 +464,74 @@ export const APARTMENT_DEF: ApartmentDef = {
     // Balcony railings
     { name: "Garde-corps nord", rect: [7.73, -0.23, 9.83, -0.15], h: 1.0, color: "#6b7076" },
     { name: "Garde-corps est", rect: [9.75, -0.23, 9.83, 3.5], h: 1.0, color: "#6b7076" },
+  ],
+
+  // Kitchen (architect's render): the whole west wall of the séjour, no
+  // fridge. Left → right: 3 doors (sink above the 2nd), 3 drawers, oven under
+  // the hob, a narrow door, 3 drawers. Oak wall cabinets at the window end
+  // with an integrated hood above the hob.
+  kitchen: {
+    wallX: 0,
+    startZ: 4.42,
+    endZ: 0,
+    modules: [
+      { kind: "door", width: 0.5 },
+      { kind: "door", width: 0.5 },
+      { kind: "door", width: 0.5 },
+      { kind: "drawers", width: 0.9, fronts: [0.13, 0.26, 0.37] },
+      { kind: "oven", width: 0.6, below: 0.11, above: 0.07 },
+      { kind: "door", width: 0.4 },
+      { kind: "drawers", width: 1.02, fronts: [0.23, 0.255, 0.275] },
+    ],
+    depth: 0.6,
+    plinth: 0.1,
+    height: 0.86,
+    frontColor: "#8a9d93",
+    frontFinish: "lacquer",
+    plinthColor: "#1c1c1c",
+    carcassColor: "#2b302d",
+    handleColor: "#151515",
+    ovenColor: "#141414",
+    ovenGlassColor: "#2a2622",
+    worktop: { thickness: 0.04, overhang: 0.02, color: "#3a3a3a", finish: "stone" },
+    sink: [3.45, 3.88],
+    hob: [1.44, 2.0],
+    wallCabinets: {
+      z: [0, 2.1],
+      doors: 3,
+      bottom: 1.5,
+      height: 0.83,
+      depth: 0.35,
+      color: "#ffffff",
+      finish: "oak",
+      hood: [1.4, 2.06],
+    },
+    floor: { depth: 1.2, color: KITCHEN_TILE, finish: "kitchenTile" },
+  },
+
+  lights: [
+    // Ceiling light points from the plan
+    { kind: "ceiling", x: 1.42, z: 1.89 }, // séjour, kitchen side
+    { kind: "ceiling", x: 4.78, z: 1.89 }, // séjour
+    { kind: "ceiling", x: 6.23, z: 4.87 }, // salle de bain
+    { kind: "ceiling", x: 9.77, z: 5.5 }, // chambre 2
+    { kind: "ceiling", x: 12.86, z: 5.78 }, // chambre 1
+    { kind: "ceiling", x: 1.73, z: 5.44 }, // cellier
+    { kind: "ceiling", x: 4.71, z: 6.47 }, // entrée
+    { kind: "ceiling", x: 6.26, z: 6.6 }, // WC
+    { kind: "ceiling", x: 8.08, z: 7.89 }, // dégagement
+    // Under-cabinet LED strip washing the kitchen wall (architect's render)
+    { kind: "strip", x: 0, z: 1.05, y: 1.47, length: 2.1, facing: "+x" },
+    // Light above the kitchen sink (no wall cabinet there)
+    { kind: "sconce", x: 0, z: 3.665, y: 1.75, facing: "+x" },
+    // Wall sconces (placement to confirm)
+    { kind: "sconce", x: 5.9, z: 3.695, y: 1.8, facing: "-z" }, // séjour, wall D
+    { kind: "sconce", x: 6.9, z: 3.695, y: 1.8, facing: "-z" }, // séjour, wall D
+    { kind: "sconce", x: 3.78, z: 7.0, y: 1.8, facing: "+x" }, // entrée
+    { kind: "sconce", x: 14.25, z: 4.6, y: 1.2, facing: "-x" }, // chambre 1, bedside
+    { kind: "sconce", x: 14.25, z: 6.7, y: 1.2, facing: "-x" }, // chambre 1, bedside
+    { kind: "sconce", x: 11.41, z: 4.4, y: 1.2, facing: "-x" }, // chambre 2, bedside
+    { kind: "sconce", x: 11.41, z: 6.3, y: 1.2, facing: "-x" }, // chambre 2, bedside
   ],
 
   // Just inside the front door (x 4.85–5.75), looking up the entrée toward the séjour

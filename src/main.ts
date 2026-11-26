@@ -9,6 +9,7 @@ import { isTouchDevice } from "./controls/device";
 import { createHud } from "./ui/hud";
 import { bindSunControls, defaultHour } from "./ui/sunControls";
 import { createLighting } from "./lighting/environment";
+import { buildFixtures } from "./lighting/fixtures";
 import type { InputSource } from "./controls/types";
 
 const container = document.getElementById("app") as HTMLElement;
@@ -24,6 +25,8 @@ container.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
 const lighting = createLighting(scene, renderer, APARTMENT_DEF, isTouch);
+const fixtures = buildFixtures(APARTMENT_DEF, isTouch);
+scene.add(fixtures.group);
 
 const apartment = buildApartment(APARTMENT_DEF);
 scene.add(apartment.group);
@@ -63,6 +66,15 @@ window.addEventListener("keydown", (e) => {
 });
 hud.dimButton.addEventListener("click", toggleDimensions);
 
+let lightsOn = true;
+const toggleLights = () => {
+  lightsOn = !lightsOn;
+  fixtures.setOn(lightsOn);
+  hud.lightButton.classList.toggle("active", lightsOn);
+};
+hud.lightButton.addEventListener("click", toggleLights);
+window.addEventListener("keydown", (e) => e.code === "KeyL" && toggleLights());
+
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
@@ -76,5 +88,6 @@ renderer.setAnimationLoop(() => {
   input.update(dt);
   player.update(dt, input.moveIntent(), input.consumeLook(), apartment.colliders);
   player.applyToCamera(camera);
+  fixtures.update(camera.position.x, camera.position.z);
   renderer.render(scene, camera);
 });

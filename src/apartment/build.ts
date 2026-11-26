@@ -3,7 +3,7 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import type { ApartmentDef, Finish, Rect } from "../data/apartment";
 import { finishSize, surfaceMaterial } from "./textures";
 import { applyWorldUVs } from "./uv";
-import { buildColliders, wallPieces, type Box } from "./plan";
+import { allFurniture, buildColliders, wallPieces, type Box } from "./plan";
 import type { Collider } from "../player/movement";
 
 export interface BuiltApartment {
@@ -40,8 +40,12 @@ function horizontalPlane(rect: Rect, y: number, facingUp: boolean): THREE.Buffer
   return geometry;
 }
 
-/** Four thin bars around an opening, flush with the glass. */
-function frameBoxes(opening: Box): Box[] {
+/**
+ * Thin bars around an opening, flush with the glass. With several panes,
+ * double-width meeting rails between the leaves and a handle on the rail
+ * (casement opening in the middle).
+ */
+function frameBoxes(opening: Box, panes: number): Box[] {
   const alongX = opening.maxX - opening.minX > opening.maxZ - opening.minZ;
   const cx = (opening.minX + opening.maxX) / 2;
   const cz = (opening.minZ + opening.maxZ) / 2;
@@ -53,12 +57,31 @@ function frameBoxes(opening: Box): Box[] {
   const end = alongX ? opening.maxX : opening.maxZ;
   const span = (a: number, b: number): Partial<Box> =>
     alongX ? { minX: a, maxX: b } : { minZ: a, maxZ: b };
-  return [
+  const bars = [
     thin({ ...opening, maxY: opening.minY + FRAME }),
     thin({ ...opening, minY: opening.maxY - FRAME }),
     thin({ ...opening, ...span(start, start + FRAME) }),
     thin({ ...opening, ...span(end - FRAME, end) }),
   ];
+  const paneWidth = (end - start) / panes;
+  for (let i = 1; i < panes; i++) {
+    const at = start + i * paneWidth;
+    bars.push(thin({ ...opening, ...span(at - FRAME, at + FRAME) }));
+    // handle on the meeting rail, sticking out on both sides
+    const handleY = Math.min(opening.minY + 1.0, (opening.minY + opening.maxY) / 2);
+    const handle = {
+      ...opening,
+      minY: handleY,
+      maxY: handleY + 0.16,
+      ...span(at + FRAME, at + FRAME + 0.03),
+    };
+    bars.push(
+      alongX
+        ? { ...handle, minZ: cz - FRAME - 0.05, maxZ: cz + FRAME + 0.05 }
+        : { ...handle, minX: cx - FRAME - 0.05, maxX: cx + FRAME + 0.05 },
+    );
+  }
+  return bars;
 }
 
 /** Merge geometries into one mesh (one draw call). */
@@ -71,6 +94,7 @@ function mergedMesh(geometries: THREE.BufferGeometry[], material: THREE.Material
 interface Surface {
   color: string;
   finish?: Finish;
+  opacity?: number;
   geometry: THREE.BufferGeometry;
 }
 
@@ -88,15 +112,19 @@ function finished(
 function mergedByMaterial(items: Surface[]): THREE.Mesh[] {
   const groups = new Map<string, Surface[]>();
   for (const item of items) {
-    const key = `${item.color}|${item.finish ?? ""}`;
+    const key = `${item.color}|${item.finish ?? ""}|${item.opacity ?? 1}`;
     groups.set(key, [...(groups.get(key) ?? []), item]);
   }
-  return [...groups.values()].map((surfaces) =>
-    mergedMesh(
+  return [...groups.values()].map((surfaces) => {
+    const { color, finish, opacity } = surfaces[0];
+    const mesh = mergedMesh(
       surfaces.map((surface) => surface.geometry),
-      surfaceMaterial(surfaces[0].color, surfaces[0].finish),
-    ),
-  );
+      surfaceMaterial(color, finish, opacity),
+    );
+    // see-through items (shower screen) let the light through like the windows
+    if (opacity !== undefined && opacity < 1) mesh.name = "glass";
+    return mesh;
+  });
 }
 
 /** Build the apartment scene graph and colliders from the layout data. */
@@ -114,9 +142,14 @@ export function buildApartment(def: ApartmentDef): BuiltApartment {
     wallGeometries.push(...pieces.solid.map((b) => finished(boxGeometry(b), def.wallFinish)));
     for (const leaf of pieces.leaves) {
       leaves.push({ color: leaf.color, geometry: boxGeometry(leaf.box) });
+      for (const handle of leaf.handles) {
+        leaves.push({ color: def.frameColor, geometry: boxGeometry(handle) });
+      }
     }
     glassGeometries.push(...pieces.glass.map(boxGeometry));
-    for (const glass of pieces.glass) frameGeometries.push(...frameBoxes(glass).map(boxGeometry));
+    pieces.glass.forEach((glass, i) =>
+      frameGeometries.push(...frameBoxes(glass, pieces.panes[i]).map(boxGeometry)),
+    );
   }
   group.add(mergedMesh(wallGeometries, surfaceMaterial(def.wallColor, def.wallFinish)));
   for (const mesh of mergedByMaterial(leaves)) group.add(mesh);
@@ -161,12 +194,13 @@ export function buildApartment(def: ApartmentDef): BuiltApartment {
 
   // Furniture (per material), patterns start at each item's corner
   for (const mesh of mergedByMaterial(
-    def.furniture.map((item) => {
+    allFurniture(def).map((item) => {
       const y = item.y ?? 0;
       const geometry = boxGeometry(rectBox(item.rect, y, y + item.h));
       return {
         color: item.color,
         finish: item.finish,
+        opacity: item.opacity,
         geometry: finished(geometry, item.finish, [item.rect[0], y, item.rect[1]]),
       };
     }),

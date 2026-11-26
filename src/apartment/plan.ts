@@ -1,5 +1,6 @@
 import type { Collider } from "../player/movement";
 import type { ApartmentDef, FurnitureDef, OpeningDef, Rect, WallDef } from "../data/apartment";
+import { expandKitchen } from "./kitchen";
 
 /** Pieces starting above this height do not block the player (lintels, wall cabinets). */
 const BLOCKING_HEIGHT = 1.8;
@@ -28,8 +29,10 @@ export interface WallPieces {
   glass: Box[];
   /** the openings themselves, as boxes (for frames and labels) */
   openings: Box[];
-  /** closed door leaves: color + box */
-  leaves: { color: string; box: Box }[];
+  /** glazed leaves per glass opening (same order as `glass`) */
+  panes: number[];
+  /** closed door leaves: color + box, and lever handles on both faces */
+  leaves: { color: string; box: Box; handles: Box[] }[];
 }
 
 /** Merge overlapping intervals (sorted output). Pure. */
@@ -89,7 +92,7 @@ export function wallPieces(wall: WallDef, wallHeight: number): WallPieces {
       : { minX: center - halfT, maxX: center + halfT, minY, maxY, minZ: a, maxZ: b };
 
   const openings: OpeningDef[] = [...(wall.openings ?? [])].sort((a, b) => a.at - b.at);
-  const pieces: WallPieces = { solid: [], glass: [], openings: [], leaves: [] };
+  const pieces: WallPieces = { solid: [], glass: [], openings: [], panes: [], leaves: [] };
   let cursor = start;
   for (const opening of openings) {
     const a = start + opening.at;
@@ -102,13 +105,38 @@ export function wallPieces(wall: WallDef, wallHeight: number): WallPieces {
     if (opening.head < wallHeight) pieces.solid.push(box(a, b, opening.head, wallHeight));
     pieces.openings.push(box(a, b, opening.sill, opening.head));
     if (opening.leaf) {
+      // Lever handle at 1.05 m, near the opening's far end (lock side)
+      const handleAt = b - 0.09;
+      const lever = (side: number): Box => {
+        const t = LEAF_THICKNESS / 2;
+        const [n0, n1] = side > 0 ? [t, t + 0.06] : [-t - 0.06, -t];
+        return alongX
+          ? {
+              minX: handleAt - 0.12,
+              maxX: handleAt,
+              minY: 1.04,
+              maxY: 1.06,
+              minZ: center + n0,
+              maxZ: center + n1,
+            }
+          : {
+              minX: center + n0,
+              maxX: center + n1,
+              minY: 1.04,
+              maxY: 1.06,
+              minZ: handleAt - 0.12,
+              maxZ: handleAt,
+            };
+      };
       pieces.leaves.push({
         color: opening.leaf,
         box: box(a, b, opening.sill, opening.head, LEAF_THICKNESS / 2),
+        handles: [lever(1), lever(-1)],
       });
     }
     if (opening.glass) {
       pieces.glass.push(box(a, b, opening.sill, opening.head, GLASS_THICKNESS / 2));
+      pieces.panes.push(opening.panes ?? 1);
     }
     cursor = b;
   }
@@ -138,10 +166,23 @@ export function buildColliders(def: ApartmentDef): Collider[] {
       if (piece.minY < BLOCKING_HEIGHT) colliders.push(boxCollider(piece));
     }
   }
-  for (const item of def.furniture) {
+  for (const item of allFurniture(def)) {
     if (blocksPlayer(item)) colliders.push(rectCollider(item.rect));
   }
   return colliders;
+}
+
+/** Ceiling height at a plan point (lowered ceilings included). */
+export function ceilingAt(def: ApartmentDef, x: number, z: number): number {
+  const area = def.areas.find(
+    ({ rect }) => x >= rect[0] && x <= rect[2] && z >= rect[1] && z <= rect[3],
+  );
+  return area?.ceiling ?? def.wallHeight;
+}
+
+/** Loose furniture plus the expanded kitchen. */
+export function allFurniture(def: ApartmentDef): FurnitureDef[] {
+  return [...def.furniture, ...expandKitchen(def.kitchen)];
 }
 
 /** Bounding rectangle of all areas (the walkable footprint). */

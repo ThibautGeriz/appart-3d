@@ -8,6 +8,7 @@ export interface HudHandles {
   runButton: HTMLElement;
   dimButton: HTMLElement;
   sunButton: HTMLElement;
+  lightButton: HTMLElement;
   sunPanel: HTMLElement;
   hourInput: HTMLInputElement;
   hourLabel: HTMLElement;
@@ -38,7 +39,7 @@ export function createHud(container: HTMLElement, isTouch: boolean): HudHandles 
   hint.className = "hud-hint";
   hint.textContent = isTouch
     ? "Gauche : marcher · Droite : regarder · Bouton : courir"
-    : "Cliquez pour capturer la souris · ZQSD / WASD : se déplacer · Q/E : tourner · Tab : cotes · O/P : heure · Maj : courir";
+    : "Cliquez pour capturer la souris · ZQSD / WASD : se déplacer · Q/E : tourner · Tab : cotes · O/P : heure · L : lumières · Maj : courir";
   hud.appendChild(hint);
 
   let crosshair: HTMLElement | null = null;
@@ -77,6 +78,12 @@ export function createHud(container: HTMLElement, isTouch: boolean): HudHandles 
   sunButton.type = "button";
   hud.appendChild(sunButton);
 
+  const lightButton = document.createElement("button");
+  lightButton.className = "hud-dim hud-light active";
+  lightButton.textContent = "💡 LUMIÈRES";
+  lightButton.type = "button";
+  hud.appendChild(lightButton);
+
   const sunPanel = document.createElement("div");
   sunPanel.className = "hud-sun-panel";
   sunPanel.hidden = true;
@@ -102,6 +109,7 @@ export function createHud(container: HTMLElement, isTouch: boolean): HudHandles 
     runButton,
     dimButton,
     sunButton,
+    lightButton,
     sunPanel,
     hourInput,
     hourLabel,

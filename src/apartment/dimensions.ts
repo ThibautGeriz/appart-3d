@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import type { ApartmentDef } from "../data/apartment";
-import { formatMeters, roomLabelText } from "./labels";
+import { ceilingText, formatMeters, roomLabelText } from "./labels";
 import { wallPieces, type Box } from "./plan";
 
 const PX_PER_UNIT = 90; // canvas px per world meter (sprite scale)
@@ -70,11 +70,21 @@ export function buildDimensions(def: ApartmentDef): THREE.Group {
   const group = new THREE.Group();
 
   for (const area of def.areas) {
-    if (!area.label) continue;
     const [minX, minZ, maxX, maxZ] = area.rect;
-    const text = roomLabelText({ label: area.label, w: maxX - minX, d: maxZ - minZ });
-    const sprite = makeTextSprite(text, "#1a1a2e");
-    sprite.position.set((minX + maxX) / 2, 2.0, (minZ + maxZ) / 2);
+    const lowered = area.ceiling !== undefined && area.ceiling < def.wallHeight;
+    const ceiling = area.outdoor ? undefined : (area.ceiling ?? def.wallHeight);
+    let text: string;
+    if (area.label) {
+      text = roomLabelText({ label: area.label, w: maxX - minX, d: maxZ - minZ, ceiling, lowered });
+    } else if (lowered && area.ceiling !== undefined) {
+      text = ceilingText(area.ceiling, true);
+    } else {
+      continue;
+    }
+    // Lowered-ceiling labels hang just under their soffit
+    const y = Math.min(2.0, (ceiling ?? def.wallHeight) - 0.3);
+    const sprite = makeTextSprite(text, lowered ? "#8a3b12" : "#1a1a2e");
+    sprite.position.set((minX + maxX) / 2, y, (minZ + maxZ) / 2);
     group.add(sprite);
   }
 

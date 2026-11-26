@@ -91,7 +91,7 @@ const NIGHT_HORIZON: Rgb = [0.06, 0.08, 0.15];
 const DUSK_HORIZON: Rgb = [0.98, 0.55, 0.3];
 const DAY_ZENITH: Rgb = [0.28, 0.52, 0.88];
 const DAY_HORIZON: Rgb = [0.74, 0.86, 0.96];
-const LAMP: Rgb = [1.0, 0.82, 0.6];
+const LAMP: Rgb = [1.0, 0.92, 0.8];
 
 /**
  * Light levels and sky colors for a sun elevation.
