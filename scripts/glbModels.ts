@@ -1,36 +1,40 @@
 import * as THREE from "three";
 import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
-import { buildProp } from "../src/apartment/props";
-import { createAvatar } from "../src/player/avatar";
+import { modelFootprint } from "../src/apartment/facing";
+import { MODEL_FILES, type ModelName } from "../src/apartment/modelFiles";
 import { allFurniture } from "../src/apartment/plan";
 import { APARTMENT_DEF, type PropModel } from "../src/data/apartment";
+import { mannequin, PROP_BUILDERS } from "../src/models";
 
 export interface ModelEntry {
-  name: string;
+  /** output file name, without .glb */
+  file: string;
   build: () => THREE.Object3D;
+  /** photo textures to attach after export: material name → image path (repo-relative) */
+  textures?: Record<string, string>;
+  /** keep the node hierarchy (named joints) instead of merging meshes */
+  rigged?: boolean;
 }
 
-/** Build a prop at the size the layout data gives it. */
+/** Build a prop at the size the layout data gives it (first item using it). */
 function prop(model: PropModel): THREE.Object3D {
   const item = allFurniture(APARTMENT_DEF).find((f) => f.model === model);
   if (!item) throw new Error(`no furniture uses model ${model}`);
-  const [x0, z0, x1, z1] = item.rect;
-  const g = buildProp(model, Math.abs(x1 - x0), Math.abs(z1 - z0), item.h);
+  const [w, d] = modelFootprint(item.rect, item.facing ?? "+z");
+  const g = PROP_BUILDERS[model](w, d, item.h);
   g.name = model;
   return g;
 }
 
+const props = Object.keys(PROP_BUILDERS) as PropModel[];
+
 export const MODELS: ModelEntry[] = [
-  { name: "washing-machine", build: () => prop("washingMachine") },
-  { name: "toilet", build: () => prop("toilet") },
+  ...props.map((model) => ({ file: MODEL_FILES[model], build: () => prop(model) })),
   {
-    name: "avatar",
-    build: () => {
-      const a = createAvatar();
-      a.visible = true;
-      a.name = "avatar";
-      return a;
-    },
+    file: MODEL_FILES["avatar" satisfies ModelName],
+    build: mannequin,
+    rigged: true,
+    textures: { wood: "src/assets/textures/oak_veneer_01.jpg" },
   },
 ];
 

@@ -1,23 +1,16 @@
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
-import type { PropModel } from "../data/apartment";
 
 /**
- * Detailed appliances and sanitary ware, modelled from primitives (no CC0
- * scans exist for these). Phong materials give enamel / porcelain / chrome
- * their highlights. Local frame: origin at the floor, centered on the
- * footprint, front facing +z.
+ * Front-loading washing machine, modelled from primitives (no CC0 scan
+ * exists). Phong materials, converted to PBR at export. Local frame: origin
+ * at the floor, centered on the footprint, front facing +z.
  */
 
 const enamel = new THREE.MeshPhongMaterial({
   color: "#f4f5f6",
   specular: "#666666",
   shininess: 60,
-});
-const porcelain = new THREE.MeshPhongMaterial({
-  color: "#fafaf8",
-  specular: "#777777",
-  shininess: 90,
 });
 const chrome = new THREE.MeshPhongMaterial({
   color: "#b8bcc2",
@@ -58,7 +51,7 @@ function mesh(
 }
 
 /** Front-loading washing machine, 60 × 60 × 85 cm. */
-function washingMachine(w: number, d: number, h: number): THREE.Group {
+export function washingMachine(w: number, d: number, h: number): THREE.Group {
   const g = new THREE.Group();
   const front = d / 2;
   g.add(mesh(new RoundedBoxGeometry(w, h - 0.02, d, 4, 0.025), enamel, 0, h / 2 + 0.01, 0));
@@ -151,77 +144,4 @@ function washingMachine(w: number, d: number, h: number): THREE.Group {
   // door handle recess on the ring's right
   g.add(mesh(new THREE.BoxGeometry(0.02, 0.07, 0.015), chrome, 0.185, doorY, front + 0.03));
   return g;
-}
-
-/**
- * Wall-hung toilet: elongated porcelain bowl, closed seat + lid, hinges,
- * and the dual flush plate on the boxed-in cistern behind it.
- */
-function toilet(w: number, d: number): THREE.Group {
-  const g = new THREE.Group();
-  const back = -d / 2;
-  const bowlTop = 0.4;
-  // bowl: lathe profile (radius, height), stretched front-to-back
-  const profile = [
-    [0.0, 0.12],
-    [0.1, 0.12],
-    [0.135, 0.16],
-    [0.165, 0.24],
-    [0.18, 0.32],
-    [0.182, bowlTop - 0.02],
-    [0.172, bowlTop],
-    [0.0, bowlTop],
-  ].map(([r, y]) => new THREE.Vector2(r, y));
-  const bowlGeometry = new THREE.LatheGeometry(profile, 48);
-  const stretch = (d - 0.05) / 0.364; // front-to-back length / bowl diameter
-  bowlGeometry.scale(w / 0.364, 1, stretch);
-  const bowl = mesh(bowlGeometry, porcelain, 0, 0, back + (d - 0.05) / 2 + 0.05);
-  g.add(bowl);
-  // back block fixing the bowl to the wall
-  g.add(
-    mesh(new RoundedBoxGeometry(w * 0.75, 0.26, 0.16, 3, 0.03), porcelain, 0, 0.27, back + 0.08),
-  );
-  // seat + lid (closed), slightly warmer white
-  const lidGeometry = new THREE.CylinderGeometry(0.18, 0.18, 0.035, 48);
-  lidGeometry.scale(w / 0.364, 1, stretch);
-  const lid = mesh(lidGeometry, enamel, 0, bowlTop + 0.018, back + (d - 0.05) / 2 + 0.055);
-  g.add(lid);
-  for (const hx of [-0.07, 0.07]) {
-    const hinge = mesh(
-      new THREE.CylinderGeometry(0.012, 0.012, 0.03, 16),
-      chrome,
-      hx,
-      bowlTop + 0.02,
-      back + 0.12,
-    );
-    hinge.rotation.z = Math.PI / 2;
-    g.add(hinge);
-  }
-  // dual flush plate on the boxing (centered above the bowl)
-  g.add(mesh(new RoundedBoxGeometry(0.24, 0.16, 0.012, 2, 0.004), chrome, 0, 1.0, back + 0.006));
-  g.add(
-    mesh(
-      new RoundedBoxGeometry(0.105, 0.13, 0.008, 2, 0.003),
-      panelGray,
-      -0.058,
-      1.0,
-      back + 0.014,
-    ),
-  );
-  g.add(
-    mesh(new RoundedBoxGeometry(0.105, 0.13, 0.008, 2, 0.003), panelGray, 0.058, 1.0, back + 0.014),
-  );
-  return g;
-}
-
-/** Build a prop for a footprint of width `w` (local x) and depth `d` (local z). */
-export function buildProp(model: PropModel, w: number, d: number, h: number): THREE.Group {
-  const group = model === "washingMachine" ? washingMachine(w, d, h) : toilet(w, d);
-  group.traverse((o) => {
-    if (o instanceof THREE.Mesh) {
-      o.castShadow = o.material !== glass;
-      o.receiveShadow = true;
-    }
-  });
-  return group;
 }

@@ -1,9 +1,8 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-import type { ApartmentDef, Finish, Rect } from "../data/apartment";
+import type { ApartmentDef, Finish, PropModel, Rect } from "../data/apartment";
 import { finishSize, surfaceMaterial } from "./textures";
 import { applyWorldUVs } from "./uv";
-import { buildProp } from "./props";
 import { facingVector } from "./facing";
 import {
   allFurniture,
@@ -15,9 +14,17 @@ import {
 } from "./plan";
 import type { Collider } from "../player/movement";
 
+/** Empty node, placed and rotated in the room, that receives a loaded GLB model. */
+export interface ModelSlot {
+  model: PropModel;
+  slot: THREE.Group;
+}
+
 export interface BuiltApartment {
   group: THREE.Group;
   colliders: Collider[];
+  /** filled asynchronously by loadModels (src/apartment/models.ts) */
+  models: ModelSlot[];
 }
 
 const FRAME = 0.05;
@@ -223,32 +230,28 @@ export function buildApartment(def: ApartmentDef): BuiltApartment {
     group.add(mesh);
   }
 
-  // Detailed models (washing machine, toilet), rotated to face the room
-  const props = new THREE.Group();
-  for (const item of allFurniture(def).filter((i) => i.model)) {
-    const [minX, minZ, maxX, maxZ] = item.rect;
-    const [fx, fz] = facingVector(item.facing ?? "+z");
-    const alongX = fx === 0; // front faces ±z: model width runs along x
-    const w = alongX ? maxX - minX : maxZ - minZ;
-    const d = alongX ? maxZ - minZ : maxX - minX;
-    const prop = buildProp(item.model!, w, d, item.h);
-    prop.position.set((minX + maxX) / 2, item.y ?? 0, (minZ + maxZ) / 2);
-    prop.rotation.y = Math.atan2(fx, fz);
-    props.add(prop);
-  }
-  group.add(props);
-
   // Everything casts and receives sun shadows, except the glazing (lets the light in)
   group.traverse((object) => {
-    if (
-      object instanceof THREE.Mesh &&
-      object.name !== "glass" &&
-      !props.children.includes(object.parent as THREE.Object3D)
-    ) {
+    if (object instanceof THREE.Mesh && object.name !== "glass") {
       object.castShadow = true;
       object.receiveShadow = true;
     }
   });
 
-  return { group, colliders: buildColliders(def) };
+  // Detailed models (washing machine, toilet, shower), rotated to face the
+  // room; the GLBs are exported at the footprint size, centered on it
+  const models: ModelSlot[] = allFurniture(def)
+    .filter((item) => item.model)
+    .map((item) => {
+      const [minX, minZ, maxX, maxZ] = item.rect;
+      const [fx, fz] = facingVector(item.facing ?? "+z");
+      const slot = new THREE.Group();
+      slot.name = item.name;
+      slot.position.set((minX + maxX) / 2, item.y ?? 0, (minZ + maxZ) / 2);
+      slot.rotation.y = Math.atan2(fx, fz);
+      group.add(slot);
+      return { model: item.model!, slot };
+    });
+
+  return { group, colliders: buildColliders(def), models };
 }
