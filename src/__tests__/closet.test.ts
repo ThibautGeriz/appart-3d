@@ -6,17 +6,17 @@ import { buildColliders } from "../apartment/plan";
 const entree = APARTMENT_DEF.closets.find((c) => c.name === "Placard entrée")!;
 
 describe("built-in cupboards", () => {
-  it("builds the entrée cupboard into the wall: flush doors, wall finish, no handles", () => {
+  it("gives the entrée cupboard visible sliding doors with pulls, on the entrée side", () => {
     const items = expandCloset(entree);
     const doors = items.filter((i) => i.name.endsWith("(porte)"));
     const carcass = items.find((i) => i.name.endsWith("(caisson)"))!;
-    expect(doors.length).toBeGreaterThan(0);
+    expect(entree.style).toBe("sliding");
+    expect(doors).toHaveLength(2);
     for (const door of doors) {
-      expect(door.rect[2]).toBeCloseTo(entree.rect[2]); // flush with the entrée wall face
-      expect(door.rect[0]).toBeGreaterThanOrEqual(carcass.rect[2] - 1e-9);
-      expect(door.finish).toBe(APARTMENT_DEF.wallFinish);
+      expect(door.rect[2]).toBeGreaterThan(carcass.rect[2]); // in front of the carcass, toward +x
+      expect(door.rect[2]).toBeLessThanOrEqual(entree.rect[2] + 1e-9); // in line with the wall
     }
-    expect(items.some((i) => i.name.endsWith("(poignée)"))).toBe(false);
+    expect(items.filter((i) => i.name.endsWith("(poignée)"))).toHaveLength(2);
   });
 
   it("is not hidden behind a wall: nothing stands between the doors and the entrée", () => {
