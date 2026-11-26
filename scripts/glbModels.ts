@@ -66,9 +66,28 @@ function toPbr(material: THREE.Material): THREE.Material {
   return material;
 }
 
+/**
+ * Math.sin/cos differ in the last bits between platforms (e.g. cos(π/2) is
+ * 6e-17 on one, 0 on another): snap vertex data to a 2^-20 grid (~1 µm) so
+ * the exported bytes are identical on macOS and Linux CI.
+ */
+const GRID = 2 ** 20;
+function snap(geometry: THREE.BufferGeometry): void {
+  for (const attribute of Object.values(geometry.attributes)) {
+    const array = attribute.array;
+    if (!(array instanceof Float32Array)) continue;
+    for (let i = 0; i < array.length; i++) array[i] = Math.round(array[i] * GRID) / GRID;
+  }
+}
+
 export async function toGlb(object: THREE.Object3D): Promise<ArrayBuffer> {
   const converted = new Map<THREE.Material, THREE.Material>();
+  const snapped = new Set<THREE.BufferGeometry>();
   object.traverse((o) => {
+    if (o instanceof THREE.Mesh && !snapped.has(o.geometry)) {
+      snap(o.geometry);
+      snapped.add(o.geometry);
+    }
     if (o instanceof THREE.Mesh && o.material instanceof THREE.Material) {
       const m = o.material;
       if (!converted.has(m)) converted.set(m, toPbr(m));
