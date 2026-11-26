@@ -102,8 +102,8 @@ const frenchWindow = (at: number, width: number, glass = true): OpeningDef => ({
 });
 
 export const APARTMENT_DEF: ApartmentDef = {
-  // Location defaults to Paris; floor level is a guess (3rd floor)
-  site: { latitude: 48.85, longitude: 2.35, northAngleDeg: 25, floorElevation: 8 },
+  // Annecy, 4th floor (4 levels × ~3 m above the street)
+  site: { latitude: 45.9, longitude: 6.13, northAngleDeg: 25, floorElevation: 12 },
   wallHeight: 2.5,
   wallColor: "#e8e4dc",
   ceilingColor: "#f5f5f0",
