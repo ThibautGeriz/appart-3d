@@ -48,6 +48,8 @@ export type Finish =
   | "stone"
   | "kitchenTile"
   | "lacquer"
+  | "showerWall"
+  | "showerFloor"
   | "grass"
   | "facade";
 
@@ -463,23 +465,48 @@ export const APARTMENT_DEF: ApartmentDef = {
       color: "#c9d6dc",
       solid: false,
     },
-    // Italian (walk-in) shower in place of the bath: flush floor, fixed glass
-    // screen on the room side, black shower column on the wall
+    // Italian (walk-in) shower in place of the bath: flush anthracite stone
+    // floor, white vertical glazed tiles on both walls up to 2.10 m, stainless
+    // linear drain, fixed glass screen with a black profile, black rain head,
+    // hand shower and thermostatic mixer
     {
       name: "Sol douche",
       rect: [7.36, 4.2, 8.065, 5.82],
       h: 0.004,
-      color: "#7b7d80",
-      finish: "tile30",
+      color: "#6f7174",
+      finish: "showerFloor",
       solid: false,
     },
-    { name: "Caniveau", rect: [7.38, 5.7, 8.04, 5.76], h: 0.006, color: "#2a2a2a", solid: false },
+    {
+      name: "Faïence douche (mur est)",
+      rect: [8.052, 4.2, 8.065, 5.82],
+      h: 2.1,
+      color: "#ffffff",
+      finish: "showerWall",
+      solid: false,
+    },
+    {
+      name: "Faïence douche (mur sud)",
+      rect: [7.36, 5.807, 8.052, 5.82],
+      h: 2.1,
+      color: "#ffffff",
+      finish: "showerWall",
+      solid: false,
+    },
+    { name: "Caniveau", rect: [7.4, 5.7, 8.03, 5.77], h: 0.007, color: "#a9adb2", solid: false },
+    {
+      name: "Caniveau (grille)",
+      rect: [7.42, 5.725, 8.01, 5.745],
+      h: 0.008,
+      color: "#5b5f63",
+      solid: false,
+    },
     {
       name: "Paroi de douche",
       rect: [7.35, 4.2, 7.37, 5.2],
       h: 2.0,
       color: "#dfeef3",
-      opacity: 0.25,
+      opacity: 0.22,
     },
     {
       name: "Profilé paroi",
@@ -490,18 +517,57 @@ export const APARTMENT_DEF: ApartmentDef = {
       solid: false,
     },
     {
+      name: "Profilé paroi (sol)",
+      rect: [7.345, 4.2, 7.375, 5.2],
+      h: 0.02,
+      color: "#151515",
+      solid: false,
+    },
+    {
       name: "Colonne de douche",
-      rect: [8.02, 4.98, 8.05, 5.01],
-      y: 0.9,
-      h: 1.15,
+      rect: [8.025, 4.985, 8.05, 5.01],
+      y: 1.0,
+      h: 1.08,
+      color: "#151515",
+      solid: false,
+    },
+    {
+      name: "Bras de douche",
+      rect: [7.9, 4.987, 8.05, 5.008],
+      y: 2.06,
+      h: 0.02,
       color: "#151515",
       solid: false,
     },
     {
       name: "Pomme de douche",
-      rect: [7.78, 4.86, 8.05, 5.13],
-      y: 2.05,
-      h: 0.015,
+      rect: [7.78, 4.87, 8.02, 5.11],
+      y: 2.04,
+      h: 0.012,
+      color: "#151515",
+      solid: false,
+    },
+    {
+      name: "Mitigeur thermostatique",
+      rect: [8.03, 4.9, 8.052, 5.1],
+      y: 1.0,
+      h: 0.07,
+      color: "#151515",
+      solid: false,
+    },
+    {
+      name: "Douchette",
+      rect: [8.01, 5.12, 8.04, 5.15],
+      y: 1.15,
+      h: 0.22,
+      color: "#151515",
+      solid: false,
+    },
+    {
+      name: "Support douchette",
+      rect: [8.04, 5.115, 8.052, 5.155],
+      y: 1.3,
+      h: 0.04,
       color: "#151515",
       solid: false,
     },

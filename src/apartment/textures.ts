@@ -3,6 +3,8 @@ import type { Finish } from "../data/apartment";
 import woodFloorUrl from "../assets/textures/wood_floor.jpg";
 import oakVeneerUrl from "../assets/textures/oak_veneer_01.jpg";
 import concreteUrl from "../assets/textures/smooth_concrete_floor.jpg";
+import glazedTilesUrl from "../assets/textures/long_white_tiles.jpg";
+import stoneTilesUrl from "../assets/textures/tiled_floor_001.jpg";
 
 /**
  * Surface textures: CC0 photo scans (wood, stone, see src/assets/textures)
@@ -131,6 +133,10 @@ const FINISHES: Record<Finish, FinishSpec> = {
       ctx.fillRect(0, SIZE * 0.36, SIZE, 3);
     },
   },
+  // Walk-in shower: white vertical glazed tiles (scan), anthracite 30 × 30
+  // stone floor (scan turned gray, tinted by the data color)
+  showerWall: { size: [1.27, 1.27], photo: glazedTilesUrl, grayscale: true },
+  showerFloor: { size: [1.5, 1.5], photo: stoneTilesUrl, grayscale: true },
   // Dark mottled stone worktop: gray concrete scan tinted near-black
   stone: { size: [1, 1], photo: concreteUrl, grayscale: true },
   // Large 60 × 120 cm porcelain tiles, concrete look (long side along v,
