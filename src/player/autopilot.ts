@@ -63,11 +63,10 @@ export function stepAutopilot(
   pos: Vec2,
   yaw: number,
   dt: number,
-  run: boolean,
   steer = true,
 ): AutopilotStep {
   const idle: AutopilotStep = {
-    intent: { forward: 0, strafe: 0, run: false },
+    intent: { forward: 0, strafe: 0 },
     turn: 0,
     done: true,
   };
@@ -111,5 +110,5 @@ export function stepAutopilot(
     const maxTurn = TURN_SPEED * dt;
     turn = Math.max(-maxTurn, Math.min(maxTurn, delta));
   }
-  return { intent: { forward, strafe, run }, turn, done: false };
+  return { intent: { forward, strafe }, turn, done: false };
 }

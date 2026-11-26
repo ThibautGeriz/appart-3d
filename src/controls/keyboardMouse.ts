@@ -18,6 +18,7 @@ const CLICK_TIME = 350; // ms
  *  - left drag: look around; right drag: turn (mouselook, A/D then strafe)
  *  - both buttons: walk forward
  *  - click (left or right, no drag): click-to-move
+ *  - wheel: zoom out to a third-person view and back
  */
 export class KeyboardMouseInput implements InputSource {
   private keys = new Set<string>();
@@ -34,6 +35,7 @@ export class KeyboardMouseInput implements InputSource {
     window.addEventListener("pointermove", this.onPointerMove);
     window.addEventListener("pointerup", this.onPointerUp);
     canvas.addEventListener("contextmenu", this.onContextMenu);
+    canvas.addEventListener("wheel", this.onWheel, { passive: false });
     window.addEventListener("blur", this.onBlur);
   }
 
@@ -68,6 +70,15 @@ export class KeyboardMouseInput implements InputSource {
     this.canvas.style.cursor = "grabbing";
     this.pendingLook.yaw -= e.movementX * MOUSE_SENSITIVITY;
     this.pendingLook.pitch -= e.movementY * MOUSE_SENSITIVITY;
+    // left button alone: orbit the camera (third person); right button: turn
+    this.pendingLook.orbit = !mouseMode(this.buttons).mouselook;
+  };
+
+  /** Wheel: zoom out to third person / back in (trackpads send small deltas). */
+  private onWheel = (e: WheelEvent) => {
+    e.preventDefault(); // keep the page from scrolling
+    const notches = e.deltaMode === WheelEvent.DOM_DELTA_LINE ? e.deltaY / 3 : e.deltaY / 100;
+    this.pendingLook.zoom = (this.pendingLook.zoom ?? 0) + Math.max(-1, Math.min(1, notches));
   };
 
   private onPointerUp = (e: PointerEvent) => {
@@ -127,6 +138,7 @@ export class KeyboardMouseInput implements InputSource {
     window.removeEventListener("pointermove", this.onPointerMove);
     window.removeEventListener("pointerup", this.onPointerUp);
     this.canvas.removeEventListener("contextmenu", this.onContextMenu);
+    this.canvas.removeEventListener("wheel", this.onWheel);
     window.removeEventListener("blur", this.onBlur);
     this.keys.clear();
   }

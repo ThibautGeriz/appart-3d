@@ -82,7 +82,7 @@ describe("autopilot", () => {
     let yaw = APARTMENT_DEF.spawn.yaw;
     let done = false;
     for (let frame = 0; frame < 60 * 20 && !done; frame++) {
-      const step = stepAutopilot(state, pos, yaw, 1 / 60, false);
+      const step = stepAutopilot(state, pos, yaw, 1 / 60);
       done = step.done;
       yaw += step.turn;
       pos = stepPlayer(pos, computeVelocity(step.intent, yaw), 1 / 60, colliders, RADIUS);
@@ -95,7 +95,7 @@ describe("autopilot", () => {
 
   it("keeps the view still while the user drags to look", () => {
     const state = startAutopilot([{ x: 5, z: 0 }]);
-    const step = stepAutopilot(state, { x: 0, z: 0 }, 0, 1 / 60, false, false);
+    const step = stepAutopilot(state, { x: 0, z: 0 }, 0, 1 / 60, false);
     expect(step.turn).toBe(0);
     expect(step.intent.strafe).toBeGreaterThan(0.9); // still walks toward +x
   });

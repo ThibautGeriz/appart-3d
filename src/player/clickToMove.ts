@@ -88,7 +88,7 @@ export function createClickToMove(options: {
       }
       pulse += dt;
       marker.material.opacity = 0.55 + 0.35 * Math.sin(pulse * 6);
-      const step = stepAutopilot(state, player, player.yaw, dt, manual.run, !looking);
+      const step = stepAutopilot(state, player, player.yaw, dt, !looking);
       if (step.done) {
         cancel();
         return null;

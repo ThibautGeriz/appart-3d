@@ -21,9 +21,8 @@ describe("keyToAction (World of Warcraft layout)", () => {
     expect(keyToAction("ArrowRight")).toBe("turnRight");
   });
 
-  it("maps both shifts to run and ignores unrelated keys", () => {
-    expect(keyToAction("ShiftLeft")).toBe("run");
-    expect(keyToAction("ShiftRight")).toBe("run");
+  it("has no run key and ignores unrelated keys", () => {
+    expect(keyToAction("ShiftLeft")).toBeUndefined();
     expect(keyToAction("KeyR")).toBeUndefined();
     expect(keyToAction("Escape")).toBeUndefined();
   });
@@ -33,12 +32,12 @@ describe("intentFromCodes", () => {
   // KeyboardEvent.code is physical: on AZERTY the keys printed Z/Q/S/D emit
   // KeyW/KeyA/KeyS/KeyD and A/E emit KeyQ/KeyE, so French players get
   // ZQSD + A/E strafing with no remapping, as in the French WoW client.
-  it("walks forward and runs", () => {
-    expect(intentFromCodes(["KeyW", "ShiftLeft"])).toEqual({ forward: 1, strafe: 0, run: true });
+  it("walks forward (Shift does nothing: no running)", () => {
+    expect(intentFromCodes(["KeyW", "ShiftLeft"])).toEqual({ forward: 1, strafe: 0 });
   });
 
   it("does not move sideways on the turn keys", () => {
-    expect(intentFromCodes(["KeyA"])).toEqual({ forward: 0, strafe: 0, run: false });
+    expect(intentFromCodes(["KeyA"])).toEqual({ forward: 0, strafe: 0 });
   });
 
   it("strafes with Q/E", () => {
@@ -52,8 +51,8 @@ describe("intentFromCodes", () => {
   });
 
   it("combines opposing keys to a neutral intent", () => {
-    expect(intentFromCodes(["KeyW", "KeyS"])).toEqual({ forward: 0, strafe: 0, run: false });
-    expect(intentFromCodes([])).toEqual({ forward: 0, strafe: 0, run: false });
+    expect(intentFromCodes(["KeyW", "KeyS"])).toEqual({ forward: 0, strafe: 0 });
+    expect(intentFromCodes([])).toEqual({ forward: 0, strafe: 0 });
   });
 });
 

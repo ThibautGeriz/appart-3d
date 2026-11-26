@@ -14,7 +14,6 @@ export interface Collider {
 }
 
 export const WALK_SPEED = 3; // m/s
-export const RUN_SPEED = 5.5; // m/s
 
 /**
  * World-space velocity from a movement intent and the player yaw.
@@ -23,17 +22,15 @@ export const RUN_SPEED = 5.5; // m/s
 export function computeVelocity(
   intent: MoveIntent,
   yaw: number,
-  options?: { walkSpeed?: number; runSpeed?: number },
+  options?: { walkSpeed?: number },
 ): Vec2 {
   const walkSpeed = options?.walkSpeed ?? WALK_SPEED;
-  const runSpeed = options?.runSpeed ?? RUN_SPEED;
   const { forward, strafe } = intent;
   const len = Math.hypot(forward, strafe);
   const scale = len > 1 ? 1 / len : 1;
-  const speed = intent.run ? runSpeed : walkSpeed;
   // forward = (-sin(yaw), -cos(yaw)), right = (cos(yaw), -sin(yaw))
-  const x = (-Math.sin(yaw) * forward + Math.cos(yaw) * strafe) * scale * speed;
-  const z = (-Math.cos(yaw) * forward - Math.sin(yaw) * strafe) * scale * speed;
+  const x = (-Math.sin(yaw) * forward + Math.cos(yaw) * strafe) * scale * walkSpeed;
+  const z = (-Math.cos(yaw) * forward - Math.sin(yaw) * strafe) * scale * walkSpeed;
   return { x, z };
 }
 

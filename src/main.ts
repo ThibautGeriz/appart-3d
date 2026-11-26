@@ -14,6 +14,7 @@ import { applyRoomMask } from "./lighting/roomMask";
 import type { InputSource } from "./controls/types";
 import { createClickToMove } from "./player/clickToMove";
 import { apartmentBounds } from "./apartment/plan";
+import { cameraObstacles } from "./player/camera";
 
 const container = document.getElementById("app") as HTMLElement;
 const isTouch = isTouchDevice();
@@ -43,6 +44,9 @@ scene.traverse((o) => o instanceof THREE.Mesh && applyRoomMask(o.material));
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const player = new Player(APARTMENT_DEF.spawn);
+scene.add(player.avatar);
+player.avatar.traverse((o) => o instanceof THREE.Mesh && applyRoomMask(o.material));
+const obstacles = cameraObstacles(APARTMENT_DEF); // keeps the third-person camera inside
 
 const hud = createHud(container, isTouch);
 const now = new Date();
@@ -105,7 +109,7 @@ renderer.setAnimationLoop(() => {
     look.yaw += auto.turn;
   }
   player.update(dt, intent, look, apartment.colliders);
-  player.applyToCamera(camera);
+  player.applyToCamera(camera, obstacles);
   fixtures.update(camera.position.x, camera.position.z);
   renderer.render(scene, camera);
 });

@@ -3,38 +3,32 @@ import {
   computeVelocity,
   resolveCircle,
   stepPlayer,
-  RUN_SPEED,
   WALK_SPEED,
   type Collider,
 } from "../player/movement";
 
 describe("computeVelocity", () => {
   it("walks forward along -Z when yaw = 0", () => {
-    const v = computeVelocity({ forward: 1, strafe: 0, run: false }, 0);
+    const v = computeVelocity({ forward: 1, strafe: 0 }, 0);
     expect(v.x).toBeCloseTo(0);
     expect(v.z).toBeCloseTo(-WALK_SPEED);
   });
 
   it("strafes right along +X when yaw = 0", () => {
-    const v = computeVelocity({ forward: 0, strafe: 1, run: false }, 0);
+    const v = computeVelocity({ forward: 0, strafe: 1 }, 0);
     expect(v.x).toBeCloseTo(WALK_SPEED);
     expect(v.z).toBeCloseTo(0);
   });
 
-  it("runs at run speed", () => {
-    const v = computeVelocity({ forward: 1, strafe: 0, run: true }, 0);
-    expect(Math.hypot(v.x, v.z)).toBeCloseTo(RUN_SPEED);
-  });
-
   it("normalizes diagonal input so it is not faster than straight walking", () => {
-    const v = computeVelocity({ forward: 1, strafe: 1, run: false }, 0);
+    const v = computeVelocity({ forward: 1, strafe: 1 }, 0);
     expect(Math.hypot(v.x, v.z)).toBeCloseTo(WALK_SPEED);
   });
 
   it("rotates forward direction with yaw", () => {
     // Three.js Y-rotation convention: positive yaw turns left, so forward
     // (initially -Z) becomes -X at yaw = π/2.
-    const v = computeVelocity({ forward: 1, strafe: 0, run: false }, Math.PI / 2);
+    const v = computeVelocity({ forward: 1, strafe: 0 }, Math.PI / 2);
     expect(v.x).toBeCloseTo(-WALK_SPEED);
     expect(v.z).toBeCloseTo(0);
   });
@@ -78,9 +72,9 @@ describe("stepPlayer collision", () => {
     expect(out.z).toBeLessThanOrEqual(-radius + 1e-9); // z blocked
   });
 
-  it("does not tunnel through a thin wall even at run speed and low FPS", () => {
+  it("does not tunnel through a thin wall even when fast and at low FPS", () => {
     const thinWall: Collider = { minX: -5, maxX: 5, minZ: 5, maxZ: 5.2 };
-    const velocity = { x: 0, z: RUN_SPEED };
+    const velocity = { x: 0, z: 5.5 };
     const out = stepPlayer({ x: 0, z: 3 }, velocity, 0.1, [thinWall], radius);
     expect(out.z).toBeLessThan(5); // never crossed the wall face
   });

@@ -6,8 +6,7 @@ export type MoveAction =
   | "turnLeft"
   | "turnRight"
   | "strafeLeft"
-  | "strafeRight"
-  | "run";
+  | "strafeRight";
 
 // World of Warcraft layout, on physical key codes (KeyboardEvent.code).
 // On AZERTY the key printed "Z" emits "KeyW", "Q" emits "KeyA" and "A" emits
@@ -23,8 +22,6 @@ const KEY_ACTIONS: Record<string, MoveAction> = {
   ArrowRight: "turnRight",
   KeyQ: "strafeLeft",
   KeyE: "strafeRight",
-  ShiftLeft: "run",
-  ShiftRight: "run",
 };
 
 export function keyToAction(code: string): MoveAction | undefined {
@@ -56,9 +53,6 @@ export function intentFromCodes(codes: Iterable<string>, mouselook = false): Mov
         break;
       case "turnLeft":
         if (mouselook) intent.strafe -= 1;
-        break;
-      case "run":
-        intent.run = true;
         break;
     }
   }
