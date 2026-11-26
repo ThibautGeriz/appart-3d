@@ -39,6 +39,12 @@ jobs:
             git status --short models/
             exit 1
           fi
+      - name: Upload the re-exported models
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: models
+          path: models/
       - name: Validate the models (Khronos glTF validator)
         run: npm run validate:glb
 
