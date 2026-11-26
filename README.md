@@ -3,7 +3,7 @@
 Marchez dans votre futur appartement en 3D, comme dans un jeu vidéo.
 
 - **Web app** (Vite 8 / Rolldown + Oxc, TypeScript strict, Three.js) — aucune installation côté joueur
-- **Contrôles façon World of Warcraft** : clic pour aller à un endroit, glisser (clic gauche) pour regarder, clic droit glissé pour tourner, deux boutons pour avancer, ZQSD (avancer / tourner) + A/E (pas de côté) ; mobile : joystick virtuel, glisser pour regarder, toucher pour aller ici
+- **Contrôles** : clic pour aller à un endroit, glisser (clic gauche) pour regarder, clic droit glissé pour tourner, deux boutons pour avancer, ZQSD (avancer / tourner) + A/E (pas de côté) ; mobile : joystick virtuel, glisser pour regarder, toucher pour aller ici
 - **Layout piloté par les données** : l'appartement est défini dans `src/data/apartment.ts`, pas dans le code de rendu
 - **Outils Oxc** : `oxlint` (linter), `oxfmt` (formateur), bundler Rolldon/Oxc via Vite 8
 
