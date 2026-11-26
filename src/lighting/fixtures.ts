@@ -1,6 +1,10 @@
 import * as THREE from "three";
 import type { ApartmentDef, Facing, LightDef } from "../data/apartment";
-import { ceilingAt } from "../apartment/plan";
+import { ceilingAt, roomRectsAt } from "../apartment/plan";
+import { initRoomMask, setRoomMask } from "./roomMask";
+import { facingVector } from "../apartment/facing";
+
+export { facingVector };
 
 const WARM = new THREE.Color("#ffd8a8");
 const LIT = new THREE.Color("#fff3df");
@@ -13,11 +17,6 @@ export interface Fixtures {
   setOn(on: boolean): void;
   /** move the point-light pool to the fixtures nearest the player */
   update(x: number, z: number): void;
-}
-
-/** Unit vector (x, z) of a facing. */
-export function facingVector(facing: Facing): [number, number] {
-  return { "+x": [1, 0], "-x": [-1, 0], "+z": [0, 1], "-z": [0, -1] }[facing] as [number, number];
 }
 
 /** Where a fixture's light comes from, in 3D. Pure. */
@@ -161,6 +160,10 @@ export function buildFixtures(def: ApartmentDef, isTouch: boolean): Fixtures {
     },
   );
 
+  // Each light only lights its own room (no light through walls)
+  const rooms = positions.map(([x, , z]) => roomRectsAt(def, x, z));
+  initRoomMask(pool.length);
+
   let on = true;
   let assigned = "";
   return {
@@ -179,6 +182,7 @@ export function buildFixtures(def: ApartmentDef, isTouch: boolean): Fixtures {
       nearest.forEach((index, i) => {
         const light = def.lights[index];
         pool[i].position.set(...positions[index]);
+        setRoomMask(i, rooms[index]);
         // intensity 0 instead of removing the light: the light count stays constant
         pool[i].intensity = on ? (light.kind === "ceiling" ? 3.2 : 1.2) : 0;
       });

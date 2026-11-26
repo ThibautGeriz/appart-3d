@@ -10,6 +10,7 @@ import { createHud } from "./ui/hud";
 import { bindSunControls, defaultHour } from "./ui/sunControls";
 import { createLighting } from "./lighting/environment";
 import { buildFixtures } from "./lighting/fixtures";
+import { applyRoomMask } from "./lighting/roomMask";
 import type { InputSource } from "./controls/types";
 
 const container = document.getElementById("app") as HTMLElement;
@@ -35,6 +36,8 @@ scene.add(apartment.group);
 const dimensions = buildDimensions(APARTMENT_DEF);
 dimensions.visible = false;
 scene.add(dimensions);
+// Interior lights stop at their room's walls
+scene.traverse((o) => o instanceof THREE.Mesh && applyRoomMask(o.material));
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const player = new Player(APARTMENT_DEF.spawn);

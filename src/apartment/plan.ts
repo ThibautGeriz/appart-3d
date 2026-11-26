@@ -1,6 +1,7 @@
 import type { Collider } from "../player/movement";
 import type { ApartmentDef, FurnitureDef, OpeningDef, Rect, WallDef } from "../data/apartment";
 import { expandKitchen } from "./kitchen";
+import { expandCloset } from "./closet";
 
 /** Pieces starting above this height do not block the player (lintels, wall cabinets). */
 const BLOCKING_HEIGHT = 1.8;
@@ -180,9 +181,24 @@ export function ceilingAt(def: ApartmentDef, x: number, z: number): number {
   return area?.ceiling ?? def.wallHeight;
 }
 
-/** Loose furniture plus the expanded kitchen. */
+/** Room of an area: its label, or the room it is open to. */
+export function roomOf(area: { label?: string; room?: string }, index: number): string {
+  return area.room ?? area.label ?? `#${index}`;
+}
+
+/** Rectangles of the room containing a plan point (all its areas). Pure. */
+export function roomRectsAt(def: ApartmentDef, x: number, z: number): Rect[] {
+  const index = def.areas.findIndex(
+    ({ rect }) => x >= rect[0] && x <= rect[2] && z >= rect[1] && z <= rect[3],
+  );
+  if (index < 0) return [];
+  const room = roomOf(def.areas[index], index);
+  return def.areas.filter((area, i) => roomOf(area, i) === room).map((area) => area.rect);
+}
+
+/** Loose furniture plus the expanded kitchen and cupboards. */
 export function allFurniture(def: ApartmentDef): FurnitureDef[] {
-  return [...def.furniture, ...expandKitchen(def.kitchen)];
+  return [...def.furniture, ...expandKitchen(def.kitchen), ...def.closets.flatMap(expandCloset)];
 }
 
 /** Bounding rectangle of all areas (the walkable footprint). */

@@ -90,15 +90,13 @@ const FINISHES: Record<Finish, FinishSpec> = {
   tile30: { size: [0.6, 0.6], draw: (ctx, random) => tiles(ctx, random, 2) },
   tile60: { size: [1.2, 1.2], draw: (ctx, random) => tiles(ctx, random, 2) },
   oak: { size: [0.9, 0.9], photo: oakVeneerUrl, brightness: 0.5 },
-  // Matte lacquered fronts: fine paint grain, soft vertical roller marks and
-  // a gentle light falloff, so flat fronts do not look like plastic
+  // Matte lacquered fronts: fine paint grain and soft vertical roller marks,
+  // so flat fronts do not look like plastic
   lacquer: {
     size: [0.6, 0.8],
     draw: (ctx, random) => {
-      const g = ctx.createLinearGradient(0, 0, 0, SIZE);
-      g.addColorStop(0, gray(1));
-      g.addColorStop(1, gray(0.93));
-      ctx.fillStyle = g;
+      // no light falloff baked in: it would band on tall doors (texture repeats)
+      ctx.fillStyle = gray(0.97);
       ctx.fillRect(0, 0, SIZE, SIZE);
       for (let i = 0; i < 90; i++) {
         ctx.fillStyle = gray(0.9 + random() * 0.1, 0.12);

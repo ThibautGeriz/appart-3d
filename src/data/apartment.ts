@@ -52,6 +52,8 @@ export type Finish =
 export interface AreaDef {
   /** room name; unlabeled areas still get floor/ceiling */
   label?: string;
+  /** room an unlabeled area belongs to (open to it, shares its lights) */
+  room?: string;
   rect: Rect;
   floorColor: string;
   floorFinish?: Finish;
@@ -135,6 +137,22 @@ export type LightDef =
   /** LED strip (under cabinets) at (x, z), lighting the wall below it */
   | { kind: "strip"; x: number; z: number; y: number; length: number; facing: Facing };
 
+/** Built-in cupboard with doors on its `facing` side. */
+export interface ClosetDef {
+  name: string;
+  /** "sliding": two leaves on offset tracks with pulls; "flush": doors in the
+   * wall plane, wall finish, shadow gaps only, push-to-open (no handles) */
+  style: "sliding" | "flush";
+  /** full footprint, carcass + doors */
+  rect: Rect;
+  facing: Facing;
+  height: number;
+  doors: number;
+  color: string;
+  finish?: Finish;
+  pullColor: string;
+}
+
 export interface SiteDef {
   latitude: number;
   longitude: number;
@@ -157,6 +175,7 @@ export interface ApartmentDef {
   areas: AreaDef[];
   furniture: FurnitureDef[];
   kitchen: KitchenDef;
+  closets: ClosetDef[];
   lights: LightDef[];
   spawn: { x: number; z: number; yaw: number };
 }
@@ -225,7 +244,7 @@ export const APARTMENT_DEF: ApartmentDef = {
     // Séjour / cellier (door into the cellier)
     {
       from: [-OUTER, 4.47],
-      to: [3.78, 4.47],
+      to: [3.7, 4.47],
       thickness: INNER,
       openings: [door(1.52, 0.9)],
     },
@@ -234,7 +253,6 @@ export const APARTMENT_DEF: ApartmentDef = {
     { from: [0.365, 4.42], to: [0.365, 6.6], thickness: 0.17 },
     { from: [0.28, 6.475], to: [3.7, 6.475], thickness: OUTER },
     { from: [3.08, 4.52], to: [3.08, 6.35], thickness: INNER },
-    { from: [3.74, 4.52], to: [3.74, 6.35], thickness: 0.08 },
 
     // ── Entrée ────────────────────────────────────────────────────────
     { from: [3.585, 6.35], to: [3.585, 8.69], thickness: 0.23 },
@@ -304,7 +322,13 @@ export const APARTMENT_DEF: ApartmentDef = {
       floorFinish: "parquet",
     },
     // Lowered ceiling band along the séjour's south side, up to the entrée wall (plan: HSFP 2.15)
-    { rect: [0, 3.8, 5.12, 4.47], floorColor: WOOD, floorFinish: "parquet", ceiling: 2.15 },
+    {
+      room: "Séjour / Cuisine",
+      rect: [0, 3.8, 5.12, 4.47],
+      floorColor: WOOD,
+      floorFinish: "parquet",
+      ceiling: 2.15,
+    },
     {
       label: "Balcon",
       rect: [7.73, -0.15, 9.75, 3.5],
@@ -314,7 +338,7 @@ export const APARTMENT_DEF: ApartmentDef = {
     },
     {
       label: "Cellier",
-      rect: [0.45, 4.47, 3.78, 6.35],
+      rect: [0.45, 4.47, 3.7, 6.35],
       // same dark 60 × 120 tiles as the kitchen
       floorColor: KITCHEN_TILE,
       floorFinish: "kitchenTile",
@@ -322,12 +346,18 @@ export const APARTMENT_DEF: ApartmentDef = {
     },
     {
       label: "Entrée",
-      rect: [3.78, 4.47, 5.12, 5.87],
+      rect: [3.7, 4.47, 5.12, 5.87],
       floorColor: WOOD,
       floorFinish: "parquet",
       ceiling: 2.2,
     },
-    { rect: [3.7, 5.87, 5.86, 8.5], floorColor: WOOD, floorFinish: "parquet", ceiling: 2.2 },
+    {
+      room: "Entrée",
+      rect: [3.7, 5.87, 5.86, 8.5],
+      floorColor: WOOD,
+      floorFinish: "parquet",
+      ceiling: 2.2,
+    },
     { label: "SdB", rect: [5.12, 3.8, 8.1, 5.87], floorColor: TILE, floorFinish: "tile30" },
     {
       label: "WC",
@@ -355,20 +385,18 @@ export const APARTMENT_DEF: ApartmentDef = {
       floorColor: WOOD,
       floorFinish: "parquet",
     },
-    { rect: [10.36, 7.35, 11.455, 8.5], floorColor: WOOD, floorFinish: "parquet" },
+    {
+      room: "Chambre 1",
+      rect: [10.36, 7.35, 11.455, 8.5],
+      floorColor: WOOD,
+      floorFinish: "parquet",
+    },
   ],
 
   furniture: [
     // Cellier
     { name: "Gaine cellier", rect: [0.45, 4.52, 0.98, 5.08], h: 2.15, color: GAINE },
     { name: "Ballon eau chaude", rect: [2.42, 5.7, 3.03, 6.3], h: 1.8, color: "#f2f4f6" },
-    {
-      name: "Placard cellier",
-      rect: [3.13, 4.52, 3.7, 6.35],
-      h: 2.2,
-      color: "#cfc6b8",
-      finish: "cabinetTall",
-    },
     // Entrée
     { name: "Gaine entrée", rect: [3.7, 7.86, 4.38, 8.5], h: 2.2, color: GAINE },
     { name: "Tableau électrique", rect: [5.21, 5.92, 5.81, 6.2], h: 2.0, color: "#e6e2da" },
@@ -456,13 +484,6 @@ export const APARTMENT_DEF: ApartmentDef = {
     { name: "WC", rect: [6.8, 6.0, 7.2, 6.65], h: 0.42, color: "#f2f4f6" },
     { name: "Gaine WC", rect: [7.51, 5.92, 8.065, 7.3], h: 2.2, color: GAINE },
     // Chambre 1
-    {
-      name: "Placard chambre 1",
-      rect: [12.6, 7.9, 14.25, 8.5],
-      h: 2.3,
-      color: "#cfc6b8",
-      finish: "cabinetTall",
-    },
     // Balcony railings
     { name: "Garde-corps nord", rect: [7.73, -0.23, 9.83, -0.15], h: 1.0, color: "#6b7076" },
     { name: "Garde-corps est", rect: [9.75, -0.23, 9.83, 3.5], h: 1.0, color: "#6b7076" },
@@ -512,6 +533,35 @@ export const APARTMENT_DEF: ApartmentDef = {
     },
     floor: { depth: 1.2, color: KITCHEN_TILE, finish: "kitchenTile" },
   },
+
+  // Built-in cupboards ("Pl." on the plan), sliding doors
+  closets: [
+    {
+      // between the cellier and the entrée, opening onto the entrée (HSFP 2.20)
+      // built into the wall: flush doors in the wall finish, in line with the
+      // entrée wall below it (x 3.70, as on the plan)
+      name: "Placard entrée",
+      style: "flush",
+      rect: [3.13, 4.52, 3.7, 6.35],
+      facing: "+x",
+      height: 2.2,
+      doors: 3,
+      color: "#ffffff",
+      finish: "plaster",
+      pullColor: "#9a9a9a",
+    },
+    {
+      name: "Placard chambre 1",
+      style: "sliding",
+      rect: [12.6, 7.9, 14.25, 8.5],
+      facing: "-z",
+      height: 2.5,
+      doors: 2,
+      color: "#f4f3f0",
+      finish: "lacquer",
+      pullColor: "#9a9a9a",
+    },
+  ],
 
   lights: [
     // Ceiling light points from the plan (red ✕ and "SP" marks). The red
