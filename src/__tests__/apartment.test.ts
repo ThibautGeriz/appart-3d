@@ -49,4 +49,15 @@ describe("apartment layout", () => {
     expect(resolved.x).toBeCloseTo(spawn.x);
     expect(resolved.z).toBeCloseTo(spawn.z);
   });
+
+  it("defines labeled rooms inside the apartment bounds", () => {
+    expect(APARTMENT_DEF.rooms.length).toBeGreaterThanOrEqual(3);
+    for (const room of APARTMENT_DEF.rooms) {
+      expect(room.label.length).toBeGreaterThan(0);
+      expect(room.x - room.w / 2).toBeGreaterThanOrEqual(-APARTMENT_DEF.width / 2);
+      expect(room.x + room.w / 2).toBeLessThanOrEqual(APARTMENT_DEF.width / 2);
+      expect(room.z - room.d / 2).toBeGreaterThanOrEqual(-APARTMENT_DEF.depth / 2);
+      expect(room.z + room.d / 2).toBeLessThanOrEqual(APARTMENT_DEF.depth / 2);
+    }
+  });
 });

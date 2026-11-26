@@ -43,6 +43,14 @@ export interface DecorDef {
   opacity?: number;
 }
 
+export interface RoomDef {
+  label: string;
+  x: number;
+  z: number;
+  w: number;
+  d: number;
+}
+
 export interface ApartmentDef {
   width: number;
   depth: number;
@@ -52,6 +60,7 @@ export interface ApartmentDef {
   floorColor: string;
   ceilingColor: string;
   walls: WallDef[];
+  rooms: RoomDef[];
   furniture: FurnitureDef[];
   decor: DecorDef[];
   spawn: { x: number; z: number; yaw: number };
@@ -79,6 +88,13 @@ export const APARTMENT_DEF: ApartmentDef = {
     { x: 3.4, z: 0.5, w: 3.2, d: 0.2 },
     // Divider between bedroom and bathroom
     { x: 0, z: -1.75, w: 0.2, d: 4.5 },
+  ],
+
+  // Usable room surfaces (inner dimensions, for the "cotes" overlay)
+  rooms: [
+    { label: "Chambre", x: 2.5, z: -1.75, w: 4.8, d: 4.3 },
+    { label: "Salle de bain", x: -2.5, z: -1.75, w: 4.8, d: 4.3 },
+    { label: "Séjour / Cuisine", x: 0, z: 2.25, w: 9.8, d: 3.3 },
   ],
 
   furniture: [

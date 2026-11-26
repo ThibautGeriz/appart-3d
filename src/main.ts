@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { APARTMENT_DEF } from "./data/apartment";
 import { buildApartment } from "./apartment/build";
+import { buildDimensions } from "./apartment/dimensions";
 import { Player } from "./player/controller";
 import { KeyboardMouseInput } from "./controls/keyboardMouse";
 import { TouchInput } from "./controls/touch";
@@ -29,6 +30,11 @@ scene.add(sun);
 const apartment = buildApartment(APARTMENT_DEF);
 scene.add(apartment.group);
 
+// Dimension overlay ("cotes") — toggle with Tab or the HUD button
+const dimensions = buildDimensions(APARTMENT_DEF);
+dimensions.visible = false;
+scene.add(dimensions);
+
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
 const player = new Player(APARTMENT_DEF.spawn);
 
@@ -44,6 +50,18 @@ if (isTouch) {
   const onLockChange = () => (hud.hint.style.display = document.pointerLockElement ? "none" : "");
   document.addEventListener("pointerlockchange", onLockChange);
 }
+
+const toggleDimensions = () => {
+  dimensions.visible = !dimensions.visible;
+  hud.dimButton.classList.toggle("active", dimensions.visible);
+};
+window.addEventListener("keydown", (e) => {
+  if (e.code === "Tab") {
+    e.preventDefault(); // keep keyboard focus in the game
+    toggleDimensions();
+  }
+});
+hud.dimButton.addEventListener("click", toggleDimensions);
 
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
