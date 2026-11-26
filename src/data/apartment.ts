@@ -409,39 +409,13 @@ export const APARTMENT_DEF: ApartmentDef = {
     { name: "Gaine cellier", rect: [0.45, 4.52, 0.98, 5.08], h: 2.15, color: GAINE },
     { name: "Ballon eau chaude", rect: [2.42, 5.7, 3.03, 6.3], h: 1.8, color: "#f2f4f6" },
     // Entrée
-    // Electrical shaft by the front door: a piece of wall (plaster, up to the
-    // 2.20 m ceiling) with a flush access hatch on its entrée side
+    // Shaft by the front door, as on the plan: boxed-in wall, plaster up to the 2.20 m ceiling
     {
-      name: "Gaine électrique",
+      name: "Gaine entrée",
       rect: [3.7, 7.86, 4.38, 8.5],
       h: 2.2,
       color: "#ffffff",
       finish: "plaster",
-    },
-    {
-      name: "Trappe électrique (joint)",
-      rect: [4.38, 7.93, 4.383, 8.43],
-      y: 0.25,
-      h: 1.8,
-      color: "#3b3b3b",
-      solid: false,
-    },
-    {
-      name: "Trappe électrique",
-      rect: [4.38, 7.935, 4.385, 8.425],
-      y: 0.255,
-      h: 1.79,
-      color: "#ffffff",
-      finish: "plaster",
-      solid: false,
-    },
-    {
-      name: "Trappe électrique (serrure)",
-      rect: [4.385, 8.36, 4.395, 8.39],
-      y: 1.2,
-      h: 0.03,
-      color: "#9a9a9a",
-      solid: false,
     },
     { name: "Tableau électrique", rect: [5.21, 5.92, 5.81, 6.2], h: 2.0, color: "#e6e2da" },
     // Salle de bain
