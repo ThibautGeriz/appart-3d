@@ -107,8 +107,8 @@ export function kitchenSink(): THREE.Group {
         "bowl",
       ),
     );
-    // bottom, with the drain hole (rear centre in the large bowl, centre in the small one)
-    const drainZ = i === 0 ? -0.06 : 0;
+    // bottom, with the drain opening centred in the bowl (both drains in line)
+    const drainZ = 0;
     const drainSize = i === 0 ? 0.11 : 0.09;
     const bottom = roundedRect(
       cx,
