@@ -86,13 +86,18 @@ export function buildApartment(def: ApartmentDef): BuiltApartment {
   const wallGeometries: THREE.BufferGeometry[] = [];
   const glassGeometries: THREE.BufferGeometry[] = [];
   const frameGeometries: THREE.BufferGeometry[] = [];
+  const leaves: { color: string; geometry: THREE.BufferGeometry }[] = [];
   for (const wall of def.walls) {
     const pieces = wallPieces(wall, wallHeight);
     wallGeometries.push(...pieces.solid.map(boxGeometry));
+    for (const leaf of pieces.leaves) {
+      leaves.push({ color: leaf.color, geometry: boxGeometry(leaf.box) });
+    }
     glassGeometries.push(...pieces.glass.map(boxGeometry));
     for (const glass of pieces.glass) frameGeometries.push(...frameBoxes(glass).map(boxGeometry));
   }
   group.add(mergedMesh(wallGeometries, new THREE.MeshLambertMaterial({ color: def.wallColor })));
+  for (const mesh of mergedByColor(leaves)) group.add(mesh);
   if (glassGeometries.length > 0) {
     const glassMaterial = new THREE.MeshLambertMaterial({
       color: def.glassColor,

@@ -20,6 +20,8 @@ export interface OpeningDef {
   head: number;
   /** closed glazing (blocks the player) */
   glass?: boolean;
+  /** closed door leaf filling the opening (blocks the player), as a color */
+  leaf?: string;
 }
 
 /** Axis-aligned wall segment, centered on the from→to line. */
@@ -156,12 +158,13 @@ export const APARTMENT_DEF: ApartmentDef = {
       thickness: 0.09,
       openings: [door(0.95)],
     },
-    // South façade, front door at x 4.85
+    // South façade (landing side), front door at x 4.85
     {
       from: [3.47, 8.595],
       to: [14.43, 8.595],
       thickness: 0.19,
-      openings: [door(1.38, 0.9)],
+      // Front door: closed, it opens onto the building's landing
+      openings: [{ ...door(1.38, 0.9), leaf: "#5b5f63" }],
     },
 
     // ── Salle de bain / WC ────────────────────────────────────────────

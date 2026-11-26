@@ -34,7 +34,14 @@ function circleHits(x: number, z: number, c: Collider): boolean {
 
 /** Grid flood fill of where the player can stand, starting at the spawn. */
 function reachableFromSpawn(step = 0.05): (x: number, z: number) => boolean {
-  const b = apartmentBounds(APARTMENT_DEF);
+  // 1 m margin around the apartment, so escaping it is detectable
+  const footprint = apartmentBounds(APARTMENT_DEF);
+  const b = {
+    minX: footprint.minX - 1,
+    maxX: footprint.maxX + 1,
+    minZ: footprint.minZ - 1,
+    maxZ: footprint.maxZ + 1,
+  };
   const cols = Math.ceil((b.maxX - b.minX) / step) + 1;
   const rows = Math.ceil((b.maxZ - b.minZ) / step) + 1;
   const toIndex = (x: number, z: number) =>
@@ -95,14 +102,19 @@ describe("apartment layout", () => {
     expect(() => wallPieces(wall, 2.5)).toThrow();
   });
 
-  it("finds the front door in the south façade", () => {
-    const doors = findGaps(colliders, "x", 8.595);
-    expect(doors.some((g) => g.max - g.min >= 0.8)).toBe(true);
+  it("keeps the front door closed (no way out to the landing)", () => {
+    expect(findGaps(colliders, "x", 8.595)).toEqual([]);
   });
 
   it("spawns the player clear of all colliders", () => {
     const { x, z } = APARTMENT_DEF.spawn;
     expect(colliders.some((c) => circleHits(x, z, c))).toBe(false);
+  });
+
+  it("cannot leave the apartment", () => {
+    const reachable = reachableFromSpawn();
+    expect(reachable(5.3, 8.9), "landing").toBe(false);
+    expect(reachable(11, 1.5), "outside, east of the balcony").toBe(false);
   });
 
   it("can walk from the front door into every room", () => {

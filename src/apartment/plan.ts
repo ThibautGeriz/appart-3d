@@ -4,6 +4,7 @@ import type { ApartmentDef, FurnitureDef, OpeningDef, Rect, WallDef } from "../d
 /** Pieces starting above this height do not block the player (lintels, wall cabinets). */
 const BLOCKING_HEIGHT = 1.8;
 const GLASS_THICKNESS = 0.03;
+const LEAF_THICKNESS = 0.05;
 
 export interface Interval {
   min: number;
@@ -27,6 +28,8 @@ export interface WallPieces {
   glass: Box[];
   /** the openings themselves, as boxes (for frames and labels) */
   openings: Box[];
+  /** closed door leaves: color + box */
+  leaves: { color: string; box: Box }[];
 }
 
 /** Merge overlapping intervals (sorted output). Pure. */
@@ -86,7 +89,7 @@ export function wallPieces(wall: WallDef, wallHeight: number): WallPieces {
       : { minX: center - halfT, maxX: center + halfT, minY, maxY, minZ: a, maxZ: b };
 
   const openings: OpeningDef[] = [...(wall.openings ?? [])].sort((a, b) => a.at - b.at);
-  const pieces: WallPieces = { solid: [], glass: [], openings: [] };
+  const pieces: WallPieces = { solid: [], glass: [], openings: [], leaves: [] };
   let cursor = start;
   for (const opening of openings) {
     const a = start + opening.at;
@@ -98,6 +101,12 @@ export function wallPieces(wall: WallDef, wallHeight: number): WallPieces {
     if (opening.sill > 0) pieces.solid.push(box(a, b, 0, opening.sill));
     if (opening.head < wallHeight) pieces.solid.push(box(a, b, opening.head, wallHeight));
     pieces.openings.push(box(a, b, opening.sill, opening.head));
+    if (opening.leaf) {
+      pieces.leaves.push({
+        color: opening.leaf,
+        box: box(a, b, opening.sill, opening.head, LEAF_THICKNESS / 2),
+      });
+    }
     if (opening.glass) {
       pieces.glass.push(box(a, b, opening.sill, opening.head, GLASS_THICKNESS / 2));
     }
@@ -125,7 +134,7 @@ export function buildColliders(def: ApartmentDef): Collider[] {
   const colliders: Collider[] = [];
   for (const wall of def.walls) {
     const pieces = wallPieces(wall, def.wallHeight);
-    for (const piece of [...pieces.solid, ...pieces.glass]) {
+    for (const piece of [...pieces.solid, ...pieces.glass, ...pieces.leaves.map((l) => l.box)]) {
       if (piece.minY < BLOCKING_HEIGHT) colliders.push(boxCollider(piece));
     }
   }
