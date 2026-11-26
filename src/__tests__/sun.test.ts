@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  ambientLight,
   clockToSolarHour,
   dayOfYear,
   daylight,
+  environmentScale,
   solarPosition,
   sunDirection,
 } from "../lighting/sun";
@@ -55,13 +57,27 @@ describe("sun", () => {
     expect(rotated.z).toBeCloseTo(0);
   });
 
-  it("turns the sun off at night and keeps some ambient light", () => {
+  it("is almost dark at night with the lamps off, lit with the lamps on", () => {
     const night = daylight(-20 * DEG);
     const noon = daylight(60 * DEG);
     expect(night.sun).toBe(0);
-    expect(night.ambient).toBeGreaterThan(0);
+    expect(ambientLight(night, false).intensity).toBeLessThan(0.05); // moonlight only
+    expect(ambientLight(night, true).intensity).toBeGreaterThan(0.4); // lamp bounce
+    expect(ambientLight(noon, false).intensity).toBeGreaterThan(1.5);
     expect(noon.sun).toBeGreaterThan(night.sun);
-    expect(noon.ambient).toBeGreaterThan(night.ambient);
+  });
+
+  it("tints the indirect light warm with the lamps on, blue moonlight with them off", () => {
+    const lamps = ambientLight(daylight(-20 * DEG), true);
+    expect(lamps.sky[0]).toBeGreaterThan(lamps.sky[2]);
+    const moon = ambientLight(daylight(-20 * DEG), false);
+    expect(moon.sky[2]).toBeGreaterThan(moon.sky[0]);
+  });
+
+  it("fades the environment reflections out at night with the lamps off", () => {
+    expect(environmentScale(ambientLight(daylight(-20 * DEG), false))).toBeLessThan(0.03);
+    expect(environmentScale(ambientLight(daylight(-20 * DEG), true))).toBeGreaterThan(0.2);
+    expect(environmentScale(ambientLight(daylight(60 * DEG), false))).toBe(1);
   });
 });
 

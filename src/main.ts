@@ -107,6 +107,7 @@ let lightsOn = true;
 const toggleLights = () => {
   lightsOn = !lightsOn;
   fixtures.setOn(lightsOn);
+  lighting.setLamps(lightsOn);
   hud.lightButton.classList.toggle("active", lightsOn);
 };
 hud.lightButton.addEventListener("click", toggleLights);
