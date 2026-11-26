@@ -80,7 +80,9 @@ export type PropModel =
   | "showerScreen"
   | "showerDrain"
   | "kitchenSink"
-  | "kitchenTap";
+  | "kitchenTap"
+  | "basin"
+  | "basinTap";
 
 export interface FurnitureDef {
   name: string;
@@ -456,22 +458,42 @@ export const APARTMENT_DEF: ApartmentDef = {
       finish: "oak",
     },
     { name: "Plan vasque", rect: [5.9, 3.8, 7.26, 4.32], y: 0.82, h: 0.03, color: "#f4f4f2" },
-    { name: "Vasque 1", rect: [6.13, 3.88, 6.57, 4.24], y: 0.85, h: 0.12, color: "#fbfbfa" },
-    { name: "Vasque 2", rect: [6.65, 3.88, 7.09, 4.24], y: 0.85, h: 0.12, color: "#fbfbfa" },
+    // countertop porcelain basins, a tall black mixer centred behind each
+    // (its footprint includes the spout reaching over the basin)
+    {
+      name: "Vasque 1",
+      rect: [6.13, 3.88, 6.57, 4.24],
+      y: 0.85,
+      h: 0.12,
+      color: "#fbfbfa",
+      model: "basin",
+      solid: false,
+    },
+    {
+      name: "Vasque 2",
+      rect: [6.65, 3.88, 7.09, 4.24],
+      y: 0.85,
+      h: 0.12,
+      color: "#fbfbfa",
+      model: "basin",
+      solid: false,
+    },
     {
       name: "Robinet 1",
-      rect: [6.33, 3.82, 6.37, 3.88],
+      rect: [6.32, 3.82, 6.38, 4.0],
       y: 0.85,
       h: 0.25,
       color: "#151515",
+      model: "basinTap",
       solid: false,
     },
     {
       name: "Robinet 2",
-      rect: [6.85, 3.82, 6.89, 3.88],
+      rect: [6.84, 3.82, 6.9, 4.0],
       y: 0.85,
       h: 0.25,
       color: "#151515",
+      model: "basinTap",
       solid: false,
     },
     {
