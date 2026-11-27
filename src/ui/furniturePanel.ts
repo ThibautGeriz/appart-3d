@@ -1,5 +1,11 @@
 import type { ApartmentDef } from "../data/apartment";
-import { productsOf, type Product, type ProductKind } from "../data/catalog";
+import {
+  CATALOG,
+  productsOf,
+  type FabricSpec,
+  type Product,
+  type ProductKind,
+} from "../data/catalog";
 import type { Furniture } from "../apartment/furniture";
 import { budget, fits, formatEuros, type SlotDef } from "../apartment/furnishing";
 
@@ -96,6 +102,8 @@ export function createFurniturePanel(
   pages.meubles.appendChild(roomBar);
 
   const options: { slot: SlotDef; product: Product; button: HTMLButtonElement }[] = [];
+  /** per slot: the colour row of the selected product's fabric (none: hidden) */
+  const colorRows: { slot: SlotDef; holder: HTMLElement; material?: string }[] = [];
   for (const s of slots) {
     const section = el("section", "fp-section");
     section.appendChild(el("h3", "fp-title", s.title));
@@ -134,7 +142,9 @@ export function createFurniturePanel(
       options.push({ slot: s, product: p, button: option });
     }
     section.appendChild(list);
-    if (s.kind === "sofa") section.appendChild(colorPicker(furniture));
+    const holder = el("div", "");
+    section.appendChild(holder);
+    colorRows.push({ slot: s, holder });
     roomPages.get(s.room)!.appendChild(section);
   }
   for (const page of roomPages.values()) pages.meubles.appendChild(page);
@@ -142,6 +152,12 @@ export function createFurniturePanel(
   const refreshOptions = () => {
     for (const { slot: s, product: p, button } of options) {
       button.classList.toggle("active", furniture.selection[s.id] === p.id);
+    }
+    for (const row of colorRows) {
+      const fabric = CATALOG.find((p) => p.id === furniture.selection[row.slot.id])?.fabric;
+      if (fabric?.material === row.material) continue;
+      row.material = fabric?.material;
+      row.holder.replaceChildren(...(fabric ? [colorPicker(furniture, fabric)] : []));
     }
   };
 
@@ -198,31 +214,20 @@ export function createFurniturePanel(
   container.append(button, panel);
 }
 
-/** Fabric colours offered for the sofa (the shop has 200+; any can be picked). */
-export const SOFA_COLORS: { name: string; hex: string }[] = [
-  { name: "Moutarde", hex: "#c9971c" },
-  { name: "Terracotta", hex: "#b4553a" },
-  { name: "Vert sauge", hex: "#8a9a7b" },
-  { name: "Bleu canard", hex: "#1f5f6b" },
-  { name: "Bleu nuit", hex: "#233250" },
-  { name: "Beige lin", hex: "#d8ccb6" },
-  { name: "Gris perle", hex: "#b9b7b2" },
-  { name: "Anthracite", hex: "#45464a" },
-];
-
-/** Swatches + a free colour input, tinting the sofa fabric live. */
-function colorPicker(furniture: Furniture): HTMLElement {
+/** The fabric's swatches (+ a free colour input when any can be ordered), tinting it live. */
+function colorPicker(furniture: Furniture, fabric: FabricSpec): HTMLElement {
   const row = el("div", "fp-colors");
   row.appendChild(el("span", "fp-size", "Couleur"));
   const swatches: HTMLButtonElement[] = [];
+  const current = () => furniture.colors[fabric.material];
   const custom = el("input", "fp-color-input");
   custom.type = "color";
   custom.title = "Autre couleur";
   const refresh = () => {
-    for (const s of swatches) s.classList.toggle("active", s.dataset.hex === furniture.sofaColor);
-    custom.value = furniture.sofaColor;
+    for (const s of swatches) s.classList.toggle("active", s.dataset.hex === current());
+    custom.value = current();
   };
-  for (const { name, hex } of SOFA_COLORS) {
+  for (const { name, hex } of fabric.colors) {
     const swatch = el("button", "fp-swatch");
     swatch.type = "button";
     swatch.title = name;
@@ -230,17 +235,19 @@ function colorPicker(furniture: Furniture): HTMLElement {
     swatch.dataset.hex = hex;
     swatch.style.background = hex;
     swatch.addEventListener("click", () => {
-      furniture.setSofaColor(hex);
+      furniture.setColor(fabric.material, hex);
       refresh();
     });
     swatches.push(swatch);
     row.appendChild(swatch);
   }
-  custom.addEventListener("input", () => {
-    furniture.setSofaColor(custom.value);
-    refresh();
-  });
-  row.appendChild(custom);
+  if (fabric.custom) {
+    custom.addEventListener("input", () => {
+      furniture.setColor(fabric.material, custom.value);
+      refresh();
+    });
+    row.appendChild(custom);
+  }
   refresh();
   return row;
 }

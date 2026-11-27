@@ -6,6 +6,8 @@ import {
   lightElm as sharedLightElm,
   microfibre as sharedMicrofibre,
   oiledOak as sharedOiledOak,
+  oliviaFabric,
+  PHOTO_TEXTURES,
   recycledElm as sharedRecycledElm,
 } from "./materials";
 import { arcBand, bar, board, slab, tube, v } from "./parts";
@@ -471,7 +473,185 @@ export function mackay(p: Product): THREE.Group {
   return g;
 }
 
+/** Olivia base: iron, anthracite grey epoxy (satin). */
+const anthraciteEpoxy = new THREE.MeshStandardMaterial({
+  name: "anthracite epoxy",
+  color: "#2e3033",
+  metalness: 0.45,
+  roughness: 0.5,
+});
+
+const smooth = (t: number) => {
+  const c = Math.min(1, Math.max(0, t));
+  return c * c * (3 - 2 * c);
+};
+
+/**
+ * OLIVIA (Monsieur Meuble): upholstered tulip shell on four splayed tapered
+ * legs. The back narrows at the waist, flares to the full width and closes in
+ * a round top; it wraps the sitter (curved in plan) and leans back. Quilted
+ * front: vertical channels, crossed by chevron seams in the middle band (the
+ * "écailles" of the store photos). Chenille tinted from the toolbar.
+ * L 53 × P 63 × H 91 cm; seat ~47 cm (photos).
+ */
+export function olivia(p: Product): THREE.Group {
+  const g = new THREE.Group();
+  const { w, d, h } = p;
+  const seat = p.seatHeight ?? 0.47;
+  const fabric = oliviaFabric;
+
+  const size = PHOTO_TEXTURES[fabric.name]?.size ?? 0.04;
+  /**
+   * Box-projected UVs, from each face's main direction (grainUVs would draw
+   * from the shared random offsets and shift every model exported after this one).
+   */
+  const boxUVs = (geo: THREE.BufferGeometry) => {
+    geo.computeVertexNormals();
+    const pos = geo.getAttribute("position");
+    const nor = geo.getAttribute("normal");
+    const uv = new Float32Array(pos.count * 2);
+    for (let i = 0; i < pos.count; i++) {
+      const [x, y, z] = [pos.getX(i), pos.getY(i), pos.getZ(i)];
+      const [nx, ny, nz] = [Math.abs(nor.getX(i)), Math.abs(nor.getY(i)), Math.abs(nor.getZ(i))];
+      const [a, b] = ny >= nx && ny >= nz ? [x, z] : nz >= nx ? [x, y] : [z, y];
+      uv[i * 2] = a / size;
+      uv[i * 2 + 1] = b / size;
+    }
+    geo.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
+  };
+
+  // Seat cushion: thick, rounded, wider at the front
+  const cushion = 0.085;
+  const seatBevel = 0.032;
+  const seatGeo = new THREE.ExtrudeGeometry(seatShape(0.47, 0.4, -0.17, 0.25, 0.1), {
+    depth: cushion - 2 * seatBevel,
+    bevelEnabled: true,
+    bevelThickness: seatBevel,
+    bevelSize: seatBevel,
+    bevelOffset: -seatBevel,
+    bevelSegments: 4,
+    curveSegments: 16,
+  });
+  seatGeo.rotateX(Math.PI / 2); // shape y → z, extrusion → down
+  seatGeo.translate(0, seat - seatBevel, 0);
+  boxUVs(seatGeo);
+  g.add(new THREE.Mesh(seatGeo, fabric));
+
+  // Back shell, built upright in its own frame (x across, y up the back,
+  // z forward), then bent, tilted and fitted to the bounding box
+  const length = 0.53;
+  const thick = 0.06;
+  const top = 0.42; // where the round top starts
+  const halfWidth = (t: number) => {
+    if (t < 0.1) return 0.19 - 0.01 * smooth(t / 0.1);
+    if (t < 0.33) return 0.18 + (w / 2 - 0.18) * smooth((t - 0.1) / 0.23);
+    if (t < top) return w / 2 - 0.01 * smooth((t - 0.33) / (top - 0.33));
+    const e = Math.min(1, (t - top) / (length - top));
+    return (w / 2 - 0.01) * Math.sqrt(Math.max(0, 1 - e * e));
+  };
+  // Two fine grids over the outline (x = s × half width, s ∈ [-1, 1]): the
+  // quilted front and the plain rear, meeting along a rounded rim (their
+  // offsets from the mid-plane go to 0 at the outline). Fine, so the bend
+  // below follows the curve (a few large faces would cut across it).
+  const rim = 0.022; // radius of the rounded edge
+  const channels = 7;
+  const nu = 120;
+  const nv = 110;
+  /** height of the quilting at (s, t): channels, crossed by chevron seams in the middle band */
+  const puff = (s: number, t: number) => {
+    const c = ((s + 1) / 2) * channels;
+    const u = c - Math.floor(c);
+    const across = Math.sin(Math.PI * u);
+    let along = 1;
+    if (t > 0.12 && t < 0.36) {
+      // V-shaped seams every 6 cm, pointing down (the "écailles")
+      const cell = (t - 0.12 + Math.abs(u - 0.5) * 0.05) / 0.06;
+      along = Math.sqrt(Math.sin(Math.PI * (cell - Math.floor(cell))));
+    }
+    return 0.012 * across * along;
+  };
+  const surface = (front: boolean) => {
+    const positions: number[] = [];
+    const uvs: number[] = [];
+    const index: number[] = [];
+    for (let j = 0; j <= nv; j++) {
+      const t = (length * j) / nv;
+      const half = halfWidth(t);
+      for (let i = 0; i <= nu; i++) {
+        const s = (i / nu) * 2 - 1;
+        const x = s * half;
+        // distance to the outline (sides, bottom, round top): the rim's profile
+        const r = Math.min((1 - Math.abs(s)) * half, t, length - t);
+        const k = 1 - Math.min(r, rim) / rim;
+        const bulge = (thick / 2) * Math.sqrt(1 - k * k);
+        const quilted = front ? puff(s, t) * smooth((r - rim) / 0.02) : 0;
+        positions.push(x, t, thick / 2 + (front ? bulge + quilted : -bulge));
+        uvs.push(x / size, t / size);
+      }
+    }
+    for (let j = 0; j < nv; j++) {
+      for (let i = 0; i < nu; i++) {
+        const a = j * (nu + 1) + i;
+        const b = a + nu + 1;
+        if (front) index.push(a, a + 1, b, a + 1, b + 1, b);
+        else index.push(a, b, a + 1, a + 1, b, b + 1);
+      }
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+    geo.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+    geo.setIndex(index);
+    return geo;
+  };
+  const quilt = surface(true);
+  const shell = surface(false);
+
+  // wrap around the sitter (sides forward), lean back 13°, bake it in
+  const radius = 0.42;
+  const tilt = new THREE.Matrix4().makeRotationX(-THREE.MathUtils.degToRad(13));
+  for (const geo of [shell, quilt]) {
+    const pos = geo.getAttribute("position");
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i);
+      pos.setZ(i, pos.getZ(i) + radius - Math.sqrt(radius * radius - x * x));
+    }
+    geo.applyMatrix4(tilt);
+    geo.computeVertexNormals();
+  }
+  // fit: top of the back at H, its rear at the back of the footprint
+  const box = new THREE.Box3();
+  for (const geo of [shell, quilt]) {
+    geo.computeBoundingBox();
+    box.union(geo.boundingBox!);
+  }
+  const shift = new THREE.Vector3(0, h - box.max.y, -d / 2 - box.min.z);
+  for (const geo of [shell, quilt]) geo.translate(shift.x, shift.y, shift.z);
+  g.add(new THREE.Mesh(shell, fabric), new THREE.Mesh(quilt, fabric));
+
+  // Base: a plate under the seat, four tapered round legs splayed outwards
+  const plate = seat - cushion;
+  g.add(board(0.34, 0.012, 0.3, anthraciteEpoxy, 0, plate - 0.006, 0.04, 0.003));
+  const legTop = plate - 0.012;
+  for (const sx of [-1, 1]) {
+    for (const sz of [-1, 1]) {
+      const topAt = v(sx * 0.15, legTop, sz > 0 ? 0.16 : -0.08);
+      const foot = v(sx * 0.232, 0, sz > 0 ? d / 2 - 0.009 : -0.26);
+      const geo = new THREE.CylinderGeometry(0.015, 0.009, topAt.distanceTo(foot), 16, 1);
+      // baked: the bounding box is the leg's, not its tilted local box
+      const q = new THREE.Quaternion().setFromUnitVectors(
+        v(0, 1, 0),
+        topAt.clone().sub(foot).normalize(),
+      );
+      const centre = topAt.clone().add(foot).multiplyScalar(0.5);
+      geo.applyMatrix4(new THREE.Matrix4().compose(centre, q, v(1, 1, 1)));
+      g.add(new THREE.Mesh(geo, anthraciteEpoxy));
+    }
+  }
+  return g;
+}
+
 export const CHAIR_BUILDERS: Record<string, (p: Product) => THREE.Group> = {
+  "chair-olivia": olivia,
   "chair-bistrot": bistrot,
   "chair-norway": norway,
   "chair-westmount": westmount,

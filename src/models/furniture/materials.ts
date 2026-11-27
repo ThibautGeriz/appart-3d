@@ -68,6 +68,12 @@ export const fragranite = textured("fragranite", "#6c7074", 0.62);
  */
 export const romaFabric = textured("roma fabric", "#ffffff", 0.92);
 
+/**
+ * Olivia chair: textured chenille ("tissu texturé"), a weave of soft loops.
+ * White: tinted with the colour picked in the toolbar.
+ */
+export const oliviaFabric = textured("olivia fabric", "#ffffff", 0.95);
+
 /** Roma legs: painted iron, "titanio" (dark titanium grey). */
 export const titanio = new THREE.MeshStandardMaterial({
   name: "titanio",
@@ -100,6 +106,8 @@ export const PHOTO_TEXTURES: Record<string, PhotoTexture> = {
   [fragranite.name]: { scan: "fragranite", size: 0.25, grain: "u", flat: true },
   // generated weave (scripts/gen-roma-mesh.py): ~3 mm between holes
   [romaFabric.name]: { scan: "roma_mesh", size: 0.05, grain: "u", noRoughness: true },
+  // generated chenille weave (scripts/gen-chenille.py): ~3.3 mm loops
+  [oliviaFabric.name]: { scan: "olivia_weave", size: 0.04, grain: "u", noRoughness: true },
   // generated weave (scripts/gen-wool.py)
   [woolCream.name]: { scan: "wool", size: 0.25, grain: "u", noRoughness: true },
   [woolGrey.name]: { scan: "wool", size: 0.25, grain: "u", noRoughness: true },

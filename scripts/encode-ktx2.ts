@@ -87,6 +87,8 @@ const FURNITURE: Job[] = [
   furniture("roma_mesh_nor", "normal"),
   furniture("wool_diff", "color"),
   furniture("wool_nor", "normal"),
+  furniture("olivia_weave_diff", "color"),
+  furniture("olivia_weave_nor", "normal"),
 ];
 
 const root = resolve(import.meta.dirname, "..");
