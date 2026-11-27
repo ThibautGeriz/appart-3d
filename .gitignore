@@ -3,3 +3,4 @@ dist/
 .glb-check/
 *.local
 .DS_Store
+.claude/worktrees/
