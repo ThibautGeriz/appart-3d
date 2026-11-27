@@ -7,7 +7,16 @@
  * +z), h (height).
  */
 
-export type ProductKind = "table" | "chair" | "coffeeTable" | "sofa" | "sideboard" | "tvUnit";
+export type ProductKind =
+  | "table"
+  | "chair"
+  | "coffeeTable"
+  | "sofa"
+  | "sideboard"
+  | "tvUnit"
+  | "bed"
+  | "nightstand"
+  | "shelf";
 
 export interface Product {
   id: string;
@@ -210,6 +219,108 @@ export const CATALOG: Product[] = [
     h: 0.67,
     materials: "Pin recyclé, 2 portes, 2 niches, 1 tiroir",
     price: 359,
+  },
+  // ── Beds (160 × 200; overall size of the frame) ─────────────────────────
+  {
+    id: "bed-lunja",
+    kind: "bed",
+    name: "Lunja",
+    url: "https://www.laredoute.fr/ppdp/prod-529091052.aspx",
+    w: 1.7,
+    d: 2.09,
+    h: 0.8,
+    materials: "Pin massif brossé, bois foncé (La Redoute Intérieurs)",
+    price: 0, // la page n'affiche pas le prix du 160 × 200 (« à partir de 386,52 € »)
+  },
+  {
+    id: "bed-janis",
+    kind: "bed",
+    name: "Janis",
+    url: `${SHOP}/lit-a-tiroirs-janis/`,
+    w: 1.66,
+    d: 2.07,
+    h: 0.91,
+    materials: "Pin massif miel huilé, 3 tiroirs sur roulettes, 2 niches",
+    price: 398,
+  },
+  {
+    id: "bed-petra",
+    kind: "bed",
+    name: "Petra",
+    url: `${SHOP}/lit-pin-massif-2-places-petra/`,
+    w: 1.82,
+    d: 2.18,
+    h: 0.84,
+    materials: "Pin massif ciré",
+    price: 525,
+  },
+  {
+    id: "bed-poutre",
+    kind: "bed",
+    name: "Poutre",
+    url: `${SHOP}/lit-poutre/`,
+    w: 1.96,
+    d: 2.36,
+    h: 0.63,
+    materials: "Pin massif ciré et pin recyclé",
+    price: 675,
+  },
+  // ── Bedside tables ──────────────────────────────────────────────────────
+  {
+    id: "nightstand-lundby",
+    kind: "nightstand",
+    name: "Lundby",
+    url: `${SHOP}/chevet-lundby-en-frene/`,
+    w: 0.4,
+    d: 0.35,
+    h: 0.45,
+    materials: "Frêne, 1 niche",
+    price: 85,
+  },
+  {
+    id: "nightstand-oregon",
+    kind: "nightstand",
+    name: "Oregon",
+    url: `${SHOP}/chevet-oregon/`,
+    w: 0.4,
+    d: 0.35,
+    h: 0.42,
+    materials: "Frêne massif brossé, tiroir à incrustation de troncs, pieds métal noir",
+    price: 179,
+  },
+  // ── Shelves ─────────────────────────────────────────────────────────────
+  {
+    id: "shelf-borneo",
+    kind: "shelf",
+    name: "Borneo",
+    url: `${SHOP}/etagere-teck-recycle-borneo/`,
+    w: 1.0,
+    d: 0.305,
+    h: 2.0,
+    materials: "Teck recyclé",
+    price: 489,
+  },
+  {
+    id: "shelf-fina",
+    kind: "shelf",
+    name: "Fina",
+    url: `${SHOP}/etagere-teck-recycle-fina/`,
+    w: 1.41,
+    d: 0.33,
+    h: 2.2,
+    materials: "Teck recyclé",
+    price: 590,
+  },
+  {
+    id: "shelf-seatle",
+    kind: "shelf",
+    name: "Seatle",
+    url: `${SHOP}/etagere-pin-recycle-seatle/`,
+    w: 1.595,
+    d: 0.32,
+    h: 1.81,
+    materials: "Pin recyclé, 5 étagères, structure métal noir",
+    price: 395,
   },
   // ── Sofas (Mobilier de France ROMA, 3D mesh fabric, 104 cm seat depth) ──
   {

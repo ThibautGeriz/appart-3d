@@ -709,14 +709,85 @@ export const APARTMENT_DEF: ApartmentDef = {
     // entrance (x 3.70), facing the room; the wall is 1.53 m long between the
     // cellier door (ends x 2.17) and the entrance
     sideboard: { anchor: [3.7, 4.42], align: [1, 1], along: "-x" },
-    defaults: {
-      table: "table-valmo-220",
-      chair: "chair-norway",
-      coffeeTable: "coffee-norway",
-      sofa: "sofa-roma-corner",
-      sideboard: "sideboard-norway",
-      tvUnit: "tv-norway",
+    // Chambre 1 (plan "Chambre 1, 280 × 478"): the bed's head against the east
+    // wall, centred 1.05 + 0.85 m from the north wall, bedside tables on each side
+    bedroom: { head: [14.25, 5.7], towards: "-x", nightstandGap: 0.01 },
+    shelves: {
+      // north wall, in the corner east of the window (window x 11.86 → 13.26)
+      shelfWindow: { anchor: [14.25, 3.8], align: [1, -1], along: "+x" },
+      // south wall, against the wardrobe (x 12.6), up to the door's swing (x 11.18)
+      shelfEntry: { anchor: [12.6, 8.5], align: [1, 1], along: "-x" },
     },
+    // what can be chosen, room by room (the toolbar lists rooms first)
+    slots: [
+      {
+        id: "sofa",
+        kind: "sofa",
+        room: "Séjour / Cuisine",
+        title: "Canapé (et son aménagement)",
+        default: "sofa-roma-corner",
+      },
+      {
+        id: "coffeeTable",
+        kind: "coffeeTable",
+        room: "Séjour / Cuisine",
+        title: "Table basse",
+        default: "coffee-norway",
+      },
+      {
+        id: "tvUnit",
+        kind: "tvUnit",
+        room: "Séjour / Cuisine",
+        title: "Meuble TV",
+        default: "tv-norway",
+      },
+      {
+        id: "table",
+        kind: "table",
+        room: "Séjour / Cuisine",
+        title: "Table",
+        default: "table-valmo-220",
+      },
+      {
+        id: "chair",
+        kind: "chair",
+        room: "Séjour / Cuisine",
+        title: "Chaises",
+        default: "chair-norway",
+      },
+      {
+        id: "sideboard",
+        kind: "sideboard",
+        room: "Séjour / Cuisine",
+        title: "Bahut",
+        default: "sideboard-norway",
+        maxWidth: 1.6,
+      },
+      { id: "bed", kind: "bed", room: "Chambre 1", title: "Lit (160 × 200)", default: "bed-lunja" },
+      {
+        id: "nightstand",
+        kind: "nightstand",
+        room: "Chambre 1",
+        title: "Chevets (× 2)",
+        default: "nightstand-lundby",
+      },
+      {
+        id: "shelfWindow",
+        kind: "shelf",
+        room: "Chambre 1",
+        title: "Étagère près de la fenêtre",
+        default: "shelf-borneo",
+        maxWidth: 1.0,
+      },
+      {
+        id: "shelfEntry",
+        kind: "shelf",
+        room: "Chambre 1",
+        title: "Étagère près de l'entrée",
+        default: "shelf-borneo",
+        maxWidth: 1.42,
+      },
+    ],
   },
 
   spawn: { x: 5.0, z: 8.15, yaw: 0.2 },

@@ -361,3 +361,36 @@ body {
   background: none;
   cursor: pointer;
 }
+
+/* rooms first, then their furniture */
+.fp-rooms {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.fp-room {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.fp-room.active {
+  border-color: #ffc45c;
+  background: rgba(255, 196, 92, 0.22);
+}
+
+.fp-room-page[hidden] {
+  display: none;
+}
+
+.fp-option:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

@@ -37,6 +37,23 @@ export const recycledElm = textured("recycled elm", "#c99366", 1);
 export const lightElm = textured("light elm", "#f3dcc2", 0.9);
 /** Biwa sideboard: recycled pine, warm and worn. */
 export const recycledPine = textured("recycled pine", "#c88d5c", 0.95);
+/** Lunja bed: brushed solid pine, dark ("bois foncé"), rustic. */
+export const darkPine = textured("dark pine", "#8a6446", 0.9);
+/** Janis / Petra beds: solid pine, honey oiled / waxed. */
+export const honeyPine = textured("honey pine", "#e9b884", 0.75);
+/** Lundby / Oregon bedside tables: ash, rough sawn or brushed. */
+export const roughAsh = textured("rough ash", "#d9a878", 1);
+/** Bedding (not sold with the beds, but a bed reads as one with it). */
+export const linen = new THREE.MeshStandardMaterial({
+  name: "linen",
+  color: "#e9e6e0",
+  roughness: 0.95,
+});
+export const linenDark = new THREE.MeshStandardMaterial({
+  name: "linen grey",
+  color: "#9fa3a6",
+  roughness: 0.95,
+});
 /** Westmount: rough sawn fir. */
 export const fir = textured("fir", "#d8a06a", 1);
 /** Norway: brown microfibre, suede look. */
@@ -69,6 +86,9 @@ export const PHOTO_TEXTURES: Record<string, PhotoTexture> = {
   [recycledElm.name]: { scan: "brown_planks_08", size: 1, grain: "u" },
   [lightElm.name]: { scan: "ash_veneer", size: 1, grain: "u" },
   [fir.name]: { scan: "brown_planks_09", size: 1, grain: "u" },
+  [darkPine.name]: { scan: "brown_planks_09", size: 1, grain: "u" },
+  [honeyPine.name]: { scan: "brown_planks_09", size: 1.2, grain: "u" },
+  [roughAsh.name]: { scan: "brown_planks_08", size: 0.8, grain: "u" },
   [recycledPine.name]: { scan: "brown_planks_08", size: 0.8, grain: "u" },
   [microfibre.name]: { scan: "fabric_leather_01", size: 0.4, grain: "u" },
   // generated speckle (quartz grains in a dark matrix), not a scan

@@ -3,7 +3,10 @@ import * as THREE from "three";
 import { APARTMENT_DEF } from "../data/apartment";
 import { CATALOG, product } from "../data/catalog";
 import {
+  bedroomLayout,
   budget,
+  defaultSelection,
+  fits,
   diningLayout,
   formatEuros,
   furnishingLayout,
@@ -14,9 +17,16 @@ import { CHAIR_BUILDERS } from "../models/furniture/chairs";
 import { segmentDistance, TABLE_BUILDERS } from "../models/furniture/tables";
 import { SOFA_BUILDERS } from "../models/furniture/sofa";
 import { SIDEBOARD_BUILDERS } from "../models/furniture/sideboards";
+import { BEDROOM_BUILDERS } from "../models/furniture/bedroom";
 import { liveEdge } from "../models/furniture/parts";
 
-const BUILDERS = { ...CHAIR_BUILDERS, ...TABLE_BUILDERS, ...SOFA_BUILDERS, ...SIDEBOARD_BUILDERS };
+const BUILDERS = {
+  ...CHAIR_BUILDERS,
+  ...TABLE_BUILDERS,
+  ...SOFA_BUILDERS,
+  ...SIDEBOARD_BUILDERS,
+  ...BEDROOM_BUILDERS,
+};
 
 describe("catalog models", () => {
   // "Must respect dimension": each model's bounding box is the seller's size
@@ -113,19 +123,27 @@ describe("dining layout", () => {
 describe("budget", () => {
   it("prices the selection by room: chairs times their count", () => {
     const placements = furnishingLayout(APARTMENT_DEF.furnishing, {
+      ...defaultSelection(APARTMENT_DEF.furnishing),
       table: "table-raia-220",
       chair: "chair-bistrot",
       coffeeTable: "coffee-dustin",
       sofa: "sofa-roma-210",
       sideboard: "sideboard-biwa",
       tvUnit: "tv-biwa",
+      bed: "bed-petra",
+      nightstand: "nightstand-oregon",
+      shelfWindow: "shelf-borneo",
+      shelfEntry: "shelf-fina",
     });
     const rooms = budget(APARTMENT_DEF, placements);
-    expect(rooms.map((r) => r.room)).toEqual(["Séjour / Cuisine"]);
+    expect(rooms.map((r) => r.room)).toEqual(["Séjour / Cuisine", "Chambre 1"]);
     const lines = Object.fromEntries(rooms[0].lines.map((l) => [l.product.id, l]));
     expect(lines["chair-bistrot"].quantity).toBe(6);
     expect(lines["chair-bistrot"].total).toBe(6 * 99);
     expect(rooms[0].total).toBeCloseTo(795 + 6 * 99 + 329 + 3386.46 + 489 + 359, 2);
+    const bedroom = Object.fromEntries(rooms[1].lines.map((l) => [l.product.id, l]));
+    expect(bedroom["nightstand-oregon"].quantity).toBe(2);
+    expect(rooms[1].total).toBeCloseTo(525 + 2 * 179 + 489 + 590, 2);
   });
 
   it("names the room at a point", () => {
@@ -152,5 +170,47 @@ describe("shapes", () => {
   it("segment distance", () => {
     expect(segmentDistance([0, 0], [1, 0], [0, 1], [1, 1])).toBeCloseTo(1);
     expect(segmentDistance([0, 0], [1, 1], [0, 1], [1, 0])).toBe(0); // crossing
+  });
+});
+
+describe("chambre 1", () => {
+  const def = APARTMENT_DEF.furnishing;
+  const room: [number, number, number, number] = [11.455, 3.8, 14.25, 8.5];
+
+  it("bed head against the east wall, a bedside table on each side", () => {
+    for (const bed of CATALOG.filter((p) => p.kind === "bed")) {
+      const [b, n1, n2] = bedroomLayout(def.bedroom, bed, product("nightstand-lundby"));
+      expect(b.rect[2]).toBeCloseTo(14.25, 5); // headboard on the wall
+      expect(b.rect[2] - b.rect[0]).toBeCloseTo(bed.d, 5); // runs west
+      expect(b.rect[0]).toBeGreaterThan(room[0] + 0.4); // passage at the foot
+      for (const n of [n1, n2]) {
+        expect(n.rect[2]).toBeCloseTo(14.25, 5);
+        // beside the bed, not overlapping it
+        expect(n.rect[1] >= b.rect[3] - 1e-9 || n.rect[3] <= b.rect[1] + 1e-9).toBe(true);
+        expect(n.rect[1]).toBeGreaterThan(room[1]);
+        expect(n.rect[3]).toBeLessThan(7.9); // clear of the wardrobe
+      }
+    }
+  });
+
+  it("shelves: only the ones that fit their wall can be chosen", () => {
+    const window = def.slots.find((s) => s.id === "shelfWindow")!;
+    const entry = def.slots.find((s) => s.id === "shelfEntry")!;
+    expect(fits(window, product("shelf-borneo"))).toBe(true);
+    expect(fits(window, product("shelf-fina"))).toBe(false);
+    expect(fits(entry, product("shelf-fina"))).toBe(true);
+    expect(fits(entry, product("shelf-seatle"))).toBe(false);
+    expect(fits(entry, product("bed-lunja"))).toBe(false); // wrong kind
+  });
+
+  it("the window shelf stays clear of the window (x 11.86 → 13.26)", () => {
+    const placed = furnishingLayout(def, defaultSelection(def));
+    const shelf = placed.find((p) => p.z < 4 && p.product.kind === "shelf")!;
+    expect(shelf.rect[0]).toBeGreaterThanOrEqual(13.25);
+    expect(shelf.rect[1]).toBeCloseTo(3.8, 5);
+  });
+
+  it("every slot's default is a product that fits it", () => {
+    for (const s of def.slots) expect(fits(s, product(s.default)), s.id).toBe(true);
   });
 });
