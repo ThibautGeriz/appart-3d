@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import type { Product } from "../../data/catalog";
-import { albatrosFabric, oiledOak, romaFabric, titanio } from "./materials";
+import { albatrosFabric, bolzanoFabric, oiledOak, romaFabric, titanio } from "./materials";
 import { grainUVs } from "./parts";
 import { throwCushions } from "./decor";
 
@@ -455,7 +455,118 @@ export function albatros(p: Product): THREE.Group {
   return g;
 }
 
+/*
+ * BoConcept BOLZANO 3 places (showroom photo + product sheet: 214 × 91 ×
+ * 76 cm, seat 42 cm, legs 3 cm): one soft rounded wrap, the back and the arms
+ * a single thick band at the same height (armrest height 76 cm = the back),
+ * its ends rounded at the front; inside it a deep rounded seat on a rounded
+ * base, the whole thing on a recessed dark plinth (the 3 cm "legs").
+ * Bouclé fabric, tinted by the toolbar.
+ */
+
+const B_PLINTH = 0.03; // product sheet: legs 3 cm
+const B_BAND = 0.24; // wrap thickness (photo: about a quarter of the depth)
+const B_ROUND = 0.11; // rounding of the wrap's top: almost half the band, a soft roll
+
+const plinthBlack = new THREE.MeshStandardMaterial({
+  name: "bolzano plinth",
+  color: "#1d1d1f",
+  roughness: 0.6,
+});
+
+/** Plan outline of the wrap (x, -z): a U, rounded at the back corners and at the arm ends. */
+function wrapShape(W: number, D: number, t: number): THREE.Shape {
+  const back = -D / 2;
+  const front = D / 2 - 0.005;
+  const corner = 0.32; // outer back corners
+  const s = new THREE.Shape();
+  const P = (x: number, z: number) => [x, -z] as const;
+  // outer edge, from the right arm's front end round the back to the left one
+  s.moveTo(...P(W / 2, front - t / 2));
+  s.lineTo(...P(W / 2, back + corner));
+  s.quadraticCurveTo(...P(W / 2, back), ...P(W / 2 - corner, back));
+  s.lineTo(...P(-W / 2 + corner, back));
+  s.quadraticCurveTo(...P(-W / 2, back), ...P(-W / 2, back + corner));
+  s.lineTo(...P(-W / 2, front - t / 2));
+  // left arm's rounded end
+  s.absarc(-W / 2 + t / 2, -(front - t / 2), t / 2, Math.PI, 2 * Math.PI, false); // through the front (-y)
+  // inner edge back round to the right arm
+  const ic = corner - t * 0.6;
+  s.lineTo(...P(-W / 2 + t, back + t + ic));
+  s.quadraticCurveTo(...P(-W / 2 + t, back + t), ...P(-W / 2 + t + ic, back + t));
+  s.lineTo(...P(W / 2 - t - ic, back + t));
+  s.quadraticCurveTo(...P(W / 2 - t, back + t), ...P(W / 2 - t, back + t + ic));
+  s.lineTo(...P(W / 2 - t, front - t / 2));
+  s.absarc(W / 2 - t / 2, -(front - t / 2), t / 2, Math.PI, 2 * Math.PI, false); // through the front (-y)
+  return s;
+}
+
+export function bolzano(p: Product): THREE.Group {
+  const g = new THREE.Group();
+  g.name = p.id;
+  const W = p.w;
+  const D = p.d;
+  const seatTop = p.seatHeight ?? 0.42;
+  const back = -D / 2;
+  const t = B_BAND;
+
+  // recessed plinth: the 3 cm "legs"
+  add(g, new THREE.BoxGeometry(W - 0.3, B_PLINTH, D - 0.24), plinthBlack, 0, B_PLINTH / 2, 0);
+
+  // base: a rounded slab the length of the sofa, under the seat and the wrap
+  const baseTop = 0.22;
+  add(
+    g,
+    pillow({ w: W - 0.02, h: baseTop - B_PLINTH, d: D - 0.03, r: 0.08, material: bolzanoFabric }),
+    bolzanoFabric,
+    0,
+    (B_PLINTH + baseTop) / 2,
+    -0.01,
+  );
+
+  // the wrap: back and arms in one band, extruded up, its top edges rounded
+  const bottom = baseTop - 0.04;
+  const wrap = new THREE.ExtrudeGeometry(wrapShape(W, D, t), {
+    depth: p.h - bottom - 2 * B_ROUND,
+    bevelEnabled: true,
+    bevelThickness: B_ROUND,
+    bevelSize: B_ROUND,
+    bevelOffset: -B_ROUND, // keeps the outline at the product's size
+    bevelSegments: 8,
+    curveSegments: 20,
+  });
+  // the bevel grows on both faces: lift it so the band starts at `bottom`
+  wrap.rotateX(-Math.PI / 2).translate(0, bottom + B_ROUND, 0);
+  wrap.computeVertexNormals();
+  grainUVs(wrap, bolzanoFabric, "x");
+  add(g, wrap, bolzanoFabric, 0, 0, 0);
+
+  // deep seat cushion inside the wrap, its nose rounded over the base
+  const seatW = W - 2 * t + 0.04;
+  const seatBack = back + t - 0.04;
+  const seatFront = D / 2 - 0.01;
+  const h = seatTop - baseTop + 0.03;
+  add(
+    g,
+    pillow({
+      w: seatW,
+      h,
+      d: seatFront - seatBack,
+      r: 0.09,
+      puff: 0.015,
+      material: bolzanoFabric,
+    }),
+    bolzanoFabric,
+    0,
+    seatTop - h / 2 - 0.015,
+    (seatBack + seatFront) / 2,
+  );
+  throwCushions(g, -seatW / 2, seatW / 2, seatTop, seatBack); // decor
+  return g;
+}
+
 export const SOFA_BUILDERS: Record<string, (p: Product) => THREE.Group> = {
+  "sofa-bolzano-214": bolzano,
   "sofa-roma-corner": roma,
   "sofa-roma-210": roma,
   "sofa-albatros-222": albatros,

@@ -41,3 +41,28 @@ describe("sofas", () => {
     expect(productSpecs(CATALOG.find((p) => p.kind === "table")!)).toBe("");
   });
 });
+
+describe("Bolzano", () => {
+  const bolzano = CATALOG.find((p) => p.id === "sofa-bolzano-214")!;
+
+  it("BoConcept sheet size, the user's price, Rimini 3086 bouclé by default", () => {
+    expect([bolzano.w, bolzano.d, bolzano.h, bolzano.seatHeight]).toEqual([2.14, 0.91, 0.76, 0.42]);
+    expect(bolzano.price).toBe(2447);
+    expect(bolzano.url).toContain("14:3086");
+    expect(bolzano.fabric!.material).toBe("bolzano fabric");
+    expect(bolzano.fabric!.colors[0].name).toContain("3086");
+  });
+
+  it("the wrap reaches the sofa's height, the plinth stands on the floor", () => {
+    const g = SOFA_BUILDERS[bolzano.id](bolzano);
+    g.updateMatrixWorld(true);
+    // the sofa only (the throw cushions are decor)
+    const box = new THREE.Box3();
+    g.traverse((o) => {
+      const name = o instanceof THREE.Mesh ? (o.material as THREE.Material).name : "";
+      if (name.startsWith("bolzano")) box.expandByObject(o, true);
+    });
+    expect(box.min.y).toBeCloseTo(0, 3);
+    expect(box.max.y).toBeCloseTo(0.76, 2);
+  });
+});

@@ -15,6 +15,8 @@ export interface ModelSource {
   expected: { w: number; d: number; h: number };
   /** catalog: materials as listed by the seller */
   materials?: string;
+  /** catalog: upholstery tinted at runtime, and its default colour (as the app shows it) */
+  fabric?: { material: string; color: string };
 }
 
 const cm = (m: number) => Math.round(m * 1000) / 10;
@@ -41,6 +43,7 @@ export function modelSources(): ModelSource[] {
     url: p.url,
     expected: { w: cm(p.w), d: cm(p.d), h: cm(p.h) },
     materials: p.materials,
+    fabric: p.fabric && { material: p.fabric.material, color: p.fabric.colors[0].hex },
   }));
   return [...props, ...products];
 }
