@@ -1,7 +1,7 @@
 # Surface relief maps
 
 Normal (OpenGL) and roughness maps of the CC0 [Poly Haven](https://polyhaven.com/textures)
-scans whose colour maps live in `..` (512 px, JPEG). Used on desktop only, where
+scans whose colour maps live in `..` (512 px, JPEG; the app loads their KTX2 encodings in `../ktx2/`). Used on desktop only, where
 walls and floors are physically based (`usePhysicalSurfaces` in
 `src/apartment/textures.ts`); phones keep Lambert shading.
 

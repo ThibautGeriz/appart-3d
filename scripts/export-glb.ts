@@ -14,6 +14,7 @@ import {
   KHRMaterialsClearcoat,
   KHRMaterialsUnlit,
   KHRMeshQuantization,
+  KHRTextureBasisu,
 } from "@gltf-transform/extensions";
 import { dedup, flatten, join, meshopt, prune, quantize, weld } from "@gltf-transform/functions";
 import { MeshoptEncoder } from "meshoptimizer";
@@ -48,13 +49,14 @@ const io = new WebIO()
     KHRMaterialsClearcoat,
     KHRMaterialsUnlit,
     KHRMeshQuantization,
+    KHRTextureBasisu,
     EXTMeshoptCompression,
   ])
   .registerDependencies({ "meshopt.encoder": MeshoptEncoder });
 
 /**
  * Post-process: attach photo textures (GLTFExporter needs a canvas to encode
- * images, which Node lacks: use the original JPEG bytes), weld, quantize and
+ * images, which Node lacks: use the KTX2 scans, npm run encode:ktx2), weld, quantize and
  * meshopt-compress the geometry (decoded by GLTFLoader), and merge each prop's meshes per material (fewer draw calls).
  * Rigged models keep their node hierarchy.
  */
@@ -64,6 +66,8 @@ async function optimize(
 ) {
   const doc: Document = await io.readBinary(glb);
   await attachTextures(doc, entry.textures ?? {});
+  // KTX2 images only load through KHR_texture_basisu
+  if (doc.getRoot().listTextures().length) doc.createExtension(KHRTextureBasisu).setRequired(true);
   const steps = [dedup(), weld()];
   if (!entry.rigged) steps.push(flatten(), join());
   // untextured materials do not need their UVs
@@ -78,7 +82,7 @@ async function optimize(
 }
 
 /**
- * Attach JPEG maps to the materials of that name (skipped when the model has
+ * Attach KTX2 maps to the materials of that name (skipped when the model has
  * none): base color, normal (OpenGL convention, as glTF) and roughness. The
  * roughness scan is grey, so it also lands in the metalness channel: keep the
  * metallic factor at 0 for those materials.
@@ -89,9 +93,9 @@ async function attachTextures(doc: Document, textures: Record<string, TextureFil
     let texture = images.get(path);
     if (!texture) {
       texture = doc
-        .createTexture(basename(path, ".jpg"))
+        .createTexture(basename(path, ".ktx2"))
         .setImage(new Uint8Array(await readFile(resolve(root, path))))
-        .setMimeType("image/jpeg");
+        .setMimeType("image/ktx2");
       images.set(path, texture);
     }
     return texture;

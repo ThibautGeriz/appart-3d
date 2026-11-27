@@ -1,6 +1,10 @@
 # Photo textures
 
-CC0 scans from [Poly Haven](https://polyhaven.com/textures), diffuse maps at 1K, re-encoded as JPEG (quality 72).
+CC0 scans from [Poly Haven](https://polyhaven.com/textures), re-encoded as JPEG
+(quality 72): the floor and tile scans at 2K, the oak at 1K. They are the
+sources of the KTX2 GPU textures in `ktx2/` (`npm run encode:ktx2`, which bakes
+in each finish's gray or brightness and the kitchen grout): the app only
+loads the `.ktx2` files, which stay compressed in video memory.
 
 | File                        | Source                                                                 | Real-world size |
 | --------------------------- | ---------------------------------------------------------------------- | --------------- |

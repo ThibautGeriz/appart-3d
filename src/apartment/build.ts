@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { ApartmentDef, Finish, PropModel, Rect } from "../data/apartment";
-import { finishSize, surfaceMaterial } from "./textures";
+import { finishSize, followScans, surfaceMaterial } from "./textures";
 import { applyWorldUVs } from "./uv";
 import { facingVector } from "./facing";
 import {
@@ -147,6 +147,7 @@ function baked(material: THREE.Material, lightmap: THREE.Texture | undefined): T
     copy = material.clone();
     Object.assign(copy, { lightMap: lightmap, lightMapIntensity: LIGHTMAP_RANGE });
     copy.userData = { ...material.userData, baked: true };
+    followScans(material, copy); // its scans may still be loading
     bakedMaterials.set(material, copy);
   }
   return copy;

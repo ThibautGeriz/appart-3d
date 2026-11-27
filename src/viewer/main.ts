@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { loadFile, prepare } from "../apartment/models";
+import { initKtx2 } from "../apartment/ktx2";
 import { inspectModel, type ModelReport } from "./inspect";
 import { modelSources, type ModelSource } from "./sources";
 
@@ -41,6 +42,10 @@ if (!source) {
 }
 
 async function show(source: ModelSource): Promise<void> {
+  const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  initKtx2(renderer); // the models' textures are KTX2
   let model: THREE.Object3D;
   try {
     model = prepare((await loadFile(source.file)).clone(), false);
@@ -51,10 +56,6 @@ async function show(source: ModelSource): Promise<void> {
     return;
   }
   const report = inspectModel(model);
-
-  const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.setSize(window.innerWidth, window.innerHeight);
   document.body.appendChild(renderer.domElement);
 
   const scene = new THREE.Scene();

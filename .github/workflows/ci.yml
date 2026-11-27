@@ -48,6 +48,48 @@ jobs:
       - name: Validate the models (Khronos glTF validator)
         run: npm run validate:glb
 
+  # Frame rate in a real Chromium (desktop and phone), reported on the PR
+  perf:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Measure the frame rate
+        id: perf
+        continue-on-error: true
+        run: npm run test:perf
+      - run: npm run perf:report
+      - name: Comment on the pull request
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          # one comment per PR, updated on every push
+          id=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate \
+            --jq '[.[] | select(.body | startswith("<!-- perf-report -->"))][0].id // empty')
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -F body=@perf-report.md
+          else
+            gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body-file perf-report.md
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: perf-results
+          path: perf-results/
+      - name: Fail when the test failed
+        if: steps.perf.outcome == 'failure'
+        run: exit 1
+
   # Build and publish are separate jobs (GitHub's recommended setup): in one
   # job, deploy-pages sometimes lists the artifact before the upload is visible
   pages-build:

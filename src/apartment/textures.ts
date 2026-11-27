@@ -1,20 +1,23 @@
 import * as THREE from "three";
 import type { Finish } from "../data/apartment";
-import woodFloorUrl from "../assets/textures/wood_floor.jpg";
-import oakVeneerUrl from "../assets/textures/oak_veneer_01.jpg";
-import concreteUrl from "../assets/textures/smooth_concrete_floor.jpg";
-import glazedTilesUrl from "../assets/textures/long_white_tiles.jpg";
-import stoneTilesUrl from "../assets/textures/tiled_floor_001.jpg";
-import woodFloorNor from "../assets/textures/pbr/wood_floor_nor.jpg";
-import woodFloorRough from "../assets/textures/pbr/wood_floor_rough.jpg";
-import oakNor from "../assets/textures/furniture/oak_veneer_01_nor.jpg";
-import oakRough from "../assets/textures/furniture/oak_veneer_01_rough.jpg";
-import concreteNor from "../assets/textures/pbr/smooth_concrete_floor_nor.jpg";
-import concreteRough from "../assets/textures/pbr/smooth_concrete_floor_rough.jpg";
-import glazedTilesNor from "../assets/textures/pbr/long_white_tiles_nor.jpg";
-import glazedTilesRough from "../assets/textures/pbr/long_white_tiles_rough.jpg";
-import stoneTilesNor from "../assets/textures/pbr/tiled_floor_001_nor.jpg";
-import stoneTilesRough from "../assets/textures/pbr/tiled_floor_001_rough.jpg";
+import { tilingMap } from "./ktx2";
+// scans, encoded to KTX2 by scripts/encode-ktx2.ts (gray / brightness baked in)
+import parquetUrl from "../assets/textures/ktx2/parquet.ktx2?url";
+import oakUrl from "../assets/textures/ktx2/oak.ktx2?url";
+import showerWallUrl from "../assets/textures/ktx2/shower_wall.ktx2?url";
+import showerFloorUrl from "../assets/textures/ktx2/shower_floor.ktx2?url";
+import stoneUrl from "../assets/textures/ktx2/stone.ktx2?url";
+import kitchenTileUrl from "../assets/textures/ktx2/kitchen_tile.ktx2?url";
+import woodFloorNor from "../assets/textures/ktx2/wood_floor_nor.ktx2?url";
+import woodFloorRough from "../assets/textures/ktx2/wood_floor_rough.ktx2?url";
+import oakNor from "../assets/textures/ktx2/oak_veneer_01_nor.ktx2?url";
+import oakRough from "../assets/textures/ktx2/oak_veneer_01_rough.ktx2?url";
+import concreteNor from "../assets/textures/ktx2/smooth_concrete_floor_nor.ktx2?url";
+import concreteRough from "../assets/textures/ktx2/smooth_concrete_floor_rough.ktx2?url";
+import glazedTilesNor from "../assets/textures/ktx2/long_white_tiles_nor.ktx2?url";
+import glazedTilesRough from "../assets/textures/ktx2/long_white_tiles_rough.ktx2?url";
+import stoneTilesNor from "../assets/textures/ktx2/tiled_floor_001_nor.ktx2?url";
+import stoneTilesRough from "../assets/textures/ktx2/tiled_floor_001_rough.ktx2?url";
 
 /**
  * Surface textures: CC0 photo scans (wood, stone, see src/assets/textures)
@@ -23,18 +26,13 @@ import stoneTilesRough from "../assets/textures/pbr/tiled_floor_001_rough.jpg";
  */
 
 const SIZE = 512; // px for procedural patterns
-const PHOTO_SIZE = 1024; // px, the texture budget cap
 
 interface FinishSpec {
   /** real-world size of one texture tile, meters (u, v) */
   size: [number, number];
   draw?: (ctx: CanvasRenderingContext2D, random: () => number) => void;
-  /** photo scan drawn first (then `draw` on top, e.g. grout lines) */
+  /** KTX2 photo scan instead of `draw` (gray or brightness are baked in: scripts/encode-ktx2.ts) */
   photo?: string;
-  /** turn the photo to normalized gray, so the material color sets the tint */
-  grayscale?: boolean;
-  /** rescale the photo so its mean brightness is this (0–1), keeping its colors */
-  brightness?: number;
   /** PBR (desktop): how glossy the surface is, 0 mirror → 1 matte (default 0.9) */
   roughness?: number;
   /** PBR (desktop): the scan's normal map (OpenGL convention) and roughness map */
@@ -125,8 +123,7 @@ const FINISHES: Record<Finish, FinishSpec> = {
   // Oak plank floor (photo scan, planks along v)
   parquet: {
     size: [1.7, 1.7],
-    photo: woodFloorUrl,
-    brightness: 0.62,
+    photo: parquetUrl,
     normal: woodFloorNor,
     roughnessMap: woodFloorRough,
     roughness: 0.85, // oiled planks: satin, the map adds worn and glossy patches
@@ -135,8 +132,7 @@ const FINISHES: Record<Finish, FinishSpec> = {
   tile60: { size: [1.2, 1.2], draw: (ctx, random) => tiles(ctx, random, 2) },
   oak: {
     size: [0.9, 0.9],
-    photo: oakVeneerUrl,
-    brightness: 0.5,
+    photo: oakUrl,
     normal: oakNor,
     roughnessMap: oakRough,
     roughness: 0.75,
@@ -187,16 +183,14 @@ const FINISHES: Record<Finish, FinishSpec> = {
   // stone floor (scan turned gray, tinted by the data color)
   showerWall: {
     size: [1.27, 1.27],
-    photo: glazedTilesUrl,
-    grayscale: true,
+    photo: showerWallUrl,
     normal: glazedTilesNor,
     roughnessMap: glazedTilesRough,
     roughness: 0.6, // glazed: the map makes the tiles glossy, the joints matte
   },
   showerFloor: {
     size: [1.5, 1.5],
-    photo: stoneTilesUrl,
-    grayscale: true,
+    photo: showerFloorUrl,
     normal: stoneTilesNor,
     roughnessMap: stoneTilesRough,
     roughness: 1,
@@ -204,8 +198,7 @@ const FINISHES: Record<Finish, FinishSpec> = {
   // Dark mottled stone worktop: gray concrete scan tinted near-black
   stone: {
     size: [1, 1],
-    photo: concreteUrl,
-    grayscale: true,
+    photo: stoneUrl,
     normal: concreteNor,
     roughnessMap: concreteRough,
     roughness: 0.55, // honed worktop
@@ -215,17 +208,10 @@ const FINISHES: Record<Finish, FinishSpec> = {
   // i.e. along a wall running in z)
   kitchenTile: {
     size: [1.2, 1.2],
-    photo: concreteUrl,
-    grayscale: true,
+    photo: kitchenTileUrl, // grout lines baked in
     normal: concreteNor,
     roughnessMap: concreteRough,
     roughness: 0.8,
-    draw: (ctx) => {
-      ctx.strokeStyle = gray(0.45, 0.9);
-      ctx.lineWidth = 2;
-      ctx.strokeRect(0, 0, PHOTO_SIZE / 2, PHOTO_SIZE);
-      ctx.strokeRect(PHOTO_SIZE / 2, 0, PHOTO_SIZE / 2, PHOTO_SIZE);
-    },
   },
   grass: {
     size: [6, 6],
@@ -257,7 +243,6 @@ const FINISHES: Record<Finish, FinishSpec> = {
 
 const textureCache = new Map<Finish, THREE.CanvasTexture>();
 const materialCache = new Map<string, THREE.MeshLambertMaterial | THREE.MeshStandardMaterial>();
-const mapCache = new Map<string, THREE.Texture>();
 
 /** Lacquer, plaster… without a scan: their gloss (PBR only). */
 const ROUGHNESS: Partial<Record<Finish, number>> = {
@@ -327,88 +312,52 @@ function paintRelief(): THREE.CanvasTexture {
   return paintBump;
 }
 
-/** Non-color data map (normal / roughness), tiled like the color map. */
-function dataMap(url: string): THREE.Texture {
-  let texture = mapCache.get(url);
-  if (!texture) {
-    texture = new THREE.TextureLoader().load(url);
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.RepeatWrapping;
-    texture.anisotropy = 4;
-    mapCache.set(url, texture);
-  }
-  return texture;
-}
-
 /** Real-world size of one tile of a finish (for world-space UVs). */
 export function finishSize(finish: Finish): [number, number] {
   return FINISHES[finish].size;
 }
 
-const luma = (data: Uint8ClampedArray, i: number) =>
-  0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-
-function meanLuma(data: Uint8ClampedArray): number {
-  let sum = 0;
-  for (let i = 0; i < data.length; i += 4) sum += luma(data, i);
-  return sum / (data.length / 4) || 1;
-}
-
-/** Grayscale with the mean brought to ~0.85, so tinting keeps the detail. Pure. */
-export function normalizeGray(data: Uint8ClampedArray): void {
-  const gain = (0.85 * 255) / meanLuma(data);
-  for (let i = 0; i < data.length; i += 4) {
-    data[i] = data[i + 1] = data[i + 2] = luma(data, i) * gain;
-  }
-}
-
-/** Scale RGB so the mean brightness becomes `target` (0–1), colors kept. Pure. */
-export function normalizeBrightness(data: Uint8ClampedArray, target: number): void {
-  const gain = (target * 255) / meanLuma(data);
-  for (let i = 0; i < data.length; i += 4) {
-    data[i] *= gain;
-    data[i + 1] *= gain;
-    data[i + 2] *= gain;
-  }
-}
-
+/** Procedural pattern, drawn once per finish. */
 function finishTexture(finish: Finish): THREE.CanvasTexture {
   const cached = textureCache.get(finish);
   if (cached) return cached;
-  const spec = FINISHES[finish];
-  const size = spec.photo ? PHOTO_SIZE : SIZE;
   const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
+  canvas.width = SIZE;
+  canvas.height = SIZE;
   const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
-  const random = seeded(finish.length * 7919 + 17);
+  FINISHES[finish].draw?.(ctx, seeded(finish.length * 7919 + 17));
   const texture = new THREE.CanvasTexture(canvas);
-  if (spec.photo) {
-    // Neutral placeholder until the scan has loaded
-    ctx.fillStyle = gray(0.85);
-    ctx.fillRect(0, 0, size, size);
-    const image = new Image();
-    image.onload = () => {
-      ctx.drawImage(image, 0, 0, size, size);
-      if (spec.grayscale || spec.brightness) {
-        const pixels = ctx.getImageData(0, 0, size, size);
-        if (spec.grayscale) normalizeGray(pixels.data);
-        if (spec.brightness) normalizeBrightness(pixels.data, spec.brightness);
-        ctx.putImageData(pixels, 0, 0);
-      }
-      spec.draw?.(ctx, random);
-      texture.needsUpdate = true;
-    };
-    image.src = spec.photo;
-  } else {
-    spec.draw?.(ctx, random);
-  }
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.anisotropy = 4;
   textureCache.set(finish, texture);
   return texture;
+}
+
+type Slot = "map" | "normalMap" | "roughnessMap";
+type Scanned = THREE.Material & Partial<Record<Slot, THREE.Texture | null>>;
+
+/** clones of a surface material (the lightmapped walls), by source */
+const copiesOf = new WeakMap<THREE.Material, Scanned[]>();
+
+/**
+ * A clone of a surface material gets the KTX2 scans too, when they arrive
+ * after it was made (a clone only copies what the source has so far).
+ */
+export function followScans(source: THREE.Material, copy: THREE.Material): void {
+  copiesOf.set(source, [...(copiesOf.get(source) ?? []), copy]);
+}
+
+/** Set a KTX2 scan on the material (and its clones) once it is in (recompiled for the new map). */
+function scanInto(material: Scanned, slot: Slot, url?: string) {
+  if (!url) return;
+  tilingMap(url, (texture) => {
+    for (const m of [material, ...(copiesOf.get(material) ?? [])]) {
+      m[slot] = texture;
+      m.needsUpdate = true;
+    }
+  });
 }
 
 /** Shared material for a color + optional finish (and opacity): PBR on desktop, Lambert on phones. */
@@ -424,9 +373,7 @@ export function surfaceMaterial(
     const spec = finish ? FINISHES[finish] : undefined;
     const material = new THREE.MeshStandardMaterial({
       color,
-      map: finish ? finishTexture(finish) : null,
-      normalMap: spec?.normal ? dataMap(spec.normal) : null,
-      roughnessMap: spec?.roughnessMap ? dataMap(spec.roughnessMap) : null,
+      map: finish && !spec?.photo ? finishTexture(finish) : null,
       roughness: spec?.roughness ?? (finish ? ROUGHNESS[finish] : undefined) ?? 0.9,
       metalness: 0,
       transparent: opacity < 1,
@@ -436,21 +383,23 @@ export function surfaceMaterial(
     const relief = spec?.relief ?? 1;
     material.normalScale.set(relief, relief);
     if (spec?.paint) Object.assign(material, { bumpMap: paintRelief(), bumpScale: PAINT_BUMP });
+    scanInto(material, "map", spec?.photo);
+    scanInto(material, "normalMap", spec?.normal);
+    scanInto(material, "roughnessMap", spec?.roughnessMap);
     materialCache.set(key, material);
     return material;
   }
   const spec = finish ? FINISHES[finish] : undefined;
   const material = new THREE.MeshLambertMaterial({
     color,
-    map: finish ? finishTexture(finish) : null,
+    map: finish && !spec?.photo ? finishTexture(finish) : null,
     bumpMap: spec?.paint ? paintRelief() : null,
     bumpScale: PAINT_BUMP,
     transparent: opacity < 1,
     opacity,
     depthWrite: opacity >= 1,
   });
-  const relief = spec?.relief ?? 1;
-  material.normalScale.set(relief, relief);
+  scanInto(material, "map", spec?.photo);
   materialCache.set(key, material);
   return material;
 }

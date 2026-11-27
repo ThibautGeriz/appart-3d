@@ -22,11 +22,12 @@ interface Probe {
 }
 
 export interface Probes {
-  /** capture again soon (furniture moved, time of day, lamps) */
-  request(): void;
+  /** capture these rooms again soon (furniture came in), or all of them (time of day, lamps) */
+  request(rooms?: Iterable<string>): void;
 }
 
 const CAPTURE_HEIGHT = 1.4;
+const MAP_SLOTS = ["map", "normalMap", "roughnessMap"] as const;
 
 /** Rooms (by name) with their box and probe position: the middle of their largest area. Pure. */
 export function probeRooms(
@@ -64,7 +65,12 @@ export function createProbes(
   renderer: THREE.WebGLRenderer,
   scene: THREE.Scene,
   def: ApartmentDef,
-  options: { isTouch: boolean; hide?: THREE.Object3D[] },
+  options: {
+    isTouch: boolean;
+    hide?: THREE.Object3D[];
+    /** runs each capture (the room culler shows every room for it) */
+    around?: (capture: () => void) => void;
+  },
 ): Probes {
   const probes = new Map<string, Probe>();
   for (const [name, r] of probeRooms(def)) {
@@ -124,6 +130,11 @@ export function createProbes(
         if (!(m instanceof THREE.MeshStandardMaterial) || m.transparent) return m;
         const source = (m.userData.probeSource as THREE.MeshStandardMaterial | undefined) ?? m;
         const copy = materialFor(source, room);
+        // scans arrive after the copy was made (KTX2, loaded asynchronously)
+        if (MAP_SLOTS.some((slot) => copy[slot] !== source[slot])) {
+          for (const slot of MAP_SLOTS) copy[slot] = source[slot];
+          copy.needsUpdate = true;
+        }
         setProbe(copy, probe.texture!, probe.min, probe.max, probe.position);
         return copy;
       };
@@ -131,23 +142,35 @@ export function createProbes(
     });
   };
 
+  /** rooms to capture at the next one (all: null) */
+  let pending: Set<string> | null = new Set();
   const capture = () => {
+    const rooms = pending;
+    pending = new Set();
     const hidden = (options.hide ?? []).filter((o) => o.visible);
     for (const o of hidden) o.visible = false;
-    for (const probe of probes.values()) {
-      camera.position.copy(probe.position);
-      camera.update(renderer, scene);
-      const env = pmrem.fromCubemap(target.texture);
-      probe.texture?.dispose();
-      probe.texture = env.texture;
-    }
+    const draw = () => {
+      for (const [name, probe] of probes) {
+        if (rooms && !rooms.has(name)) continue;
+        camera.position.copy(probe.position);
+        camera.update(renderer, scene);
+        const env = pmrem.fromCubemap(target.texture);
+        probe.texture?.dispose();
+        probe.texture = env.texture;
+      }
+    };
+    if (options.around) options.around(draw);
+    else draw();
     for (const o of hidden) o.visible = true;
     assign();
   };
 
   let timer: ReturnType<typeof setTimeout> | undefined;
   return {
-    request() {
+    request(rooms) {
+      if (!rooms) pending = null;
+      else if (pending) for (const r of rooms) pending.add(r);
+      if (pending?.size === 0) return;
       clearTimeout(timer);
       timer = setTimeout(capture, 250);
     },
