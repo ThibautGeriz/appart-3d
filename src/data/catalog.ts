@@ -424,6 +424,43 @@ export const CATALOG: Product[] = [
       "Panneaux blanc mat, ressorts (8 par côté), fabriqué sur commande, matelas non inclus (20 cm max)",
     price: 899,
   },
+  // ── Bookcases for chambre 2 (zone 150 × 30 cm); prices of 27/11/2026,
+  // Black Friday promotions for the Vente-unique and AM.PM ones ───────────
+  {
+    id: "bookcase-vu-white",
+    kind: "shelf",
+    name: "Étagère 5 niveaux (blanc)",
+    url: "https://www.vente-unique.com/p/bibliotheque-etagere-multifonction-blanc-5-niveaux-150x30x189cm-pour-livres-jouets-et-accessoires-de-bureau",
+    w: 1.5,
+    d: 0.304,
+    h: 1.894,
+    materials:
+      "Stratifié / MDF blanc mat, chants ABS, dos HDF blanc, 3 colonnes (70 + 40 + 40 cm), 5 niveaux de 33 cm",
+    price: 324.9,
+  },
+  {
+    id: "bookcase-vu-wotan",
+    kind: "shelf",
+    name: "Étagère 5 niveaux (chêne Wotan)",
+    url: "https://www.vente-unique.com/p/bibliotheque-etagere-multifonction-chene-wotan-5-niveaux-150x30x189cm-pour-livres-jouets-et-accessoires-de-bureau",
+    w: 1.5,
+    d: 0.304,
+    h: 1.894,
+    materials:
+      "Stratifié décor chêne Wotan, dos HDF blanc, 3 colonnes (70 + 40 + 40 cm), 5 niveaux de 33 cm",
+    price: 324.9,
+  },
+  {
+    id: "bookcase-iloss",
+    kind: "shelf",
+    name: "AM.PM Iloss (chêne massif)",
+    url: "https://www.laredoute.fr/ppdp/prod-601762191.aspx",
+    w: 1.5,
+    d: 0.33,
+    h: 2.0,
+    materials: "Chêne massif, vernis polyuréthane incolore, 5 tablettes fixes",
+    price: 1190.63, // + 99 € delivery to the room
+  },
   // ── Desk (already owned, kept as is) ────────────────────────────────────
   {
     id: "desk-flexispot-solid-wood",

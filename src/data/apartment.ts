@@ -818,7 +818,7 @@ export const APARTMENT_DEF: ApartmentDef = {
         kind: "shelf",
         room: "Chambre 2",
         title: "Bibliothèque",
-        default: "shelf-fina",
+        default: "bookcase-vu-white",
         maxWidth: 1.5,
       },
     ],

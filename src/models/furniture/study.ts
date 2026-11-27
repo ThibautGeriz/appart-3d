@@ -176,10 +176,85 @@ export function flexispotDesk(p: Product): THREE.Group {
   return g;
 }
 
-/** Chambre 2 (study / guest room): the wall beds and the desk. */
+export interface BookcaseLayout {
+  /** column widths, left to right (sum = product width, panels included) */
+  columns: number[];
+  /** compartments per column, bottom to top */
+  levels: number;
+  /** panel thickness */
+  panel: number;
+  /** closed base under the first shelf */
+  plinth: number;
+  material: THREE.Material;
+  /** back panel material (null = open back) */
+  back: THREE.Material | null;
+}
+
+/**
+ * Open bookcase: side panels and uprights between the columns, a top, a
+ * plinth, evenly spaced shelves and a back panel. Origin at the footprint
+ * centre, front toward +z.
+ */
+export function bookcase(p: Product, layout: BookcaseLayout): THREE.Group {
+  const g = new THREE.Group();
+  const { w, d, h } = p;
+  const { panel: t, plinth, material, levels } = layout;
+  const backT = layout.back ? 0.004 : 0;
+  // outer sides and the uprights between columns
+  let x = -w / 2;
+  const edges = [x];
+  for (const c of layout.columns) edges.push((x += c));
+  for (const ex of edges) {
+    const cx = Math.min(w / 2 - t / 2, Math.max(-w / 2 + t / 2, ex));
+    g.add(board(t, h, d - backT, material, cx, h / 2, backT / 2, 0.002, "y"));
+  }
+  // top, plinth (front kick board + bottom shelf), shelves
+  const inner = w - 2 * t;
+  g.add(board(inner, t, d - backT, material, 0, h - t / 2, backT / 2, 0.002, "x"));
+  g.add(board(inner, plinth, t, material, 0, plinth / 2, d / 2 - t / 2 - 0.01, 0.002, "x"));
+  const y0 = plinth;
+  const y1 = h - t;
+  const step = (y1 - y0) / levels;
+  for (let i = 0; i < levels; i++) {
+    const y = y0 + i * step + t / 2;
+    g.add(board(inner, t, d - backT - 0.005, material, 0, y, backT / 2, 0.002, "x"));
+  }
+  if (layout.back) {
+    g.add(
+      board(w - 0.004, h - 0.004, backT, layout.back, 0, h / 2, -d / 2 + backT / 2, 0.001, "x"),
+    );
+  }
+  return g;
+}
+
+/** Vente-unique "étagère multifonction 5 niveaux": three columns 70 + 40 + 40 cm, HDF back. */
+const venteUniqueBookcase = (material: THREE.Material) => (p: Product) =>
+  bookcase(p, {
+    columns: [0.7, 0.4, 0.4],
+    levels: 5,
+    panel: 0.018,
+    plinth: 0.08,
+    material,
+    back: whiteMelamine,
+  });
+
+/** Chambre 2 (study / guest room): the wall beds, the desk, the bookcases. */
 export const STUDY_BUILDERS: Record<string, (p: Product) => THREE.Group> = {
   "bed-beganio": wallBed,
   "bed-consus": wallBed,
   "bed-altera-premium": wallBed,
   "desk-flexispot-solid-wood": flexispotDesk,
+  "bookcase-vu-white": venteUniqueBookcase(whiteMelamine),
+  "bookcase-vu-wotan": venteUniqueBookcase(oiledOak),
+  // AM.PM Iloss: solid oak, 5 fixed shelves (the bay split is not given:
+  // drawn as two bays of 75 cm)
+  "bookcase-iloss": (p) =>
+    bookcase(p, {
+      columns: [0.75, 0.75],
+      levels: 5,
+      panel: 0.025,
+      plinth: 0.06,
+      material: oiledOak,
+      back: null,
+    }),
 };
