@@ -18,7 +18,7 @@ import { createClickToMove } from "./player/clickToMove";
 import { apartmentBounds } from "./apartment/plan";
 import { cameraObstacles } from "./player/camera";
 import { loadModels } from "./apartment/models";
-import { createFurniture } from "./apartment/furniture";
+import { createFurniture, isWallBed } from "./apartment/furniture";
 import { createFurniturePanel } from "./ui/furniturePanel";
 
 const container = document.getElementById("app") as HTMLElement;
@@ -78,6 +78,12 @@ const clickToMove = createClickToMove({
   colliders: apartment.colliders,
   bounds: apartmentBounds(APARTMENT_DEF),
   radius: player.radius,
+  // a click on the wall bed opens / closes it instead of walking there
+  interact: (hit) => {
+    if (!isWallBed(hit.object)) return false;
+    furniture.toggleBed();
+    return true;
+  },
 });
 
 // Movable furniture (catalog products), switched from the toolbar
@@ -131,6 +137,8 @@ renderer.setAnimationLoop(() => {
     intent = auto.intent;
     look.yaw += auto.turn;
   }
+  // the wall bed folding: static shadows are redrawn only while it moves
+  if (furniture.update(dt)) renderer.shadowMap.needsUpdate = true;
   player.update(dt, intent, look, apartment.colliders);
   player.applyToCamera(camera, obstacles);
   fixtures.update(camera.position.x, camera.position.z);

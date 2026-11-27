@@ -323,7 +323,8 @@ export const APARTMENT_DEF: ApartmentDef = {
       to: [14.43, 3.65],
       thickness: 0.3,
       // Ch. 2 French window opens onto the balcony: left open (walkable), no guardrail
-      openings: [frenchWindow(1.2, 0.75, false), window(4.41, 1.4)],
+      // Ch. 2 French window 53 cm from its west wall, 89 cm wide (bedroom drawing)
+      openings: [frenchWindow(1.215, 0.89, false), window(4.41, 1.4)],
     },
     // East façade
     { from: [14.34, 3.5], to: [14.34, 8.69], thickness: 0.18 },
@@ -334,7 +335,8 @@ export const APARTMENT_DEF: ApartmentDef = {
       from: [8.13, 7.35],
       to: [11.5, 7.35],
       thickness: INNER,
-      openings: [door(0.82, 0.85)],
+      // 82 cm from the west wall, 82 cm wide (bedroom drawing)
+      openings: [door(0.825, 0.82)],
     },
     // Chambre 2 / chambre 1
     { from: [11.455, 3.8], to: [11.455, 7.4], thickness: 0.09 },
@@ -718,6 +720,16 @@ export const APARTMENT_DEF: ApartmentDef = {
       // south wall, against the wardrobe (x 12.6), up to the door's swing (x 11.18)
       shelfEntry: { anchor: [12.6, 8.5], align: [1, 1], along: "-x" },
     },
+    // Chambre 2 (inner faces x 8.135 → 11.41, z 3.80 → 7.30), from the bedroom
+    // drawing: the wall bed on the west wall, 1.00 m from the window wall,
+    // centred on its 1.55 m zone, opening east; on the east wall, the desk
+    // (120 × 60) 15 cm from the window wall and the bookcase (150 × 30 zone)
+    // ending 11 cm from the door wall, both facing the room
+    study: {
+      wallBed: { anchor: [8.135, 5.575], align: [-1, 0], along: "-z" },
+      desk: { anchor: [11.41, 3.95], align: [1, -1], along: "+z" },
+      bookcase: { anchor: [11.41, 7.19], align: [1, 1], along: "+z" },
+    },
     // what can be chosen, room by room (the toolbar lists rooms first)
     slots: [
       {
@@ -786,6 +798,28 @@ export const APARTMENT_DEF: ApartmentDef = {
         title: "Étagère près de l'entrée",
         default: "shelf-borneo",
         maxWidth: 1.42,
+      },
+      {
+        id: "wallBed",
+        kind: "wallBed",
+        room: "Chambre 2",
+        title: "Lit escamotable 140 × 200 · cliquer le lit pour l'ouvrir",
+        default: "bed-beganio",
+      },
+      {
+        id: "desk",
+        kind: "desk",
+        room: "Chambre 2",
+        title: "Bureau",
+        default: "desk-flexispot-solid-wood",
+      },
+      {
+        id: "bookcase",
+        kind: "shelf",
+        room: "Chambre 2",
+        title: "Bibliothèque",
+        default: "shelf-fina",
+        maxWidth: 1.5,
       },
     ],
   },

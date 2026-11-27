@@ -16,7 +16,20 @@ export type ProductKind =
   | "tvUnit"
   | "bed"
   | "nightstand"
-  | "shelf";
+  | "shelf"
+  | "wallBed"
+  | "desk";
+
+/** Vertical wall bed (lit escamotable): folds down from its cabinet, head against the wall. */
+export interface WallBedSpec {
+  /** from the wall to the foot of the open bed */
+  openDepth: number;
+  /** a mattress comes with it (the model always shows one) */
+  mattressIncluded: boolean;
+  mattressThickness: number;
+  /** cabinet and front (underside of the bed) finish */
+  finish: "white" | "oak";
+}
 
 export interface Product {
   id: string;
@@ -39,6 +52,10 @@ export interface Product {
    * (origin at its centre), when it is not a plain rectangle (corner sofa)
    */
   parts?: [number, number, number, number][];
+  /** wall beds: how it opens */
+  wallBed?: WallBedSpec;
+  /** already owned (kept as is, not switchable, nothing to pay) */
+  owned?: boolean;
   /** unit price in euros (seller's page, November 2026); 0 when the seller gives none */
   price: number;
 }
@@ -355,6 +372,70 @@ export const CATALOG: Product[] = [
     materials:
       "Tissu maillage 3D, dossiers avance-recule, accoudoirs relevables, pieds fer titanio",
     price: 3386.46,
+  },
+  // ── Wall beds for chambre 2 (140 × 200, vertical opening) ───────────────
+  // the wall zone is 155 cm wide and the plan allows 228 cm open
+  {
+    id: "bed-beganio",
+    kind: "wallBed",
+    name: "Beganio (blanc, matelas)",
+    url: "https://www.vente-unique.com/p/beganio-lit-escamotable-140-x-200-cm-ouverture-verticale-manuelle-blanc-matelas-beganio",
+    w: 1.59,
+    d: 0.4,
+    h: 2.25,
+    wallBed: { openDepth: 2.392, mattressIncluded: true, mattressThickness: 0.2, finish: "white" },
+    materials:
+      "Panneaux de particules mélaminés blanc, piétement métal, 40 lattes, ouverture manuelle, matelas ressorts ensachés 20 cm inclus",
+    price: 1179.99,
+  },
+  {
+    id: "bed-consus",
+    kind: "wallBed",
+    name: "Lenart Consus (chêne)",
+    url: "https://www.vente-unique.com/p/lenart-armoire-lit-escamotable-vertical-140x200-cm-chene-artisan-lit-rabattable-lit-mural-consus",
+    w: 1.51,
+    d: 0.46,
+    h: 2.17,
+    wallBed: {
+      openDepth: 2.28,
+      mattressIncluded: false,
+      mattressThickness: 0.18,
+      finish: "oak",
+    },
+    materials:
+      "Panneaux décor chêne artisan, vérins pneumatiques soft close, push to open, matelas non inclus (18 cm max)",
+    price: 1578.9,
+  },
+  {
+    id: "bed-altera-premium",
+    kind: "wallBed",
+    name: "Altera Premium (blanc mat)",
+    url: "https://alteramobilier.fr/140x200-cm/25-lit-escamotable-relevable-vertical-140x200-cm-blanc-mat-premium.html",
+    w: 1.53,
+    d: 0.41,
+    h: 2.22,
+    wallBed: {
+      openDepth: 2.34,
+      mattressIncluded: false,
+      mattressThickness: 0.2,
+      finish: "white",
+    },
+    materials:
+      "Panneaux blanc mat, ressorts (8 par côté), fabriqué sur commande, matelas non inclus (20 cm max)",
+    price: 899,
+  },
+  // ── Desk (already owned, kept as is) ────────────────────────────────────
+  {
+    id: "desk-flexispot-solid-wood",
+    kind: "desk",
+    name: "Flexispot assis-debout, plateau bois massif",
+    url: "https://www.flexispot.fr/bureau-assis-debout-avec-plateau-en-bois-massif.html",
+    w: 1.2,
+    d: 0.6,
+    h: 0.74, // sitting height; the frame goes up for standing
+    materials: "Plateau bois massif, cadre électrique réglable en hauteur",
+    owned: true,
+    price: 0, // already bought
   },
 ];
 
