@@ -26,7 +26,7 @@ import { createRoomCuller } from "./apartment/rooms";
 import { roomAt } from "./apartment/furnishing";
 import { cameraObstacles } from "./player/camera";
 import { loadModels } from "./apartment/models";
-import { createFurniture, isWallBed } from "./apartment/furniture";
+import { createFurniture, isSlidingSofa, isWallBed } from "./apartment/furniture";
 import { createFurniturePanel } from "./ui/furniturePanel";
 
 const container = document.getElementById("app") as HTMLElement;
@@ -113,11 +113,18 @@ const clickToMove = createClickToMove({
   colliders: apartment.colliders,
   bounds: apartmentBounds(APARTMENT_DEF),
   radius: player.radius,
-  // a click on the wall bed opens / closes it instead of walking there
+  // a click on the wall bed opens / closes it, on a sofa with sliding backs
+  // slides them back / forward, instead of walking there
   interact: (hit) => {
-    if (!isWallBed(hit.object)) return false;
-    furniture.toggleBed();
-    return true;
+    if (isWallBed(hit.object)) {
+      furniture.toggleBed();
+      return true;
+    }
+    if (isSlidingSofa(hit.object)) {
+      furniture.toggleSofaBacks();
+      return true;
+    }
+    return false;
   },
 });
 

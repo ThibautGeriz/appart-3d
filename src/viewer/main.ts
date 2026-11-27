@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { CATALOG } from "../data/catalog";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { loadFile, prepare } from "../apartment/models";
 import { initKtx2 } from "../apartment/ktx2";
@@ -62,6 +63,13 @@ async function show(source: ModelSource): Promise<void> {
       if (!(o instanceof THREE.Mesh)) return;
       for (const m of Array.isArray(o.material) ? o.material : [o.material])
         if (m.name === fabric.material && "color" in m) (m.color as THREE.Color).set(fabric.color);
+    });
+  // ?slide=1: a sofa with "dossiers avance-recule", its backs slid back
+  const travel = CATALOG.find((p) => p.id === source.file)?.sofa?.backTravel;
+  if (params.get("slide") === "1" && travel)
+    model.traverse((o) => {
+      const m = /^sofa-back-([xz])/.exec(o.name);
+      if (m) o.position[m[1] as "x" | "z"] -= travel;
     });
   const report = inspectModel(model);
   document.body.appendChild(renderer.domElement);

@@ -139,6 +139,13 @@ function seat(g: THREE.Group, b: Box2, top: number): void {
 }
 
 /**
+ * Names of the back cushions that slide (sofas with "dossiers avance-recule"):
+ * the app moves them back along -z (the long side) or -x (a corner's return).
+ */
+export const SLIDING_BACK_Z = "sofa-back-z";
+export const SLIDING_BACK_X = "sofa-back-x";
+
+/**
  * Back pad standing on the base's rear ledge: a lower back and a puffier
  * headrest on top, reclined. `facing` +z: spans x; +x: spans z.
  */
@@ -178,6 +185,8 @@ function backPad(
   );
   pivot.rotation.x = -RECLINE;
   const holder = new THREE.Group();
+  // named: the app slides it back along its axis (the backs "avance-recule")
+  holder.name = facing === "+z" ? SLIDING_BACK_Z : SLIDING_BACK_X;
   holder.add(pivot);
   if (facing === "+z") holder.position.set((from + to) / 2, bottom, at);
   else {
@@ -449,7 +458,8 @@ export function albatros(p: Product): THREE.Group {
   for (let i = 0; i < 2; i++) {
     const x = seatsFrom + seatW * (i + 0.5);
     for (const half of halves)
-      add(g, half.clone().translate(x, bottom + lift, push), albatrosFabric, 0, 0, 0);
+      add(g, half.clone().translate(x, bottom + lift, push), albatrosFabric, 0, 0, 0).name =
+        SLIDING_BACK_Z; // slides back (the backs "avance-recule")
   }
   throwCushions(g, seatsFrom, seatsTo, seatTop, push + A_BACK_T); // decor
   return g;

@@ -28,6 +28,8 @@ interface Piece {
   z: number;
   rotationY: number;
   wallBed: boolean;
+  /** a sofa whose backs slide: how far */
+  backTravel?: number;
 }
 
 /** Marks the wall bed's model, so a click on any of its meshes finds it. */
@@ -37,6 +39,42 @@ const WALL_BED_TAG = "wallBed";
 export function isWallBed(object: THREE.Object3D | null): boolean {
   for (let o = object; o; o = o.parent) if (o.userData[WALL_BED_TAG]) return true;
   return false;
+}
+
+/** Marks a sofa whose backs slide ("dossiers avance-recule"). */
+const SLIDING_SOFA_TAG = "slidingSofa";
+
+/** Is this object (or one of its parents) a sofa whose backs slide? */
+export function isSlidingSofa(object: THREE.Object3D | null): boolean {
+  for (let o = object; o; o = o.parent) if (o.userData[SLIDING_SOFA_TAG]) return true;
+  return false;
+}
+
+/** Seconds for the backs to slide all the way. */
+const BACK_SLIDE_TIME = 0.6;
+
+/** Smooth 0 → 1 ease (in and out). Pure. */
+export function ease(t: number): number {
+  const c = Math.min(1, Math.max(0, t));
+  return c * c * (3 - 2 * c);
+}
+
+/**
+ * The sliding back cushions of a sofa model: nodes named sofa-back-z / -x
+ * (GLTFLoader may add a suffix), with their rest position.
+ */
+function slidingBacks(
+  model: THREE.Object3D,
+): { node: THREE.Object3D; axis: "x" | "z"; rest: number }[] {
+  const out: { node: THREE.Object3D; axis: "x" | "z"; rest: number }[] = [];
+  model.traverse((o) => {
+    const m = /^sofa-back-([xz])/.exec(o.name);
+    if (m) {
+      const axis = m[1] as "x" | "z";
+      out.push({ node: o, axis, rest: o.position[axis] });
+    }
+  });
+  return out;
 }
 
 const STORAGE_KEY = "appart-3d.furniture";
@@ -108,6 +146,10 @@ export interface Furniture {
   bedOpen: boolean;
   /** open the wall bed if closed, close it if open (animated) */
   toggleBed(): void;
+  /** the sofa's backs are slid back (deep seat), or sliding there */
+  sofaBacksBack: boolean;
+  /** slide the sofa's backs back, or forward again (animated) */
+  toggleSofaBacks(): void;
   /** advance animations; true while something moves (shadows need a redraw) */
   update(dt: number): boolean;
 }
@@ -147,6 +189,14 @@ export function createFurniture(
   /** 0 closed → 1 open */
   let opening = 0;
   let openCollider: Collider | null = null;
+  /** the sofa's sliding backs, and how far they are slid (0 → 1) */
+  let backs: ReturnType<typeof slidingBacks> = [];
+  let backTravel = 0;
+  let slid = 0;
+  const poseBacks = () => {
+    const k = ease(slid) * backTravel;
+    for (const b of backs) b.node.position[b.axis] = b.rest - k;
+  };
 
   /** The open bed takes floor: add / remove its collider, then notify. */
   const setOpenCollider = (on: boolean) => {
@@ -200,10 +250,23 @@ export function createFurniture(
       // opening takes the floor right away; closing frees it once folded up
       if (furniture.bedOpen) setOpenCollider(true);
     },
+    sofaBacksBack: false,
+    toggleSofaBacks() {
+      if (backs.length === 0) return;
+      furniture.sofaBacksBack = !furniture.sofaBacksBack;
+    },
     update(dt) {
-      if (!bedModel) return false;
+      let moving = false;
+      const backTarget = furniture.sofaBacksBack ? 1 : 0;
+      if (backs.length > 0 && slid !== backTarget) {
+        const step = dt / BACK_SLIDE_TIME;
+        slid = backTarget > slid ? Math.min(1, slid + step) : Math.max(0, slid - step);
+        poseBacks();
+        moving = true;
+      }
+      if (!bedModel) return moving;
       const target = furniture.bedOpen ? 1 : 0;
-      if (opening === target) return false;
+      if (opening === target) return moving;
       opening = stepOpening(opening, furniture.bedOpen, dt);
       poseWallBed(bedModel, opening);
       if (opening === 0) setOpenCollider(false);
@@ -246,6 +309,13 @@ export function createFurniture(
         bedModel = model;
         poseWallBed(model, opening);
       }
+      const travel = p.backTravel;
+      if (travel) {
+        model.userData[SLIDING_SOFA_TAG] = true;
+        backs = slidingBacks(model);
+        backTravel = travel;
+        poseBacks();
+      }
       parent.add(model);
     });
     tint();
@@ -258,12 +328,18 @@ export function createFurniture(
     const placements = furnishingLayout(def.furnishing, furniture.selection);
     const decor = decorLayout(def.furnishing, furniture.selection, placements);
     pieces = [
-      ...placements.map((p) => ({ ...p, file: p.product.id, wallBed: !!p.product.wallBed })),
+      ...placements.map((p) => ({
+        ...p,
+        file: p.product.id,
+        wallBed: !!p.product.wallBed,
+        backTravel: p.product.sofa?.backTravel,
+      })),
       ...decor.map((d) => ({ ...d, wallBed: false })),
     ];
     for (const g of roomGroups.values()) g.clear();
     loaded.clear();
     bedModel = null;
+    backs = [];
     bedPlacement = placements.find((p) => p.product.wallBed) ?? null;
     furniture.placements = placements;
     // swap our colliders in the shared list (kept by reference by the player)

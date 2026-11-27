@@ -102,7 +102,8 @@ export const MODELS: ModelEntry[] = [
     },
     textures: FURNITURE_TEXTURES,
     // wall beds keep their moving parts (fold, feet) as named nodes
-    rigged: p.kind === "wallBed",
+    // keep the moving parts as their own nodes: the wall bed, sliding sofa backs
+    rigged: p.kind === "wallBed" || !!p.sofa?.backTravel,
   })),
 ];
 

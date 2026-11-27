@@ -129,7 +129,14 @@ export interface Product {
   /** materials as listed by the seller */
   materials: string;
   /** sofas: depth of one section (a corner sofa is deeper overall) */
-  sofa?: { depth: number };
+  sofa?: {
+    depth: number;
+    /**
+     * how far the backs slide back ("dossiers avance-recule"): the seat gets
+     * that much deeper, so the sofa stands that far from the wall. Click to slide.
+     */
+    backTravel?: number;
+  };
   /**
    * footprint as several rectangles [x0, z0, x1, z1] in the model's frame
    * (origin at its centre), when it is not a plain rectangle (corner sofa)
@@ -456,7 +463,7 @@ export const CATALOG: Product[] = [
     d: 1.97,
     h: 1.02,
     seatHeight: 0.44,
-    sofa: { depth: 1.04 },
+    sofa: { depth: 1.04, backTravel: 0.18 }, // seat depth 104 → 122 cm (backs slid back)
     fabric: ROMA_FABRIC,
     // long side along the back, return on the left coming forward
     parts: [
@@ -480,7 +487,7 @@ export const CATALOG: Product[] = [
     d: 1.04,
     h: 1.02,
     seatHeight: 0.44,
-    sofa: { depth: 1.04 },
+    sofa: { depth: 1.04, backTravel: 0.18 }, // seat depth 104 → 122 cm (backs slid back)
     fabric: ROMA_FABRIC,
     materials:
       "Tissu maillage 3D, dossiers avance-recule, accoudoirs relevables, pieds fer titanio",
@@ -526,7 +533,7 @@ export const CATALOG: Product[] = [
     d: 1.12,
     h: 0.95,
     seatHeight: 0.45,
-    sofa: { depth: 1.12 },
+    sofa: { depth: 1.12, backTravel: 0.13 }, // depth 112 → 125 cm ("prof. maxi 125")
     materials:
       "Tissu Castello (cat. Super), assises double profondeur, dossiers avance-recule (prof. maxi 125 cm), accoudoirs relevables, assise mousse polyuréthane 30 kg/m³, dossiers fibre polyester siliconée, structure sapin massif et panneaux de particules, sangles élastiques, pieds métal titanium dark 15 cm",
     seatFoamDensity: 30,
