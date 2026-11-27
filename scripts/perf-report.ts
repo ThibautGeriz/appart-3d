@@ -36,7 +36,8 @@ for (const r of results) {
   );
 }
 if (results.length === 0) lines.push("No results: the performance test did not run.");
-const sha = process.env.GITHUB_SHA?.slice(0, 7);
+// the PR head (GITHUB_SHA is the merge commit on pull requests)
+const sha = (process.env.HEAD_SHA || process.env.GITHUB_SHA)?.slice(0, 7);
 if (sha) lines.push(`<sub>Commit ${sha}. Local GPU run: \`npm run test:perf\`.</sub>`);
 await writeFile("perf-report.md", lines.join("\n") + "\n");
 console.log(lines.join("\n"));

@@ -67,6 +67,8 @@ jobs:
         continue-on-error: true
         run: npm run test:perf
       - run: npm run perf:report
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
       - name: Comment on the pull request
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         env:
