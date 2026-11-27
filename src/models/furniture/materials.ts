@@ -73,6 +73,8 @@ export const romaFabric = textured("roma fabric", "#ffffff", 0.92);
  * White: tinted with the colour picked in the toolbar.
  */
 export const oliviaFabric = textured("olivia fabric", "#ffffff", 0.95);
+/** Albatros: chenille ("Castello", cat. Super), tinted by the toolbar. */
+export const albatrosFabric = textured("albatros fabric", "#ffffff", 0.95);
 
 /** Roma legs: painted iron, "titanio" (dark titanium grey). */
 export const titanio = new THREE.MeshStandardMaterial({
@@ -108,6 +110,8 @@ export const PHOTO_TEXTURES: Record<string, PhotoTexture> = {
   [romaFabric.name]: { scan: "roma_mesh", size: 0.05, grain: "u", noRoughness: true },
   // generated chenille weave (scripts/gen-chenille.py): ~3.3 mm loops
   [oliviaFabric.name]: { scan: "olivia_weave", size: 0.04, grain: "u", noRoughness: true },
+  // the same chenille weave, a little coarser
+  [albatrosFabric.name]: { scan: "olivia_weave", size: 0.05, grain: "u", noRoughness: true },
   // generated weave (scripts/gen-wool.py)
   [woolCream.name]: { scan: "wool", size: 0.25, grain: "u", noRoughness: true },
   [woolGrey.name]: { scan: "wool", size: 0.25, grain: "u", noRoughness: true },

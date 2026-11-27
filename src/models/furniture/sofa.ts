@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import type { Product } from "../../data/catalog";
-import { romaFabric, titanio } from "./materials";
+import { albatrosFabric, oiledOak, romaFabric, titanio } from "./materials";
 import { grainUVs } from "./parts";
 import { throwCushions } from "./decor";
 
@@ -39,6 +39,8 @@ interface Pillow {
   seams?: boolean;
   /** tuft pressed in at the middle of the top */
   tuft?: number;
+  /** fabric its UVs are scaled for (default: the Roma's) */
+  material?: THREE.Material;
 }
 
 /**
@@ -47,7 +49,7 @@ interface Pillow {
  * cushion, with optional stitched seams and a central tuft. Centred at 0.
  */
 export function pillow(spec: Pillow): THREE.BufferGeometry {
-  const { w, h, d, r, puff = 0, seams = false, tuft = 0 } = spec;
+  const { w, h, d, r, puff = 0, seams = false, tuft = 0, material = romaFabric } = spec;
   // even counts, so the seams through the middle land on a vertex row
   const seg = (size: number) => 2 * Math.max(2, Math.min(16, Math.round(size / 0.06)));
   const g = new THREE.BoxGeometry(w, h, d, seg(w), seg(h), seg(d));
@@ -79,7 +81,7 @@ export function pillow(spec: Pillow): THREE.BufferGeometry {
     pos.setXYZ(i, p.x, p.y + dy, p.z);
   }
   g.computeVertexNormals();
-  grainUVs(g, romaFabric, "x");
+  grainUVs(g, material, "x");
   return g;
 }
 
@@ -310,7 +312,151 @@ export function roma(p: Product): THREE.Group {
   return g;
 }
 
+/*
+ * Cuir Center ALBATROS (showroom photos + price tag, model CS-578): a long
+ * low upholstered base on a light oak band, raised on four tapered "titanium
+ * dark" metal legs (15 cm) at its corners; two deep seat cushions ("assises
+ * double profondeur", one tuft each); two separate back cushions that slide
+ * forward and back ("dossiers avance/recule", a seam across each); wide flat
+ * arm pads lying over the base's ends, full depth ("accoudoirs relevables",
+ * shown down as in the photos). Its own chenille, tinted by the colour picker.
+ */
+
+const A_LEG = 0.15; // price tag: "pieds métal titanium dark ht 15 cm"
+const A_BAND = 0.035; // oak band under the upholstered base
+const A_BASE_TOP = 0.32;
+const A_ARM_W = 0.27; // photos: the arm pads are about a quarter of the depth
+const A_ARM_H = 0.13;
+const A_BACK_T = 0.18;
+const A_RECLINE = 0.12;
+
+/** Albatros legs: tapered round tubes, darker than the Roma's titanio. */
+const titaniumDark = new THREE.MeshStandardMaterial({
+  name: "titanium dark",
+  color: "#2e2f31",
+  metalness: 0.8,
+  roughness: 0.35,
+});
+const LEG_GEO = new THREE.CylinderGeometry(0.012, 0.007, A_LEG, 16).translate(0, A_LEG / 2, 0);
+
+export function albatros(p: Product): THREE.Group {
+  const g = new THREE.Group();
+  g.name = p.id;
+  const W = p.w;
+  const D = p.d;
+  const seatTop = p.seatHeight ?? 0.45;
+  const back = -D / 2;
+  const front = D / 2;
+  const inset = 0.07;
+
+  // legs at the corners, under the arm pads
+  for (const sx of [-1, 1])
+    for (const sz of [-1, 1]) {
+      const leg = new THREE.Mesh(LEG_GEO, titaniumDark);
+      leg.position.set(sx * (W / 2 - inset), 0, sz * (D / 2 - inset));
+      g.add(leg);
+    }
+  // oak band, a little in from the fabric, then the upholstered base on it
+  const band = new THREE.BoxGeometry(W - 0.04, A_BAND, D - 0.06);
+  grainUVs(band, oiledOak, "x");
+  add(g, band, oiledOak, 0, A_LEG + A_BAND / 2, -0.01);
+  const baseBottom = A_LEG + A_BAND;
+  add(
+    g,
+    pillow({
+      material: albatrosFabric,
+      w: W - 0.01,
+      h: A_BASE_TOP - baseBottom,
+      d: D - 0.02,
+      r: 0.05,
+    }),
+    albatrosFabric,
+    0,
+    (baseBottom + A_BASE_TOP) / 2,
+    -0.01,
+  );
+
+  // flat arm pads over the base's ends, full depth
+  for (const sx of [-1, 1])
+    add(
+      g,
+      pillow({ material: albatrosFabric, w: A_ARM_W, h: A_ARM_H, d: D, r: 0.055, puff: 0.012 }),
+      albatrosFabric,
+      sx * (W / 2 - A_ARM_W / 2),
+      A_BASE_TOP + A_ARM_H / 2 - 0.01,
+      0,
+    );
+
+  // two deep seats between the arms, from the backs to the front edge
+  const seatsFrom = -W / 2 + A_ARM_W;
+  const seatsTo = W / 2 - A_ARM_W;
+  const seatW = (seatsTo - seatsFrom) / 2;
+  const seatBack = back + 0.06;
+  const seatH = seatTop - A_BASE_TOP + 0.02;
+  for (let i = 0; i < 2; i++) {
+    const x = seatsFrom + seatW * (i + 0.5);
+    const cushion = pillow({
+      material: albatrosFabric,
+      w: seatW - 0.012,
+      h: seatH,
+      d: front - 0.01 - seatBack,
+      r: 0.05,
+      puff: 0.016,
+      tuft: 0.012,
+    });
+    add(g, cushion, albatrosFabric, x, seatTop - seatH / 2 - 0.016, (seatBack + front - 0.01) / 2);
+    const button = new THREE.Mesh(new THREE.SphereGeometry(0.008, 12, 8), albatrosFabric);
+    button.scale.y = 0.5;
+    button.position.set(x, seatTop - 0.008, (seatBack + front) / 2);
+    g.add(button);
+  }
+
+  // back cushions, slid back, on the seats: a seam across each (two soft
+  // halves), reclined. Transforms baked into the geometry (a rotated node
+  // inflates the loose bounding box), then placed from their measured box:
+  // top at the sofa's height, reclined back face 5 mm in from the base's back.
+  const bottom = seatTop - 0.06;
+  const tall = (p.h - bottom) / Math.cos(A_RECLINE);
+  const lower = tall * 0.45;
+  const width = seatW - 0.06;
+  // one cushion read as two halves sewn together: tight corners, flush faces
+  const halves = [
+    pillow({
+      material: albatrosFabric,
+      w: width,
+      h: lower,
+      d: A_BACK_T,
+      r: 0.035,
+      puff: 0.008,
+    }).translate(0, lower / 2, A_BACK_T / 2),
+    pillow({
+      material: albatrosFabric,
+      w: width,
+      h: tall - lower,
+      d: A_BACK_T,
+      r: 0.035,
+      puff: 0.012,
+    }).translate(0, lower + (tall - lower) / 2 - 0.006, A_BACK_T / 2),
+  ];
+  const box = new THREE.Box3();
+  for (const half of halves) {
+    half.rotateX(-A_RECLINE);
+    half.computeBoundingBox();
+    box.union(half.boundingBox!);
+  }
+  const lift = p.h - bottom - box.max.y;
+  const push = back + 0.005 - box.min.z;
+  for (let i = 0; i < 2; i++) {
+    const x = seatsFrom + seatW * (i + 0.5);
+    for (const half of halves)
+      add(g, half.clone().translate(x, bottom + lift, push), albatrosFabric, 0, 0, 0);
+  }
+  throwCushions(g, seatsFrom, seatsTo, seatTop, push + A_BACK_T); // decor
+  return g;
+}
+
 export const SOFA_BUILDERS: Record<string, (p: Product) => THREE.Group> = {
   "sofa-roma-corner": roma,
   "sofa-roma-210": roma,
+  "sofa-albatros-222": albatros,
 };
