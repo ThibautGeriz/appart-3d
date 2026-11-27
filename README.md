@@ -15,6 +15,7 @@ Play (once deployed): https://thibautgeriz.github.io/appart-3d/
 npm install
 npm run dev      # serveur de dev (testez sur votre téléphone via l'URL LAN)
 npm test         # tests unitaires (Vitest)
+npm run test:perf # FPS dans un vrai Chromium, bureau + téléphone (commenté sur la PR par la CI)
 npm run lint     # oxlint
 npm run format   # oxfmt
 npm run build    # build de production

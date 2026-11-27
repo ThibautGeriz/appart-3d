@@ -32,19 +32,17 @@ export interface TextureFiles {
   roughness?: string;
 }
 
-/** The furniture scans: <scan>_diff / _nor / _rough.jpg (the oak colour map is shared). */
+/** The furniture scans, encoded to KTX2: <scan>_diff / _nor / _rough (the oak colour map is the floor scan). */
 const FURNITURE_TEXTURES: Record<string, TextureFiles> = Object.fromEntries(
   Object.entries(PHOTO_TEXTURES).map(([material, { scan, flat, noRoughness }]) => {
-    const dir = "src/assets/textures/furniture";
+    const dir = "src/assets/textures/furniture/ktx2";
     const base =
-      scan === "oak_veneer_01"
-        ? "src/assets/textures/oak_veneer_01.jpg"
-        : `${dir}/${scan}_diff.jpg`;
+      scan === "oak_veneer_01" ? `${dir}/oak_veneer_01.ktx2` : `${dir}/${scan}_diff.ktx2`;
     const maps = flat
       ? {}
       : noRoughness
-        ? { normal: `${dir}/${scan}_nor.jpg` }
-        : { normal: `${dir}/${scan}_nor.jpg`, roughness: `${dir}/${scan}_rough.jpg` };
+        ? { normal: `${dir}/${scan}_nor.ktx2` }
+        : { normal: `${dir}/${scan}_nor.ktx2`, roughness: `${dir}/${scan}_rough.ktx2` };
     return [material, { base, ...maps }];
   }),
 );
@@ -80,7 +78,7 @@ export const MODELS: ModelEntry[] = [
     file: MODEL_FILES["avatar" satisfies ModelName],
     build: mannequin,
     rigged: true,
-    textures: { wood: { base: "src/assets/textures/oak_veneer_01.jpg" } },
+    textures: { wood: { base: "src/assets/textures/furniture/ktx2/oak_veneer_01.ktx2" } },
   },
   // room decor (not sold: no budget), placed by the furnishing layout
   { file: "decor-plant", build: plant, textures: FURNITURE_TEXTURES },

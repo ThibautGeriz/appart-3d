@@ -4,6 +4,19 @@ import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { GTAOPass } from "three/examples/jsm/postprocessing/GTAOPass.js";
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 
+/**
+ * Ambient occlusion is soft and low-frequency: computed at a fraction of the
+ * resolution (at full size, 16 samples over 4 Mpx took ~90 % of the frame on
+ * a Retina screen), upscaled when blended over the full-size image.
+ */
+export const AO_SCALE = 0.5;
+
+class ScaledGTAOPass extends GTAOPass {
+  override setSize(width: number, height: number): void {
+    super.setSize(Math.ceil(width * AO_SCALE), Math.ceil(height * AO_SCALE));
+  }
+}
+
 export interface Pipeline {
   render(): void;
   setSize(width: number, height: number): void;
@@ -35,7 +48,7 @@ export function createPipeline(
   });
   const composer = new EffectComposer(renderer, target);
   composer.addPass(new RenderPass(scene, camera));
-  const ao = new GTAOPass(scene, camera, size.x, size.y);
+  const ao = new ScaledGTAOPass(scene, camera, size.x * AO_SCALE, size.y * AO_SCALE);
   // apartment scale, in meters: contact shadows reach ~50 cm (under a table);
   // a thin thickness keeps objects from casting halos on the wall behind them
   ao.updateGtaoMaterial({
@@ -47,7 +60,7 @@ export function createPipeline(
     distanceFallOff: 1,
     screenSpaceRadius: false,
   });
-  ao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 4, rings: 2, samples: 16 });
+  ao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 4, rings: 2, samples: 8 });
   ao.blendIntensity = 1;
   composer.addPass(ao);
   composer.addPass(new OutputPass()); // tone mapping + sRGB, as without post-processing

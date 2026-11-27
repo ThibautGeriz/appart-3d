@@ -116,7 +116,14 @@ Mobile (touch):
   materials are fine.
 - One directional light + one ambient/hemisphere light max. No real-time
   shadows on mobile.
-- Texture resolution capped (1024px max is fine for apartment scale).
+- Textures are KTX2 / Basis Universal (`npm run encode:ktx2`, committed): they
+  stay compressed in video memory, so the scans can be 2K. Photo scans are never
+  loaded as JPEG at runtime (new scan: add it to `scripts/encode-ktx2.ts`).
+- Rooms out of sight are not drawn, and their models load the first time they
+  can be seen (`src/apartment/rooms.ts`); copies of a model in a room are one
+  instanced draw (`src/apartment/instancing.ts`).
+- Desktop ambient occlusion runs at half resolution (`AO_SCALE`): at full size
+  it took ~90 % of the frame.
 
 ## Commands
 
@@ -126,6 +133,8 @@ npm run dev        # Vite dev server (test on a real phone via LAN URL)
 npm run build      # production build
 npm run preview    # serve the build
 npm test           # unit tests (Vitest) — must pass before any commit
+npm run test:perf  # frame rate in a real Chromium, desktop + phone (CI comments it on the PR)
+npm run encode:ktx2  # rebuild the KTX2 textures from src/assets/textures/*.jpg
 npm run export:glb   # rebuild models/*.glb from src/models
 npm run validate:glb # Khronos glTF validator on every model (as in CI)
 ```

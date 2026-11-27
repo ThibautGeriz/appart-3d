@@ -8,10 +8,12 @@ import { TouchInput } from "./controls/touch";
 import { isTouchDevice } from "./controls/device";
 import { createHud } from "./ui/hud";
 import { createFpsCounter } from "./ui/fps";
+import { perfProbe } from "./ui/perfProbe";
 import { bindSunControls, defaultHour } from "./ui/sunControls";
 import { createLighting } from "./lighting/environment";
 import { createPipeline } from "./lighting/postprocessing";
 import { usePhysicalSurfaces } from "./apartment/textures";
+import { initKtx2, mapsLoaded } from "./apartment/ktx2";
 import { buildFixtures } from "./lighting/fixtures";
 import { applyRoomMask } from "./lighting/roomMask";
 import { loadLightmap } from "./lighting/bakedLight";
@@ -20,6 +22,8 @@ import { buildDressing } from "./apartment/dressing";
 import type { InputSource } from "./controls/types";
 import { createClickToMove } from "./player/clickToMove";
 import { apartmentBounds } from "./apartment/plan";
+import { createRoomCuller } from "./apartment/rooms";
+import { roomAt } from "./apartment/furnishing";
 import { cameraObstacles } from "./player/camera";
 import { loadModels } from "./apartment/models";
 import { createFurniture, isWallBed } from "./apartment/furniture";
@@ -35,6 +39,7 @@ const renderer = new THREE.WebGLRenderer({
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 container.appendChild(renderer.domElement);
+initKtx2(renderer); // compressed GPU textures (surfaces and models)
 
 const scene = new THREE.Scene();
 usePhysicalSurfaces(!isTouch); // PBR walls and floors on desktop, Lambert on phones
@@ -60,17 +65,28 @@ scene.add(player.avatar);
 const maskLights = () =>
   scene.traverse((o) => o instanceof THREE.Mesh && [o.material].flat().forEach(applyRoomMask));
 maskLights();
-// Reflection probes per room (the avatar walks between rooms: it keeps the global light)
+// Rooms you cannot see from where the camera stands are not drawn, and their
+// models load the first time they can be seen
+const culler = createRoomCuller(APARTMENT_DEF);
+const roomOfObject = (o: THREE.Object3D) => {
+  const p = o.getWorldPosition(new THREE.Vector3());
+  return roomAt(APARTMENT_DEF, p.x, p.z);
+};
+// Reflection probes per room (the avatar walks between rooms: it keeps the global light);
+// a capture sees every room, culled or not
 const probes = createProbes(renderer, scene, APARTMENT_DEF, {
   isTouch,
   hide: [player.avatar, dimensions],
+  around: culler.withAll,
 });
-void loadModels(apartment.models, player.avatar, isTouch).then(() => {
+loadModels(apartment.models, player.avatar, isTouch, culler, roomOfObject, (rooms) => {
   maskLights();
   player.avatar.traverse((o) => (o.userData.noProbe = true));
   renderer.shadowMap.needsUpdate = true; // static shadows: include the models
-  probes.request();
+  probes.request(rooms); // the rooms whose models just came in
 });
+// the surfaces' KTX2 scans load after the first captures: capture them again
+void mapsLoaded().then(() => probes.request());
 // the probes see the light: capture again when the time of day changes
 const setTime = lighting.setTime.bind(lighting);
 lighting.setTime = (state) => {
@@ -106,13 +122,13 @@ const clickToMove = createClickToMove({
 });
 
 // Movable furniture (catalog products), switched from the toolbar
-const furniture = createFurniture(APARTMENT_DEF, apartment.colliders, isTouch);
+const furniture = createFurniture(APARTMENT_DEF, apartment.colliders, isTouch, culler);
 apartment.group.add(furniture.group); // clickable like the rest
-furniture.onChange(() => {
+furniture.onChange((rooms) => {
   clickToMove.refresh();
   maskLights();
   renderer.shadowMap.needsUpdate = true;
-  probes.request();
+  probes.request(rooms);
 });
 createFurniturePanel(container, APARTMENT_DEF, furniture);
 input.onClick((x, y) => clickToMove.goTo(x, y, player));
@@ -147,6 +163,7 @@ window.addEventListener("resize", () => {
 });
 
 const fpsCounter = createFpsCounter(container);
+const probe = perfProbe(player, renderer); // ?perf: the browser performance test
 const timer = new THREE.Timer();
 renderer.setAnimationLoop(() => {
   timer.update();
@@ -165,5 +182,8 @@ renderer.setAnimationLoop(() => {
   player.update(dt, intent, look, apartment.colliders);
   player.applyToCamera(camera, obstacles);
   fixtures.update(camera.position.x, camera.position.z);
+  // another set of rooms in view: static shadows are redrawn for what is drawn
+  if (culler.update(camera.position.x, camera.position.z)) renderer.shadowMap.needsUpdate = true;
   pipeline.render();
+  probe();
 });
