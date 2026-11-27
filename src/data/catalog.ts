@@ -32,6 +32,48 @@ export interface WallBedSpec {
   finish: "white" | "oak";
 }
 
+export interface FabricColor {
+  name: string;
+  hex: string;
+}
+
+/** An upholstery sold in several colours: the toolbar tints its material. */
+export interface FabricSpec {
+  /** material name in the model (tinted; the same name shares one colour) */
+  material: string;
+  /** the seller's colours, the first is the default */
+  colors: FabricColor[];
+  /** any colour can be picked too (the seller has hundreds) */
+  custom?: boolean;
+}
+
+/** Roma: the shop has 200+ fabrics; a selection, and any can be picked. */
+const ROMA_FABRIC: FabricSpec = {
+  material: "roma fabric",
+  custom: true,
+  colors: [
+    { name: "Moutarde", hex: "#c9971c" },
+    { name: "Terracotta", hex: "#b4553a" },
+    { name: "Vert sauge", hex: "#8a9a7b" },
+    { name: "Bleu canard", hex: "#1f5f6b" },
+    { name: "Bleu nuit", hex: "#233250" },
+    { name: "Beige lin", hex: "#d8ccb6" },
+    { name: "Gris perle", hex: "#b9b7b2" },
+    { name: "Anthracite", hex: "#45464a" },
+  ],
+};
+
+/** Olivia: the four colours of the shop's swatches (photographed in store). */
+const OLIVIA_FABRIC: FabricSpec = {
+  material: "olivia fabric",
+  colors: [
+    { name: "Terracotta", hex: "#b65c43" },
+    { name: "Moutarde", hex: "#c99322" },
+    { name: "Anthracite", hex: "#5b5d62" },
+    { name: "Beige clair", hex: "#d9d3c7" },
+  ],
+};
+
 export interface Product {
   id: string;
   kind: ProductKind;
@@ -53,6 +95,8 @@ export interface Product {
    * (origin at its centre), when it is not a plain rectangle (corner sofa)
    */
   parts?: [number, number, number, number][];
+  /** upholstery colours to choose from */
+  fabric?: FabricSpec;
   /** wall beds: how it opens */
   wallBed?: WallBedSpec;
   /** already owned (kept as is, not switchable, nothing to pay) */
@@ -157,6 +201,20 @@ export const CATALOG: Product[] = [
     seatHeight: 0.46, // not given by the seller: measured on the photo
     materials: "Fer noir vieilli, assise orme massif",
     price: 65,
+  },
+  {
+    id: "chair-olivia",
+    kind: "chair",
+    name: "Olivia",
+    url: "https://www.monsieur-meuble.com/771-chaise-olivia.html",
+    w: 0.53,
+    d: 0.63,
+    h: 0.91,
+    seatHeight: 0.47, // not given by the seller: measured on the photos
+    fabric: OLIVIA_FABRIC,
+    materials:
+      "Tissu texturé 90 % polyester / 10 % nylon (25 000 Martindale), mousse 25 kg/m³, piètement fer époxy gris anthracite",
+    price: 135, // 170 € before the November offer (until 30/11/2026)
   },
   // ── Coffee tables ───────────────────────────────────────────────────────
   {
@@ -351,6 +409,7 @@ export const CATALOG: Product[] = [
     h: 1.02,
     seatHeight: 0.44,
     sofa: { depth: 1.04 },
+    fabric: ROMA_FABRIC,
     // long side along the back, return on the left coming forward
     parts: [
       [-1.56, -0.985, 1.56, 0.055],
@@ -370,6 +429,7 @@ export const CATALOG: Product[] = [
     h: 1.02,
     seatHeight: 0.44,
     sofa: { depth: 1.04 },
+    fabric: ROMA_FABRIC,
     materials:
       "Tissu maillage 3D, dossiers avance-recule, accoudoirs relevables, pieds fer titanio",
     price: 3386.46,

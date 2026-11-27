@@ -21,6 +21,7 @@ import { BEDROOM_BUILDERS } from "../models/furniture/bedroom";
 import { STUDY_BUILDERS } from "../models/furniture/study";
 import { liveEdge } from "../models/furniture/parts";
 import { DECOR } from "../models/furniture/decor";
+import { defaultColors } from "../apartment/furniture";
 
 const BUILDERS = {
   ...CHAIR_BUILDERS,
@@ -225,5 +226,34 @@ describe("chambre 1", () => {
 
   it("every slot's default is a product that fits it", () => {
     for (const s of def.slots) expect(fits(s, product(s.default)), s.id).toBe(true);
+  });
+});
+
+describe("fabric colours", () => {
+  it("each fabric starts on its first colour, the sofa and the chairs apart", () => {
+    const colors = defaultColors();
+    expect(colors["roma fabric"]).toBe("#c9971c"); // mustard, as in the showroom
+    expect(colors["olivia fabric"]).toBe(product("chair-olivia").fabric!.colors[0].hex);
+  });
+
+  it("the Olivia comes in the four colours of the store swatches, none other", () => {
+    const fabric = product("chair-olivia").fabric!;
+    expect(fabric.colors.map((c) => c.name)).toEqual([
+      "Terracotta",
+      "Moutarde",
+      "Anthracite",
+      "Beige clair",
+    ]);
+    expect(fabric.custom).toBeFalsy();
+  });
+
+  it("every fabric is a material of its model (so the toolbar can tint it)", () => {
+    for (const p of CATALOG.filter((x) => x.fabric)) {
+      const names = new Set<string>();
+      BUILDERS[p.id](p).traverse((o) => {
+        if (o instanceof THREE.Mesh) for (const m of [o.material].flat()) names.add(m.name);
+      });
+      expect(names.has(p.fabric!.material), p.id).toBe(true);
+    }
   });
 });

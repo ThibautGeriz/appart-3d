@@ -41,14 +41,21 @@ export function isWallBed(object: THREE.Object3D | null): boolean {
 
 const STORAGE_KEY = "appart-3d.furniture";
 
-/** Material of the sofa fabric (tinted with the chosen colour). */
-const SOFA_FABRIC = "roma fabric";
-/** Mustard, as in the showroom. */
-export const DEFAULT_SOFA_COLOR = "#c9971c";
+/** Fabric colour per upholstery material, "#rrggbb" (the sofa's and the chairs' are separate). */
+export type FabricColors = Record<string, string>;
+
+/** Each fabric's first colour (the Roma: mustard, as in the showroom). Pure. */
+export function defaultColors(): FabricColors {
+  const colors: FabricColors = {};
+  for (const p of CATALOG) if (p.fabric) colors[p.fabric.material] ??= p.fabric.colors[0].hex;
+  return colors;
+}
+
+const HEX = /^#[0-9a-f]{6}$/i;
 
 interface Saved {
   selection: Selection;
-  sofaColor: string;
+  colors: FabricColors;
 }
 
 /** Saved choice (per viewer), falling back to the slot's default for anything unknown or too wide. */
@@ -57,27 +64,29 @@ function load(def: FurnishingDef): Saved {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}") as Partial<
       Record<SlotId, string>
-    > & { sofaColor?: string };
+    > & { colors?: FabricColors; sofaColor?: string };
     const valid = (s: SlotDef) => {
       const p = CATALOG.find((x) => x.id === saved[s.id]);
       return p && fits(s, p) ? p.id : defaults[s.id];
     };
-    const color = saved.sofaColor;
+    const colors = defaultColors();
+    // before the chairs had colours, only the sofa's was saved
+    const stored = { "roma fabric": saved.sofaColor, ...saved.colors };
+    for (const [material, hex] of Object.entries(stored)) {
+      if (material in colors && typeof hex === "string" && HEX.test(hex)) colors[material] = hex;
+    }
     return {
       selection: Object.fromEntries(def.slots.map((s) => [s.id, valid(s)])) as Selection,
-      sofaColor: color && /^#[0-9a-f]{6}$/i.test(color) ? color : DEFAULT_SOFA_COLOR,
+      colors,
     };
   } catch {
-    return { selection: defaults, sofaColor: DEFAULT_SOFA_COLOR };
+    return { selection: defaults, colors: defaultColors() };
   }
 }
 
 function save(saved: Saved): void {
   try {
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({ ...saved.selection, sofaColor: saved.sofaColor }),
-    );
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...saved.selection, colors: saved.colors }));
   } catch {
     // private mode / blocked storage: the choice just is not remembered
   }
@@ -90,9 +99,9 @@ export interface Furniture {
   placements: Placement[];
   /** put a product in a slot; resolves once the new models are in */
   select(slot: SlotId, id: string): Promise<void>;
-  /** fabric colour of the sofa ("#rrggbb") */
-  sofaColor: string;
-  setSofaColor(color: string): void;
+  /** upholstery colours, by fabric material ("#rrggbb") */
+  colors: FabricColors;
+  setColor(material: string, color: string): void;
   /** called after each change (rebuild the path grid, shadows…), with the rooms whose models came in (all: undefined) */
   onChange(listener: (rooms?: Set<string>) => void): void;
   /** the wall bed is open (or opening) */
@@ -155,29 +164,29 @@ export function createFurniture(
   };
 
   const saved = load(def.furnishing);
-  const persist = () => save({ selection: furniture.selection, sofaColor: furniture.sofaColor });
-  /** tint the sofa fabric (shared by the sofa's meshes) */
+  const persist = () => save({ selection: furniture.selection, colors: furniture.colors });
+  /** tint the fabrics (each shared by its model's meshes) */
   const tint = () =>
     group.traverse((o) => {
       if (!(o instanceof THREE.Mesh)) return;
       for (const m of [o.material].flat() as THREE.Material[]) {
-        if (m.name === SOFA_FABRIC && "color" in m)
-          (m.color as THREE.Color).set(furniture.sofaColor);
+        const color = furniture.colors[m.name];
+        if (color && "color" in m) (m.color as THREE.Color).set(color);
       }
     });
 
   const furniture: Furniture = {
     group,
     selection: saved.selection,
-    sofaColor: saved.sofaColor,
+    colors: saved.colors,
     placements: [],
     async select(slot, id) {
       furniture.selection = { ...furniture.selection, [slot]: id };
       persist();
       await place();
     },
-    setSofaColor(color) {
-      furniture.sofaColor = color;
+    setColor(material, color) {
+      furniture.colors = { ...furniture.colors, [material]: color };
       persist();
       tint();
     },
