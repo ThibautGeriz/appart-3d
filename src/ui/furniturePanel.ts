@@ -122,6 +122,8 @@ export function createFurniturePanel(
         ),
         el("span", "fp-price", priceLabel(p)),
       );
+      const specs = productSpecs(p);
+      if (specs) option.append(el("span", "fp-size", specs));
       option.title = p.materials;
       option.addEventListener("click", () => {
         if (!ok || furniture.selection[s.id] === p.id) return;
@@ -212,6 +214,13 @@ export function createFurniturePanel(
     button.classList.toggle("active", !panel.hidden);
   });
   container.append(button, panel);
+}
+
+/** Sofas: where it is made and how dense the seat foam is ("" for other kinds). Pure. */
+export function productSpecs(p: Product): string {
+  if (p.kind !== "sofa") return "";
+  const foam = p.seatFoamDensity ? `assise ${p.seatFoamDensity} kg/m³` : "densité non communiquée";
+  return `Fabrication : ${p.madeIn ?? "non communiquée"} · ${foam}`;
 }
 
 /** The fabric's swatches (+ a free colour input when any can be ordered), tinting it live. */

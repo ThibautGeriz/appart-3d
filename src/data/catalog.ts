@@ -63,6 +63,30 @@ const ROMA_FABRIC: FabricSpec = {
   ],
 };
 
+/**
+ * Albatros: fabric "Castello" (cat. Super) from the showroom's UNIQUE fabric
+ * card (photographed in store), the blue shown in the shop first; the card
+ * has many more, so any colour can be picked.
+ */
+const ALBATROS_FABRIC: FabricSpec = {
+  material: "albatros fabric",
+  custom: true,
+  colors: [
+    { name: "Bleu profond", hex: "#3b5466" },
+    { name: "Ivoire", hex: "#e4ded1" },
+    { name: "Gris clair", hex: "#bcb7ad" },
+    { name: "Taupe", hex: "#7b7166" },
+    { name: "Rouge brique", hex: "#9e3a30" },
+    { name: "Rouille", hex: "#b2532b" },
+    { name: "Moutarde", hex: "#d6a321" },
+    { name: "Kaki", hex: "#4f5444" },
+    { name: "Bleu nuit", hex: "#29314a" },
+    { name: "Vieux rose", hex: "#a58b86" },
+    { name: "Corail", hex: "#c8755b" },
+    { name: "Anthracite", hex: "#3d3d40" },
+  ],
+};
+
 /** Olivia: the four colours of the shop's swatches (photographed in store). */
 const OLIVIA_FABRIC: FabricSpec = {
   material: "olivia fabric",
@@ -99,6 +123,13 @@ export interface Product {
   fabric?: FabricSpec;
   /** wall beds: how it opens */
   wallBed?: WallBedSpec;
+  /**
+   * country of manufacture, as the seller states it; undefined when the
+   * seller publishes none (shown as "non communiqué")
+   */
+  madeIn?: string;
+  /** seat foam density in kg/m³ (the soft part you sit on), from the product sheet */
+  seatFoamDensity?: number;
   /** already owned (kept as is, not switchable, nothing to pay) */
   owned?: boolean;
   /** unit price in euros (seller's page, November 2026); 0 when the seller gives none */
@@ -417,6 +448,10 @@ export const CATALOG: Product[] = [
     ],
     materials:
       "Tissu maillage 3D, dossiers avance-recule, accoudoirs relevables, pieds fer titanio",
+    // product page: "Fabrication Italienne"; "Garnissage assise et accoudoirs
+    // en mousse polyuréthane densité 30 kg/m3"
+    madeIn: "Italie",
+    seatFoamDensity: 30,
     price: 6780,
   },
   {
@@ -432,7 +467,31 @@ export const CATALOG: Product[] = [
     fabric: ROMA_FABRIC,
     materials:
       "Tissu maillage 3D, dossiers avance-recule, accoudoirs relevables, pieds fer titanio",
+    // product page: "Fabrication Italienne"; "Garnissage assise et accoudoirs
+    // en mousse polyuréthane densité 30 kg/m3"
+    madeIn: "Italie",
+    seatFoamDensity: 30,
     price: 3386.46,
+  },
+  {
+    // Cuir Center ALBATROS (CS-578), element 350 "Canapé 3 places Maxi,
+    // assises double profondeur", from the showroom price tag. Origin: not on
+    // the tag nor the product page (Cuir Center makes some models in Europe,
+    // some in China).
+    id: "sofa-albatros-222",
+    kind: "sofa",
+    name: "Albatros 222",
+    url: "https://www.cuircenter.com/produit/albatros-canape-3-places---assises-double-profondeur/A10017541.html",
+    w: 2.22,
+    d: 1.12,
+    h: 0.95,
+    seatHeight: 0.45,
+    sofa: { depth: 1.12 },
+    materials:
+      "Tissu Castello (cat. Super), assises double profondeur, dossiers avance-recule (prof. maxi 125 cm), accoudoirs relevables, assise mousse polyuréthane 30 kg/m³, dossiers fibre polyester siliconée, structure sapin massif et panneaux de particules, sangles élastiques, pieds métal titanium dark 15 cm",
+    seatFoamDensity: 30,
+    fabric: ALBATROS_FABRIC,
+    price: 3115,
   },
   // ── Wall beds for chambre 2 (140 × 200, vertical opening) ───────────────
   // the wall zone is 155 cm wide and the plan allows 228 cm open

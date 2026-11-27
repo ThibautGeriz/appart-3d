@@ -717,6 +717,15 @@ export const APARTMENT_DEF: ApartmentDef = {
         // TV unit against the north wall, right of the window (plan: hi-fi at x 5.85 → 7.05)
         tvUnit: { anchor: [6.45, 0], align: [0, -1], along: "+x" },
       },
+      // Albatros 222 × 112, where the Roma 210 goes: back 20 cm from the
+      // bathroom wall, right arm against the east wall (x 5.23 → 7.45,
+      // z 2.375 → 3.495); coffee table 43 cm in front of it
+      "sofa-albatros-222": {
+        sofa: { center: [6.34, 2.935], facing: "-z" },
+        coffeeTable: { anchor: [6.79, 1.945], align: [1, 1], along: "+x" },
+        plant: [5.45, 0.3],
+        tvUnit: { anchor: [6.45, 0], align: [0, -1], along: "+x" },
+      },
     },
     // sideboard on the séjour's south wall, its right end at the living-room
     // entrance (x 3.70), facing the room; the wall is 1.53 m long between the
