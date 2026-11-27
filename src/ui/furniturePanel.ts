@@ -42,7 +42,7 @@ export function createFurniturePanel(
   def: ApartmentDef,
   furniture: Furniture,
 ): void {
-  const button = el("button", "hud-dim hud-furniture", "🪑 MEUBLES");
+  const button = el("button", "hud-dim hud-furniture", "🪑 CATALOGUE");
   button.type = "button";
   const panel = el("div", "hud-furniture-panel");
   panel.hidden = true;
