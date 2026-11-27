@@ -55,6 +55,22 @@ Key rules:
   model or its footprint, run `npm run export:glb` and commit the GLBs:
   CI fails if they are stale or invalid. Export with Node 24 (float output
   differs between Node majors).
+- **Baked lighting**: the fixed architecture (walls, floors, ceilings,
+  built-in furniture) has a lightmap: sky light through the windows with two
+  bounces, baked by `npm run bake:lightmap` (CPU path tracer,
+  `src/lighting/bake.ts`; layout and lightmap UVs in
+  `src/lighting/lightmap.ts`, shared by the app and the baker). After
+  changing walls, areas or built-in furniture, re-bake and commit
+  `src/assets/lightmap/`: a test fails on a stale bake (layout signature),
+  and the app falls back to the flat ambient. The sun stays live.
+- **Reflection probes** (`src/lighting/probes.ts`): one cube capture per
+  room, box-projected; furniture and floors reflect their room and take
+  their indirect light from it. Captured again after furniture, time or lamp
+  changes.
+- **Set dressing** (`src/apartment/dressing.ts`): skirting boards, door
+  frames, sills, switches by the doors, curtains — derived from the walls;
+  sockets from `outlets` in the data. Decor (books, lamps, cushions, rugs,
+  plant) is named `decor` in the models and not part of the budget.
 - **Furniture comes from a catalog**: `src/data/catalog.ts` lists real
   products (seller's dimensions and price). Each one has a builder in
   `src/models/furniture/` and ships as `models/<id>.glb`; a unit test checks

@@ -14,6 +14,9 @@ import { createPipeline } from "./lighting/postprocessing";
 import { usePhysicalSurfaces } from "./apartment/textures";
 import { buildFixtures } from "./lighting/fixtures";
 import { applyRoomMask } from "./lighting/roomMask";
+import { loadLightmap } from "./lighting/bakedLight";
+import { createProbes } from "./lighting/probes";
+import { buildDressing } from "./apartment/dressing";
 import type { InputSource } from "./controls/types";
 import { createClickToMove } from "./player/clickToMove";
 import { apartmentBounds } from "./apartment/plan";
@@ -39,8 +42,10 @@ const lighting = createLighting(scene, renderer, APARTMENT_DEF, isTouch);
 const fixtures = buildFixtures(APARTMENT_DEF, isTouch);
 scene.add(fixtures.group);
 
-const apartment = buildApartment(APARTMENT_DEF);
+const apartment = buildApartment(APARTMENT_DEF, { lightmap: loadLightmap(APARTMENT_DEF) });
 scene.add(apartment.group);
+// skirting boards, door frames, sills, switches and sockets, curtains
+apartment.group.add(buildDressing(APARTMENT_DEF, APARTMENT_DEF.outlets));
 
 // Dimension overlay ("cotes") — toggle with Tab or the HUD button
 const dimensions = buildDimensions(APARTMENT_DEF);
@@ -55,10 +60,23 @@ scene.add(player.avatar);
 const maskLights = () =>
   scene.traverse((o) => o instanceof THREE.Mesh && [o.material].flat().forEach(applyRoomMask));
 maskLights();
+// Reflection probes per room (the avatar walks between rooms: it keeps the global light)
+const probes = createProbes(renderer, scene, APARTMENT_DEF, {
+  isTouch,
+  hide: [player.avatar, dimensions],
+});
 void loadModels(apartment.models, player.avatar, isTouch).then(() => {
   maskLights();
+  player.avatar.traverse((o) => (o.userData.noProbe = true));
   renderer.shadowMap.needsUpdate = true; // static shadows: include the models
+  probes.request();
 });
+// the probes see the light: capture again when the time of day changes
+const setTime = lighting.setTime.bind(lighting);
+lighting.setTime = (state) => {
+  setTime(state);
+  probes.request();
+};
 const obstacles = cameraObstacles(APARTMENT_DEF); // keeps the third-person camera inside
 
 const hud = createHud(container, isTouch);
@@ -94,6 +112,7 @@ furniture.onChange(() => {
   clickToMove.refresh();
   maskLights();
   renderer.shadowMap.needsUpdate = true;
+  probes.request();
 });
 createFurniturePanel(container, APARTMENT_DEF, furniture);
 input.onClick((x, y) => clickToMove.goTo(x, y, player));
@@ -115,6 +134,7 @@ const toggleLights = () => {
   lightsOn = !lightsOn;
   fixtures.setOn(lightsOn);
   lighting.setLamps(lightsOn);
+  probes.request();
   hud.lightButton.classList.toggle("active", lightsOn);
 };
 hud.lightButton.addEventListener("click", toggleLights);

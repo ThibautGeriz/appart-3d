@@ -13,6 +13,8 @@ import {
   type Box,
 } from "./plan";
 import type { Collider } from "../player/movement";
+import { boxLightmapUVs, lightmapAtlas, LIGHTMAP_RANGE, type Atlas } from "../lighting/lightmap";
+import { roomAt } from "./furnishing";
 
 /** Empty node, placed and rotated in the room, that receives a loaded GLB model. */
 export interface ModelSlot {
@@ -112,6 +114,47 @@ interface Surface {
   finish?: Finish;
   opacity?: number;
   geometry: THREE.BufferGeometry;
+  /** room it stands in (one mesh per room: each room has its own reflection probe) */
+  room?: string;
+}
+
+/** Lightmap UVs (uv1) for a geometry built from `box` (world coordinates). */
+function withLightmapUVs(
+  atlas: Atlas,
+  geometry: THREE.BufferGeometry,
+  box: Box,
+): THREE.BufferGeometry {
+  const pos = geometry.getAttribute("position");
+  const nor = geometry.getAttribute("normal");
+  geometry.setAttribute(
+    "uv1",
+    new THREE.BufferAttribute(boxLightmapUVs(atlas, box, pos.array, nor.array), 2),
+  );
+  return geometry;
+}
+
+const bakedMaterials = new Map<THREE.Material, THREE.Material>();
+
+/**
+ * The lightmapped version of a surface material: the baked texture carries
+ * the indirect light (the hemisphere's flat fill is switched off for it, see
+ * roomMask.ts). One copy per source material.
+ */
+function baked(material: THREE.Material, lightmap: THREE.Texture | undefined): THREE.Material {
+  if (!lightmap) return material;
+  let copy = bakedMaterials.get(material);
+  if (!copy) {
+    copy = material.clone();
+    Object.assign(copy, { lightMap: lightmap, lightMapIntensity: LIGHTMAP_RANGE });
+    copy.userData = { ...material.userData, baked: true };
+    bakedMaterials.set(material, copy);
+  }
+  return copy;
+}
+
+export interface BuildOptions {
+  /** the baked lightmap (its layout must match: see lightmapAtlas) */
+  lightmap?: THREE.Texture;
 }
 
 /** Texture a geometry in world meters (origin = where the pattern starts). */
@@ -124,19 +167,21 @@ function finished(
   return geometry;
 }
 
-/** Group geometries by material (color + finish) and merge each group. */
-function mergedByMaterial(items: Surface[]): THREE.Mesh[] {
+/** Group geometries by material (color + finish) and room, and merge each group. */
+function mergedByMaterial(items: Surface[], lightmap?: THREE.Texture): THREE.Mesh[] {
   const groups = new Map<string, Surface[]>();
   for (const item of items) {
-    const key = `${item.color}|${item.finish ?? ""}|${item.opacity ?? 1}`;
+    const key = `${item.color}|${item.finish ?? ""}|${item.opacity ?? 1}|${item.room ?? ""}`;
     groups.set(key, [...(groups.get(key) ?? []), item]);
   }
   return [...groups.values()].map((surfaces) => {
-    const { color, finish, opacity } = surfaces[0];
+    const { color, finish, opacity, room } = surfaces[0];
+    const material = surfaceMaterial(color, finish, opacity);
     const mesh = mergedMesh(
       surfaces.map((surface) => surface.geometry),
-      surfaceMaterial(color, finish, opacity),
+      opacity !== undefined && opacity < 1 ? material : baked(material, lightmap),
     );
+    if (room) mesh.userData.room = room;
     // see-through items (shower screen) let the light through like the windows
     if (opacity !== undefined && opacity < 1) mesh.name = "glass";
     return mesh;
@@ -144,9 +189,14 @@ function mergedByMaterial(items: Surface[]): THREE.Mesh[] {
 }
 
 /** Build the apartment scene graph and colliders from the layout data. */
-export function buildApartment(def: ApartmentDef): BuiltApartment {
+export function buildApartment(def: ApartmentDef, options: BuildOptions = {}): BuiltApartment {
   const group = new THREE.Group();
   const { wallHeight } = def;
+  const { lightmap } = options;
+  const atlas = lightmapAtlas(def);
+  const uv1 = (geometry: THREE.BufferGeometry, box: Box) => withLightmapUVs(atlas, geometry, box);
+  const slab = (rect: Rect, y: number, up: boolean) =>
+    rectBox(rect, up ? y - 0.1 : y, up ? y : y + 0.1);
 
   // Walls, glazing and window frames
   const wallGeometries: THREE.BufferGeometry[] = [];
@@ -155,11 +205,13 @@ export function buildApartment(def: ApartmentDef): BuiltApartment {
   const leaves: { color: string; geometry: THREE.BufferGeometry }[] = [];
   for (const wall of def.walls) {
     const pieces = wallPieces(wall, wallHeight);
-    wallGeometries.push(...pieces.solid.map((b) => finished(boxGeometry(b), def.wallFinish)));
+    wallGeometries.push(
+      ...pieces.solid.map((b) => uv1(finished(boxGeometry(b), def.wallFinish), b)),
+    );
     for (const leaf of pieces.leaves) {
-      leaves.push({ color: leaf.color, geometry: boxGeometry(leaf.box) });
+      leaves.push({ color: leaf.color, geometry: uv1(boxGeometry(leaf.box), leaf.box) });
       for (const handle of leaf.handles) {
-        leaves.push({ color: def.frameColor, geometry: boxGeometry(handle) });
+        leaves.push({ color: def.frameColor, geometry: uv1(boxGeometry(handle), handle) });
       }
     }
     glassGeometries.push(...pieces.glass.map(boxGeometry));
@@ -171,8 +223,10 @@ export function buildApartment(def: ApartmentDef): BuiltApartment {
       frameGeometries.push(...frameBoxes(glass, pieces.panes[i]).map(boxGeometry)),
     );
   }
-  group.add(mergedMesh(wallGeometries, surfaceMaterial(def.wallColor, def.wallFinish)));
-  for (const mesh of mergedByMaterial(leaves)) group.add(mesh);
+  group.add(
+    mergedMesh(wallGeometries, baked(surfaceMaterial(def.wallColor, def.wallFinish), lightmap)),
+  );
+  for (const mesh of mergedByMaterial(leaves, lightmap)) group.add(mesh);
   if (glassGeometries.length > 0) {
     const glassMaterial = new THREE.MeshLambertMaterial({
       color: def.glassColor,
@@ -193,24 +247,36 @@ export function buildApartment(def: ApartmentDef): BuiltApartment {
   for (const area of def.areas) {
     if (area.outdoor) continue;
     ceilingGeometries.push(
-      finished(horizontalPlane(area.rect, wallHeight, false), def.ceilingFinish),
+      uv1(
+        finished(horizontalPlane(area.rect, wallHeight, false), def.ceilingFinish),
+        slab(area.rect, wallHeight, false),
+      ),
     );
     if (area.ceiling !== undefined && area.ceiling < wallHeight) {
-      ceilingGeometries.push(
-        finished(boxGeometry(rectBox(area.rect, area.ceiling, wallHeight)), def.ceilingFinish),
-      );
+      const box = rectBox(area.rect, area.ceiling, wallHeight);
+      ceilingGeometries.push(uv1(finished(boxGeometry(box), def.ceilingFinish), box));
     }
   }
   for (const mesh of mergedByMaterial(
-    def.areas.map((area) => ({
+    def.areas.map((area, i) => ({
       color: area.floorColor,
       finish: area.floorFinish,
-      geometry: finished(horizontalPlane(area.rect, 0, true), area.floorFinish),
+      room: area.room ?? area.label ?? `#${i}`,
+      geometry: uv1(
+        finished(horizontalPlane(area.rect, 0, true), area.floorFinish),
+        slab(area.rect, 0, true),
+      ),
     })),
+    lightmap,
   )) {
     group.add(mesh);
   }
-  group.add(mergedMesh(ceilingGeometries, surfaceMaterial(def.ceilingColor, def.ceilingFinish)));
+  group.add(
+    mergedMesh(
+      ceilingGeometries,
+      baked(surfaceMaterial(def.ceilingColor, def.ceilingFinish), lightmap),
+    ),
+  );
 
   // Furniture (per material), patterns start at each item's corner
   for (const mesh of mergedByMaterial(
@@ -218,11 +284,13 @@ export function buildApartment(def: ApartmentDef): BuiltApartment {
       .filter((item) => !item.model)
       .map((item) => {
         const y = item.y ?? 0;
-        const geometry = boxGeometry(rectBox(item.rect, y, y + item.h));
+        const box = rectBox(item.rect, y, y + item.h);
+        const geometry = uv1(boxGeometry(box), box);
         return {
           color: item.color,
           finish: item.finish,
           opacity: item.opacity,
+          room: roomAt(def, (item.rect[0] + item.rect[2]) / 2, (item.rect[1] + item.rect[3]) / 2),
           geometry: finished(
             geometry,
             item.finish,
@@ -230,6 +298,7 @@ export function buildApartment(def: ApartmentDef): BuiltApartment {
           ),
         };
       }),
+    lightmap,
   )) {
     group.add(mesh);
   }

@@ -20,6 +20,7 @@ import { SIDEBOARD_BUILDERS } from "../models/furniture/sideboards";
 import { BEDROOM_BUILDERS } from "../models/furniture/bedroom";
 import { STUDY_BUILDERS } from "../models/furniture/study";
 import { liveEdge } from "../models/furniture/parts";
+import { DECOR } from "../models/furniture/decor";
 
 const BUILDERS = {
   ...CHAIR_BUILDERS,
@@ -36,7 +37,13 @@ describe("catalog models", () => {
     it(`${p.id} is L ${p.w} × P ${p.d} × H ${p.h} m`, () => {
       const model = BUILDERS[p.id](p);
       model.updateMatrixWorld(true);
-      const box = new THREE.Box3().setFromObject(model);
+      // the product only: decor (books, lamps, cushions) is not part of it
+      const box = new THREE.Box3();
+      model.traverse((o) => {
+        let decor = false;
+        for (let x: THREE.Object3D | null = o; x; x = x.parent) decor ||= x.name === DECOR;
+        if (!decor && o instanceof THREE.Mesh) box.expandByObject(o);
+      });
       const size = box.getSize(new THREE.Vector3());
       expect(size.x).toBeCloseTo(p.w, 1);
       expect(size.z).toBeCloseTo(p.d, 1);

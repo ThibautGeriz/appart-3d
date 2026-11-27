@@ -3,6 +3,7 @@ import { CATALOG } from "../data/catalog";
 import type { ApartmentDef } from "../data/apartment";
 import type { Collider } from "../player/movement";
 import {
+  decorLayout,
   defaultSelection,
   fits,
   furnishingLayout,
@@ -176,7 +177,11 @@ export function createFurniture(
   async function place(): Promise<void> {
     const current = ++version;
     const placements = furnishingLayout(def.furnishing, furniture.selection);
-    const models = await Promise.all(placements.map((p) => loadFile(p.product.id)));
+    const decor = decorLayout(def.furnishing, furniture.selection, placements);
+    const [models, decorModels] = await Promise.all([
+      Promise.all(placements.map((p) => loadFile(p.product.id))),
+      Promise.all(decor.map((d) => loadFile(d.file))),
+    ]);
     if (current !== version) return; // a newer selection won the race
     group.clear();
     bedModel = null;
@@ -193,10 +198,21 @@ export function createFurniture(
       }
       group.add(model);
     });
+    decor.forEach((d, i) => {
+      const model = prepare(decorModels[i].clone(), isTouch);
+      model.position.set(d.x, 0, d.z);
+      model.rotation.y = d.rotationY;
+      // rugs: no shadow of their own, but they receive them
+      if (d.file.includes("rug")) model.traverse((o) => (o.castShadow = false));
+      group.add(model);
+    });
     tint();
     // swap our colliders in the shared list (kept by reference by the player)
     for (const c of own) colliders.splice(colliders.indexOf(c), 1);
-    own = placements.flatMap((p) => (p.rects ?? [p.rect]).map(rectCollider));
+    own = [
+      ...placements.flatMap((p) => (p.rects ?? [p.rect]).map(rectCollider)),
+      ...decor.flatMap((d) => (d.rect ? [rectCollider(d.rect)] : [])),
+    ];
     colliders.push(...own);
     // an open bed switched for another product: its open footprint follows
     if (openCollider) colliders.splice(colliders.indexOf(openCollider), 1);

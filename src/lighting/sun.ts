@@ -130,6 +130,14 @@ export interface Ambient {
 }
 
 /**
+ * The lamps' share of the indirect light, when they are on: baked surfaces
+ * add it flat on top of their (daylight) lightmap. Pure.
+ */
+export function lampBounce(lampsOn: boolean): { intensity: number; color: Rgb } {
+  return { intensity: lampsOn ? LAMP_BOUNCE : 0, color: LAMP };
+}
+
+/**
  * Hemisphere (indirect) light: the natural daylight, plus a warm bounce from
  * the interior lamps when they are on. Pure.
  */

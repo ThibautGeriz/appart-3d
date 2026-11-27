@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
+import { setBakedLight } from "./roomMask";
 import type { ApartmentDef } from "../data/apartment";
 import { apartmentBounds } from "../apartment/plan";
 import { finishSize, surfaceMaterial } from "../apartment/textures";
@@ -15,6 +16,7 @@ import {
   type Daylight,
   sunDirection,
   type Rgb,
+  lampBounce,
 } from "./sun";
 
 export interface SunState {
@@ -220,6 +222,15 @@ export function createLighting(
     hemisphere.intensity = ambient.intensity;
     hemisphere.color.copy(toColor(ambient.sky));
     hemisphere.groundColor.copy(toColor(ambient.ground));
+    // baked surfaces: the daylight through their lightmap (its real variation),
+    // the lamps' bounce flat on top (it does not come from the windows)
+    const lamp = lampBounce(lampsOn);
+    setBakedLight(
+      toColor(current.ambientSky),
+      current.ambient,
+      toColor(lamp.color),
+      lamp.intensity,
+    );
     // the studio reflections fade with the light: none in a dark apartment
     scene.environmentIntensity = ENVIRONMENT_INTENSITY * environmentScale(ambient);
   };

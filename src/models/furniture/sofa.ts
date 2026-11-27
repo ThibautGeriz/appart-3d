@@ -2,6 +2,7 @@ import * as THREE from "three";
 import type { Product } from "../../data/catalog";
 import { romaFabric, titanio } from "./materials";
 import { grainUVs } from "./parts";
+import { throwCushions } from "./decor";
 
 /*
  * Mobilier de France ROMA (showroom photos + product sheet): a low rounded
@@ -244,6 +245,7 @@ export function roma(p: Product): THREE.Group {
     seat(g, { x0: x0 + 0.006, x1: x0 + seatW - 0.006, z0: seatBack, z1: front }, seatTop);
     backPad(g, x0, x0 + seatW, padFront, "+z", p.h, seatTop);
   }
+  throwCushions(g, seatsFrom, seatsTo, seatTop, padFront + BACK_T); // decor
 
   if (corner) {
     const padLeft = left + LEDGE;

@@ -14,6 +14,7 @@ import {
 } from "./materials";
 import { bar, board, v } from "./parts";
 import { pillow } from "./sofa";
+import { bedsideLamp, fillShelf } from "./decor";
 
 /*
  * Bedroom furniture at the seller's dimensions. Beds: width w along x, length
@@ -307,6 +308,7 @@ export function lundby(p: Product): THREE.Group {
   for (const sx of [-1, 1])
     g.add(board(t, h - t, d, roughAsh, sx * (w / 2 - t / 2), (h - t) / 2, 0, 0.004, "y"));
   g.add(board(w - 2 * t, 0.025, d - 0.03, roughAsh, 0, 0.14, 0.01, 0.003, "x"));
+  bedsideLamp(g, -w / 2 + 0.14, h, -d / 2 + 0.15); // decor
   return g;
 }
 
@@ -361,6 +363,7 @@ export function oregon(p: Product): THREE.Group {
       );
     }
   }
+  bedsideLamp(g, -w / 2 + 0.14, h, -d / 2 + 0.15); // decor
   return g;
 }
 
@@ -384,6 +387,20 @@ function cubbies(
   for (let j = 0; j < rows; j++) {
     // one or two dividers per row, never in the same place twice
     const cuts = rnd() < 0.5 ? [0.3 + rnd() * 0.4] : [0.2 + rnd() * 0.2, 0.6 + rnd() * 0.2];
+    // books in each compartment of the row
+    const edges = [x0, ...cuts.map((c) => x0 + (x1 - x0) * c), x1];
+    for (let k = 0; k + 1 < edges.length; k++) {
+      fillShelf(
+        g,
+        edges[k] + t / 2,
+        edges[k + 1] - t / 2,
+        y0 + rh * j + t / 2,
+        -d / 2,
+        d,
+        rh - t,
+        seed * 97 + j * 7 + k,
+      );
+    }
     for (const c of cuts) {
       g.add(board(t, rh - t, d, material, x0 + (x1 - x0) * c, y0 + rh * (j + 0.5), 0, 0.003, "y"));
     }
@@ -486,6 +503,19 @@ export function seatle(p: Product): THREE.Group {
     g.add(board(w, 0.03, d - 0.01, recycledPine, 0, y, 0, 0.004, "x"));
     // the shelf's lip at the front
     g.add(board(w, 0.012, 0.012, recycledPine, 0, y + 0.02, d / 2 - 0.011, 0.002, "x"));
+    // books, outside the metal towers, on all but the top shelf
+    if (i < shelves - 1) {
+      const room = (h - 0.32) / (shelves - 1) - 0.05;
+      const towers = [-w / 2 + 0.32, w / 2 - 0.32];
+      const spans: [number, number][] = [
+        [-w / 2 + 0.01, towers[0] - 0.16],
+        [towers[0] + 0.16, towers[1] - 0.16],
+        [towers[1] + 0.16, w / 2 - 0.01],
+      ];
+      spans.forEach(([a, b], k) =>
+        fillShelf(g, a, b, y + 0.015, -d / 2 + 0.01, d - 0.03, room, 300 + i * 5 + k),
+      );
+    }
   }
   return g;
 }
