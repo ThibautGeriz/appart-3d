@@ -28,6 +28,7 @@ import { cameraObstacles } from "./player/camera";
 import { loadModels } from "./apartment/models";
 import { createFurniture, isSlidingSofa, isWallBed } from "./apartment/furniture";
 import { createFurniturePanel } from "./ui/furniturePanel";
+import { attachFurnitureDimensions } from "./apartment/furnitureDimensions";
 
 const container = document.getElementById("app") as HTMLElement;
 const isTouch = isTouchDevice();
@@ -59,6 +60,7 @@ scene.add(dimensions);
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const pipeline = createPipeline(renderer, scene, camera, !isTouch); // ambient occlusion on desktop
+pipeline.excludeFromAO(dimensions); // its labels would turn black
 const player = new Player(APARTMENT_DEF.spawn);
 scene.add(player.avatar);
 // Interior lights stop at their room's walls; again once the GLB models are in
@@ -138,6 +140,7 @@ furniture.onChange((rooms) => {
   probes.request(rooms);
 });
 createFurniturePanel(container, APARTMENT_DEF, furniture);
+attachFurnitureDimensions(dimensions, furniture, APARTMENT_DEF); // the pieces' cotes, with the walls'
 input.onClick((x, y) => clickToMove.goTo(x, y, player));
 
 const toggleDimensions = () => {

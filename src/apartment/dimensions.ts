@@ -206,8 +206,12 @@ function toMesh(b: QuadBuilder, material: THREE.Material): THREE.Mesh {
   return new THREE.Mesh(geometry, material);
 }
 
-/** Room name, size and ceiling height, floating over the room. */
-function makeRoomSprite(text: string, color: string): THREE.Sprite {
+/**
+ * Room name, size and ceiling height, floating over the room (also the
+ * furniture tags, smaller: `scale`). Lines of `text` split on "\n", the
+ * first one bold.
+ */
+export function makeRoomSprite(text: string, color: string, scale = ROOM_TAG_SCALE): THREE.Sprite {
   const font = "600 30px system-ui, sans-serif";
   const lineHeight = 38;
   const padding = 12;
@@ -240,7 +244,7 @@ function makeRoomSprite(text: string, color: string): THREE.Sprite {
       sizeAttenuation: false,
     }),
   );
-  sprite.scale.set(canvas.width * ROOM_TAG_SCALE, canvas.height * ROOM_TAG_SCALE, 1);
+  sprite.scale.set(canvas.width * scale, canvas.height * scale, 1);
   return sprite;
 }
 
