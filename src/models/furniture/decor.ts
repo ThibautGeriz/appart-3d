@@ -165,10 +165,25 @@ export function bedsideLamp(g: THREE.Group, x: number, y: number, z: number): vo
 
 /**
  * Two throw cushions leaning on the back at the ends of a seat run, from
- * x0 to x1 (seat top y, back face z), one light and one dark.
+ * x0 to x1 (seat top y, back face z), one light and one dark. With `slide`
+ * (a sliding back's node name) they sit in a node of that name, so they
+ * follow the back when it slides.
  */
-export function throwCushions(g: THREE.Group, x0: number, x1: number, y: number, z: number): void {
+export function throwCushions(
+  g: THREE.Group,
+  x0: number,
+  x1: number,
+  y: number,
+  z: number,
+  slide?: string,
+): void {
   const size = 0.45;
+  if (slide) {
+    const holder = new THREE.Group();
+    holder.name = slide;
+    g.add(holder);
+    g = holder;
+  }
   for (const [x, m, turn] of [
     [x0 + 0.3, cushionLight, 0.25],
     [x0 + 0.62, cushionDark, 0.1],
