@@ -192,7 +192,7 @@ describe("set dressing", () => {
 
 describe("decor", () => {
   it("a rug under the coffee table and the bed, a plant clear of the furniture", () => {
-    for (const sofa of ["sofa-roma-corner", "sofa-roma-210"]) {
+    for (const sofa of ["sofa-roma-210", "sofa-bolzano-214", "sofa-albatros-222"]) {
       const selection = { ...defaultSelection(def.furnishing), sofa };
       const placed = furnishingLayout(def.furnishing, selection);
       const decor = decorLayout(def.furnishing, selection, placed);

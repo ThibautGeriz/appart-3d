@@ -455,30 +455,6 @@ export const CATALOG: Product[] = [
   },
   // ── Sofas (Mobilier de France ROMA, 3D mesh fabric, 104 cm seat depth) ──
   {
-    id: "sofa-roma-corner",
-    kind: "sofa",
-    name: "Roma d'angle 312 × 197",
-    url: "https://www.mobilierdefrance.com/canapes-droits/canape-roma",
-    w: 3.12,
-    d: 1.97,
-    h: 1.02,
-    seatHeight: 0.44,
-    sofa: { depth: 1.04, backTravel: 0.18 }, // seat depth 104 → 122 cm (backs slid back)
-    fabric: ROMA_FABRIC,
-    // long side along the back, return on the left coming forward
-    parts: [
-      [-1.56, -0.985, 1.56, 0.055],
-      [-1.56, 0.055, -0.52, 0.985],
-    ],
-    materials:
-      "Tissu maillage 3D, dossiers avance-recule, accoudoirs relevables, pieds fer titanio",
-    // product page: "Fabrication Italienne"; "Garnissage assise et accoudoirs
-    // en mousse polyuréthane densité 30 kg/m3"
-    madeIn: "Italie",
-    seatFoamDensity: 30,
-    price: 6780,
-  },
-  {
     id: "sofa-roma-210",
     kind: "sofa",
     name: "Roma 210",
