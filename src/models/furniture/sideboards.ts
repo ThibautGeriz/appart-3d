@@ -53,10 +53,7 @@ const oakPeg = new THREE.MeshStandardMaterial({
  * pulls, three drawers in the middle (sideboard) or one drawer under two open
  * niches (TV unit), splayed legs. Sideboard L 160 × P 48 × H 85 cm.
  */
-export function biwa(
-  p: Product,
-  center: "drawers" | "niches" = "drawers",
-): THREE.Group {
+export function biwa(p: Product, center: "drawers" | "niches" = "drawers"): THREE.Group {
   const g = new THREE.Group();
   const { w, d, h } = p;
   const legH = 0.13;
@@ -106,19 +103,7 @@ export function biwa(
   const fy0 = body0 + t;
   const fy1 = body1;
   for (const x of [drawers0 - stile / 2, drawers1 + stile / 2]) {
-    g.add(
-      board(
-        stile,
-        fy1 - fy0,
-        bodyD - 0.01,
-        biwaPine,
-        x,
-        (fy0 + fy1) / 2,
-        0,
-        0.002,
-        "y",
-      ),
-    );
+    g.add(board(stile, fy1 - fy0, bodyD - 0.01, biwaPine, x, (fy0 + fy1) / 2, 0, 0.002, "y"));
   }
   // middle: three drawers (sideboard), or one drawer under two open niches (TV unit)
   const dh = (fy1 - fy0) / 3;
@@ -126,19 +111,7 @@ export function biwa(
     const mx = (drawers0 + drawers1) / 2;
     const mw = drawers1 - drawers0;
     for (const y of [fy0 + dh, fy0 + 2 * dh]) {
-      g.add(
-        board(
-          mw,
-          0.02,
-          bodyD - 0.03,
-          biwaPine,
-          mx,
-          y + 0.01,
-          -0.005,
-          0.002,
-          "x",
-        ),
-      ); // shelves
+      g.add(board(mw, 0.02, bodyD - 0.03, biwaPine, mx, y + 0.01, -0.005, 0.002, "x")); // shelves
     }
     // the niches' back, in pine (the dark back is behind the doors only)
     g.add(
@@ -173,16 +146,7 @@ export function biwa(
     );
     // horizontal wooden bar pull, a little above the middle
     g.add(
-      board(
-        0.12,
-        0.016,
-        pull,
-        biwaPull,
-        (drawers0 + drawers1) / 2,
-        y,
-        front + pull / 2,
-        0.003,
-      ),
+      board(0.12, 0.016, pull, biwaPull, (drawers0 + drawers1) / 2, y, front + pull / 2, 0.003),
     );
   }
   // doors: frame + checkerboard of horizontal slats over a dark back
@@ -193,76 +157,20 @@ export function biwa(
     const cxDoor = (x0 + x1) / 2;
     const frame = 0.035;
     const dz = front - 0.012;
-    g.add(
-      board(
-        x1 - x0 - 0.004,
-        frame,
-        0.022,
-        biwaPine,
-        cxDoor,
-        fy1 - frame / 2,
-        dz,
-        0.002,
-        "x",
-      ),
-    );
-    g.add(
-      board(
-        x1 - x0 - 0.004,
-        frame,
-        0.022,
-        biwaPine,
-        cxDoor,
-        fy0 + frame / 2,
-        dz,
-        0.002,
-        "x",
-      ),
-    );
+    g.add(board(x1 - x0 - 0.004, frame, 0.022, biwaPine, cxDoor, fy1 - frame / 2, dz, 0.002, "x"));
+    g.add(board(x1 - x0 - 0.004, frame, 0.022, biwaPine, cxDoor, fy0 + frame / 2, dz, 0.002, "x"));
     for (const x of [x0 + frame / 2, x1 - frame / 2])
       g.add(
-        board(
-          frame,
-          fy1 - fy0 - 2 * frame,
-          0.022,
-          biwaPine,
-          x,
-          (fy0 + fy1) / 2,
-          dz,
-          0.002,
-          "y",
-        ),
+        board(frame, fy1 - fy0 - 2 * frame, 0.022, biwaPine, x, (fy0 + fy1) / 2, dz, 0.002, "y"),
       );
     // vertical wooden bar handle on the stile next to the drawers
     const hx = handleX > 0 ? x1 - frame / 2 : x0 + frame / 2;
-    g.add(
-      board(
-        0.016,
-        0.12,
-        pull,
-        biwaPull,
-        hx,
-        (fy0 + fy1) / 2,
-        dz + 0.011 + pull / 2,
-        0.003,
-      ),
-    );
+    g.add(board(0.016, 0.12, pull, biwaPull, hx, (fy0 + fy1) / 2, dz + 0.011 + pull / 2, 0.003));
     const lx0 = x0 + frame;
     const lx1 = x1 - frame;
     const ly0 = fy0 + frame;
     const ly1 = fy1 - frame;
-    g.add(
-      board(
-        lx1 - lx0,
-        ly1 - ly0,
-        0.01,
-        darkGap,
-        cxDoor,
-        (ly0 + ly1) / 2,
-        dz - 0.008,
-        0.001,
-      ),
-    );
+    g.add(board(lx1 - lx0, ly1 - ly0, 0.01, darkGap, cxDoor, (ly0 + ly1) / 2, dz - 0.008, 0.001));
     // brick bond on a 10-unit grid: slats 2 units long, a dark square under
     // the middle of every slat of the row above
     const u = (lx1 - lx0) / 10;
@@ -302,11 +210,7 @@ export function biwa(
   // splayed legs
   for (const sx of [-1, 1]) {
     for (const sz of [-1, 1]) {
-      const topAt = v(
-        sx * (w / 2 - 0.09),
-        legH + 0.01,
-        sz * (bodyD / 2 - 0.05),
-      );
+      const topAt = v(sx * (w / 2 - 0.09), legH + 0.01, sz * (bodyD / 2 - 0.05));
       // lifted a little: the tilted leg's corners then stop at the floor
       const foot = v(sx * (w / 2 - 0.045), 0.007, sz * (bodyD / 2 - 0.03));
       g.add(bar(foot, topAt, 0.04, 0.04, biwaPine, 0.004));
@@ -368,83 +272,20 @@ export function norwaySideboard(p: Product, tv = false): THREE.Group {
   const y0 = bottom;
   const y1 = h - top;
   // base rail, rail under the top, back and floor
-  g.add(
-    board(
-      inner,
-      baseRail,
-      0.025,
-      norwayOak,
-      0,
-      y0 + baseRail / 2,
-      front - 0.005,
-      0.002,
-      "x",
-    ),
-  );
-  g.add(
-    board(
-      inner,
-      apron,
-      0.025,
-      norwayOak,
-      0,
-      y1 - apron / 2,
-      front - 0.005,
-      0.002,
-      "x",
-    ),
-  );
+  g.add(board(inner, baseRail, 0.025, norwayOak, 0, y0 + baseRail / 2, front - 0.005, 0.002, "x"));
+  g.add(board(inner, apron, 0.025, norwayOak, 0, y1 - apron / 2, front - 0.005, 0.002, "x"));
   const back = tv ? norwayShade : norwayOak;
-  g.add(
-    board(
-      inner,
-      y1 - y0,
-      0.012,
-      back,
-      0,
-      (y0 + y1) / 2,
-      -d / 2 + 0.03,
-      0.001,
-      "x",
-    ),
-  );
+  g.add(board(inner, y1 - y0, 0.012, back, 0, (y0 + y1) / 2, -d / 2 + 0.03, 0.001, "x"));
   g.add(board(inner, 0.02, d - 0.05, norwayOak, 0, y0 + 0.01, 0, 0.001, "x"));
   const col = inner / 3;
   const face = front + 0.011; // front face of drawers and doors
   const drawer = (x: number, y: number): void => {
-    g.add(
-      board(
-        col - 0.008,
-        drawerH - 0.008,
-        0.022,
-        norwayOak,
-        x,
-        y,
-        front,
-        0.002,
-        "x",
-      ),
-    );
+    g.add(board(col - 0.008, drawerH - 0.008, 0.022, norwayOak, x, y, front, 0.002, "x"));
     // bail pull: back plate + a U handle hanging in front of it
-    g.add(
-      board(0.075, 0.04, 0.004, agedIron, x, y + 0.006, face + 0.002, 0.001),
-    );
-    g.add(
-      board(0.06, 0.008, 0.007, agedIron, x, y - 0.008, face + 0.0075, 0.002),
-    );
+    g.add(board(0.075, 0.04, 0.004, agedIron, x, y + 0.006, face + 0.002, 0.001));
+    g.add(board(0.06, 0.008, 0.007, agedIron, x, y - 0.008, face + 0.0075, 0.002));
     for (const s of [-1, 1])
-      g.add(
-        board(
-          0.007,
-          0.022,
-          0.007,
-          agedIron,
-          x + s * 0.0265,
-          y,
-          face + 0.0075,
-          0.002,
-        ),
-      );
+      g.add(board(0.007, 0.022, 0.007, agedIron, x + s * 0.0265, y, face + 0.0075, 0.002));
   };
   if (tv) {
     // TV unit: three drawers at the bottom, an open niche above them
@@ -452,22 +293,8 @@ export function norwaySideboard(p: Product, tv = false): THREE.Group {
     for (let i = 0; i < 3; i++) drawer(-inner / 2 + col * (i + 0.5), dy);
     const mid = 0.04; // rail over the drawers, front of the niche floor
     const midY = y0 + baseRail + drawerH + mid / 2;
-    g.add(
-      board(inner, mid, 0.025, norwayOak, 0, midY, front - 0.005, 0.002, "x"),
-    );
-    g.add(
-      board(
-        inner,
-        0.02,
-        d - 0.05,
-        norwayOak,
-        0,
-        midY + mid / 2 - 0.01,
-        0,
-        0.002,
-        "x",
-      ),
-    );
+    g.add(board(inner, mid, 0.025, norwayOak, 0, midY, front - 0.005, 0.002, "x"));
+    g.add(board(inner, 0.02, d - 0.05, norwayOak, 0, midY + mid / 2 - 0.01, 0, 0.002, "x"));
   } else {
     const drawerY = y1 - apron - drawerH / 2;
     const doorTop = y1 - apron - drawerH - 0.008;
@@ -480,32 +307,8 @@ export function norwaySideboard(p: Product, tv = false): THREE.Group {
       const dh = doorTop - doorBottom;
       const dy = (doorTop + doorBottom) / 2;
       const rail = 0.05;
-      g.add(
-        board(
-          dw,
-          rail,
-          0.022,
-          norwayOak,
-          x,
-          doorTop - rail / 2,
-          front,
-          0.002,
-          "x",
-        ),
-      );
-      g.add(
-        board(
-          dw,
-          rail,
-          0.022,
-          norwayOak,
-          x,
-          doorBottom + rail / 2,
-          front,
-          0.002,
-          "x",
-        ),
-      );
+      g.add(board(dw, rail, 0.022, norwayOak, x, doorTop - rail / 2, front, 0.002, "x"));
+      g.add(board(dw, rail, 0.022, norwayOak, x, doorBottom + rail / 2, front, 0.002, "x"));
       for (const s of [-1, 1])
         g.add(
           board(
@@ -520,15 +323,7 @@ export function norwaySideboard(p: Product, tv = false): THREE.Group {
           ),
         );
       g.add(
-        board(
-          dw - 2 * rail + 0.004,
-          dh - 2 * rail + 0.004,
-          0.006,
-          oakGroove,
-          x,
-          dy,
-          front - 0.006,
-        ),
+        board(dw - 2 * rail + 0.004, dh - 2 * rail + 0.004, 0.006, oakGroove, x, dy, front - 0.006),
       );
       g.add(
         board(
@@ -545,38 +340,14 @@ export function norwaySideboard(p: Product, tv = false): THREE.Group {
       );
       const side = i === 0 ? 1 : -1; // handles near the meeting stiles
       const hx = x + side * (dw / 2 - 0.03);
-      g.add(
-        board(0.02, 0.075, 0.004, agedIron, hx, dy + 0.05, face + 0.002, 0.002),
-      );
-      g.add(
-        board(
-          0.009,
-          0.035,
-          0.009,
-          agedIron,
-          hx,
-          dy + 0.04,
-          face + 0.0085,
-          0.003,
-        ),
-      );
+      g.add(board(0.02, 0.075, 0.004, agedIron, hx, dy + 0.05, face + 0.002, 0.002));
+      g.add(board(0.009, 0.035, 0.009, agedIron, hx, dy + 0.04, face + 0.0085, 0.003));
     }
   }
   // square pegs at the rail joints, on the front and the sides of the posts
   for (const sx of [-1, 1]) {
     for (const y of [y1 - apron / 2, y0 + baseRail / 2]) {
-      g.add(
-        board(
-          0.011,
-          0.011,
-          0.004,
-          oakPeg,
-          sx * (w / 2 - post / 2),
-          y,
-          d / 2 - 0.0019,
-          0.001,
-        ),
-      );
+      g.add(board(0.011, 0.011, 0.004, oakPeg, sx * (w / 2 - post / 2), y, d / 2 - 0.0019, 0.001));
       for (const sz of [-1, 1])
         g.add(
           board(

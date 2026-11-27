@@ -89,11 +89,7 @@ const aluminium = new THREE.MeshStandardMaterial({
  * product photo. Even untinted the scans stay a little darker than these
  * golden oaks under the viewer's studio light.
  */
-const tinted = (
-  base: THREE.MeshStandardMaterial,
-  color: string,
-  roughness: number,
-) => {
+const tinted = (base: THREE.MeshStandardMaterial, color: string, roughness: number) => {
   const m = base.clone();
   m.color.set(color);
   m.roughness = roughness;
@@ -179,14 +175,10 @@ export function wallBedGeometry(p: Product): WallBedGeometry {
   const handles = WALL_BED_STYLES[p.id]?.handles !== undefined;
   const frontFromWall = p.d - (handles ? HANDLE_OUT + 0.004 : 0.004);
   const headFromWall = spec.openDepth - BED_LENGTH;
-  const pivotFromWall =
-    (headFromWall + UNDERSIDE_HEIGHT + frontFromWall - CLOSED_BOTTOM) / 2;
+  const pivotFromWall = (headFromWall + UNDERSIDE_HEIGHT + frontFromWall - CLOSED_BOTTOM) / 2;
   const pivotHeight = UNDERSIDE_HEIGHT + frontFromWall - pivotFromWall;
   // frame (rails) under the mattress, all inside the cabinet when closed
-  const thickness = Math.min(
-    spec.mattressThickness + 0.1,
-    frontFromWall - 0.008 - 0.01,
-  );
+  const thickness = Math.min(spec.mattressThickness + 0.1, frontFromWall - 0.008 - 0.01);
   return {
     pivotFromWall,
     pivotHeight,
@@ -200,41 +192,19 @@ export function wallBedGeometry(p: Product): WallBedGeometry {
 
 /** Bar handle (bar on two posts) standing out of the front, in the bed's local frame. */
 function handle(g: THREE.Object3D, x: number, y: number): void {
-  g.add(
-    board(0.16, 0.012, 0.01, aluminium, x, y, HANDLE_OUT - 0.005, 0.004, "x"),
-  );
+  g.add(board(0.16, 0.012, 0.01, aluminium, x, y, HANDLE_OUT - 0.005, 0.004, "x"));
   for (const sx of [-1, 1]) {
-    g.add(
-      board(
-        0.01,
-        0.01,
-        HANDLE_OUT,
-        aluminium,
-        x + sx * 0.07,
-        y,
-        HANDLE_OUT / 2,
-        0.003,
-        "z",
-      ),
-    );
+    g.add(board(0.01, 0.01, HANDLE_OUT, aluminium, x + sx * 0.07, y, HANDLE_OUT / 2, 0.003, "z"));
   }
 }
 
 const tubeGeometry = new THREE.CylinderGeometry(1, 1, 1, 10);
 /** Round tube of radius r between two points. */
-function rod(
-  from: THREE.Vector3,
-  to: THREE.Vector3,
-  r: number,
-  material: THREE.Material,
-) {
+function rod(from: THREE.Vector3, to: THREE.Vector3, r: number, material: THREE.Material) {
   const m = new THREE.Mesh(tubeGeometry, material);
   m.position.copy(from).add(to).multiplyScalar(0.5);
   m.scale.set(r, from.distanceTo(to), r);
-  m.quaternion.setFromUnitVectors(
-    new THREE.Vector3(0, 1, 0),
-    to.clone().sub(from).normalize(),
-  );
+  m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), to.clone().sub(from).normalize());
   return m;
 }
 
@@ -250,77 +220,20 @@ export function wallBed(p: Product): THREE.Group {
 
   // ── cabinet: two sides, top, back, plinth, header above the bed ────────
   for (const sx of [-1, 1]) {
-    g.add(
-      board(
-        PANEL,
-        h,
-        d,
-        finish,
-        sx * (w / 2 - PANEL / 2),
-        h / 2,
-        0,
-        0.002,
-        "y",
-      ),
-    );
+    g.add(board(PANEL, h, d, finish, sx * (w / 2 - PANEL / 2), h / 2, 0, 0.002, "y"));
   }
   g.add(board(w, PANEL, d, finish, 0, h - PANEL / 2, 0, 0.002, "x"));
-  g.add(
-    board(
-      w - 2 * PANEL,
-      h - PANEL,
-      0.008,
-      finish,
-      0,
-      (h - PANEL) / 2,
-      back + 0.004,
-      0.001,
-    ),
-  );
+  g.add(board(w - 2 * PANEL, h - PANEL, 0.008, finish, 0, (h - PANEL) / 2, back + 0.004, 0.001));
   const inner = w - 2 * PANEL - 0.006;
-  g.add(
-    board(
-      inner,
-      PLINTH,
-      PANEL,
-      finish,
-      0,
-      PLINTH / 2,
-      d / 2 - 0.01 - PANEL / 2,
-      0.002,
-      "x",
-    ),
-  );
+  g.add(board(inner, PLINTH, PANEL, finish, 0, PLINTH / 2, d / 2 - 0.01 - PANEL / 2, 0.002, "x"));
   const top = geo.closedBottom + geo.length;
   const header = h - PANEL - top;
   if (header > 0.02) {
     const z = back + geo.frontFromWall - PANEL / 2;
-    g.add(
-      board(
-        inner,
-        header - 0.003,
-        PANEL,
-        finish,
-        0,
-        h - PANEL - header / 2 - 0.0015,
-        z,
-      ),
-    );
+    g.add(board(inner, header - 0.003, PANEL, finish, 0, h - PANEL - header / 2 - 0.0015, z));
   }
   for (const y of style.shelves ?? []) {
-    g.add(
-      board(
-        inner,
-        PANEL,
-        0.065,
-        finish,
-        0,
-        y,
-        back + 0.008 + 0.0325,
-        0.002,
-        "x",
-      ),
-    );
+    g.add(board(inner, PANEL, 0.065, finish, 0, y, back + 0.008 + 0.0325, 0.002, "x"));
   }
 
   // ── folding part ──────────────────────────────────────────────────────
@@ -331,11 +244,7 @@ export function wallBed(p: Product): THREE.Group {
   // bed frame, closed = upright: y up along the bed from its head end,
   // z = 0 on the front face, mattress toward the wall (z < 0)
   const bed = new THREE.Group();
-  bed.position.set(
-    0,
-    geo.closedBottom - geo.pivotHeight,
-    geo.frontFromWall - geo.pivotFromWall,
-  );
+  bed.position.set(0, geo.closedBottom - geo.pivotHeight, geo.frontFromWall - geo.pivotFromWall);
   fold.add(bed);
   const T = geo.thickness;
   const L = geo.length;
@@ -346,19 +255,7 @@ export function wallBed(p: Product): THREE.Group {
   let y0 = 0;
   for (const f of style.panels) {
     const len = f * L;
-    bed.add(
-      board(
-        inner,
-        len - groove,
-        PANEL,
-        finish,
-        0,
-        y0 + len / 2,
-        -PANEL / 2,
-        0.002,
-        "x",
-      ),
-    );
+    bed.add(board(inner, len - groove, PANEL, finish, 0, y0 + len / 2, -PANEL / 2, 0.002, "x"));
     y0 += len;
   }
   if (style.handles !== undefined) {
@@ -369,9 +266,7 @@ export function wallBed(p: Product): THREE.Group {
   const rail = frame - PANEL + lip;
   const railZ = -PANEL - rail / 2;
   for (const sx of [-1, 1]) {
-    bed.add(
-      board(0.025, L, rail, finish, sx * 0.7175, L / 2, railZ, 0.002, "y"),
-    );
+    bed.add(board(0.025, L, rail, finish, sx * 0.7175, L / 2, railZ, 0.002, "y"));
   }
   for (const y of [0.01, L - 0.01]) {
     bed.add(board(1.41, 0.02, rail, finish, 0, y, railZ, 0.002, "x"));
@@ -379,26 +274,12 @@ export function wallBed(p: Product): THREE.Group {
   // mattress 140 × 200 on the slats (hidden), rounded, with a side band
   const mattressZ = -frame - mT / 2;
   bed.add(board(1.4, 2.0, mT, mattressFabric, 0, L / 2, mattressZ, 0.04, "y"));
-  bed.add(
-    board(
-      1.405,
-      2.005,
-      mT * 0.35,
-      mattressBand,
-      0,
-      L / 2,
-      mattressZ,
-      0.03,
-      "y",
-    ),
-  );
+  bed.add(board(1.405, 2.005, mT * 0.35, mattressBand, 0, L / 2, mattressZ, 0.03, "y"));
   // elastic straps holding the bedding while the bed folds
   const { count, material } = style.straps;
   for (let i = 0; i < count; i++) {
     const y = 0.55 + (i * (L - 1.1)) / Math.max(1, count - 1);
-    bed.add(
-      board(1.42, 0.05, 0.006, material, 0, y, -frame - mT - 0.002, 0.002, "x"),
-    );
+    bed.add(board(1.42, 0.05, 0.006, material, 0, y, -frame - mT - 0.002, 0.002, "x"));
   }
 
   // ── foot at the foot end: folded inside the frame when closed, it swings
@@ -413,39 +294,13 @@ export function wallBed(p: Product): THREE.Group {
     const r = 0.012;
     const x = 0.64;
     for (const sx of [-1, 1]) {
-      feet.add(
-        rod(
-          v(sx * x, 0.02, folded),
-          v(sx * x, -leg + r, folded),
-          r,
-          style.feetMaterial,
-        ),
-      );
+      feet.add(rod(v(sx * x, 0.02, folded), v(sx * x, -leg + r, folded), r, style.feetMaterial));
     }
-    feet.add(
-      rod(
-        v(-x - r, -leg + r, folded),
-        v(x + r, -leg + r, folded),
-        r,
-        style.feetMaterial,
-      ),
-    );
+    feet.add(rod(v(-x - r, -leg + r, folded), v(x + r, -leg + r, folded), r, style.feetMaterial));
   } else {
     // wooden panel across the width, 25 cm from the foot end
     feet.position.set(0, L - 0.25, 0);
-    feet.add(
-      board(
-        1.1,
-        leg,
-        PANEL,
-        style.feetMaterial,
-        0,
-        -leg / 2,
-        folded,
-        0.002,
-        "x",
-      ),
-    );
+    feet.add(board(1.1, leg, PANEL, style.feetMaterial, 0, -leg / 2, folded, 0.002, "x"));
   }
   bed.add(feet);
   return g;
@@ -478,44 +333,20 @@ export function flexispotDesk(p: Product): THREE.Group {
   g.add(slab(roundedRect(w, d, 0.04), h, top, 0.004, oiledOak, "x"));
   const under = h - top;
   // frame: crossbar and two side rails under the top
-  g.add(
-    board(w - 0.3, 0.04, 0.08, blackSteel, 0, under - 0.02, -0.04, 0.004, "x"),
-  );
+  g.add(board(w - 0.3, 0.04, 0.08, blackSteel, 0, under - 0.02, -0.04, 0.004, "x"));
   for (const sx of [-1, 1]) {
     const x = sx * (w / 2 - 0.12);
-    g.add(
-      board(0.06, 0.03, d - 0.1, blackSteel, x, under - 0.015, 0, 0.004, "z"),
-    );
+    g.add(board(0.06, 0.03, d - 0.1, blackSteel, x, under - 0.015, 0, 0.004, "z"));
     // telescopic column: wide lower stage, slimmer upper stage
+    g.add(board(0.08, 0.5, 0.06, blackSteel, x, 0.03 + 0.25, -0.02, 0.005, "y"));
     g.add(
-      board(0.08, 0.5, 0.06, blackSteel, x, 0.03 + 0.25, -0.02, 0.005, "y"),
-    );
-    g.add(
-      board(
-        0.07,
-        under - 0.53,
-        0.05,
-        blackSteel,
-        x,
-        0.53 + (under - 0.53) / 2,
-        -0.02,
-        0.005,
-        "y",
-      ),
+      board(0.07, under - 0.53, 0.05, blackSteel, x, 0.53 + (under - 0.53) / 2, -0.02, 0.005, "y"),
     );
     // foot along the depth, with levelling pads
     g.add(board(0.07, 0.03, d - 0.04, blackSteel, x, 0.015, 0, 0.006, "z"));
   }
   // keypad under the front right edge, its face tilted toward the user
-  const pad = board(
-    0.15,
-    0.022,
-    0.05,
-    blackSteel,
-    w / 2 - 0.22,
-    under - 0.014,
-    d / 2 - 0.035,
-  );
+  const pad = board(0.15, 0.022, 0.05, blackSteel, w / 2 - 0.22, under - 0.014, d / 2 - 0.035);
   pad.rotation.x = 0.35;
   g.add(pad);
   return g;
@@ -557,46 +388,27 @@ export function aeron(p: Product): THREE.Group {
   // five-star base: spokes slightly sloping down to the casters
   for (let i = 0; i < 5; i++) {
     const a = (i / 5) * Math.PI * 2 + Math.PI / 2;
-    const end = v(
-      Math.cos(a) * (baseR - 0.03),
-      0.075,
-      Math.sin(a) * (baseR - 0.03),
-    );
+    const end = v(Math.cos(a) * (baseR - 0.03), 0.075, Math.sin(a) * (baseR - 0.03));
     g.add(bar(v(0, 0.1, 0), end, 0.045, 0.03, graphite, 0.008));
-    const wheel = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.03, 0.03, 0.03, 20),
-      caster,
-    );
+    const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.03, 20), caster);
     wheel.rotation.z = Math.PI / 2;
     wheel.rotation.y = -a;
-    wheel.position.set(
-      Math.cos(a) * (baseR - 0.03),
-      0.03,
-      Math.sin(a) * (baseR - 0.03),
-    );
+    wheel.position.set(Math.cos(a) * (baseR - 0.03), 0.03, Math.sin(a) * (baseR - 0.03));
     g.add(wheel);
   }
   g.add(
-    new THREE.Mesh(
-      new THREE.CylinderGeometry(0.035, 0.04, 0.06, 16),
-      graphite,
-    ).translateY(0.1),
+    new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.04, 0.06, 16), graphite).translateY(0.1),
   );
   // gas cylinder up to the seat mechanism
   g.add(
-    new THREE.Mesh(
-      new THREE.CylinderGeometry(0.022, 0.026, seatY - 0.14, 16),
-      graphite,
-    ).translateY(0.12 + (seatY - 0.14) / 2),
+    new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.026, seatY - 0.14, 16), graphite).translateY(
+      0.12 + (seatY - 0.14) / 2,
+    ),
   );
   g.add(board(0.2, 0.05, 0.2, graphite, 0, seatY - 0.06, 0, 0.01, "x"));
   // seat: mesh in a rounded frame, front edge rolled down (waterfall)
-  g.add(
-    slab(roundedRect(0.51, 0.46, 0.08), seatY + 0.018, 0.035, 0.01, graphite),
-  );
-  g.add(
-    slab(roundedRect(0.48, 0.43, 0.07), seatY + 0.026, 0.012, 0.003, pellicle),
-  );
+  g.add(slab(roundedRect(0.51, 0.46, 0.08), seatY + 0.018, 0.035, 0.01, graphite));
+  g.add(slab(roundedRect(0.48, 0.43, 0.07), seatY + 0.026, 0.012, 0.003, pellicle));
   g.add(board(0.47, 0.04, 0.03, graphite, 0, seatY - 0.01, 0.22, 0.012, "x"));
   // back: frame loop around the mesh, leaning back, narrow at the lumbar,
   // wide at the shoulders, rounded top
@@ -622,12 +434,7 @@ export function aeron(p: Product): THREE.Group {
   ];
   // closed frame tube, lighter than the shared tube() helper (mobile budget)
   const curve = new THREE.CatmullRomCurve3(loop, true, "centripetal");
-  g.add(
-    new THREE.Mesh(
-      new THREE.TubeGeometry(curve, 120, 0.016, 8, true),
-      graphite,
-    ),
-  );
+  g.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 120, 0.016, 8, true), graphite));
   // mesh inside the loop, in the back's plane
   const mesh = new THREE.Shape();
   mesh.moveTo(-0.16, 0);
@@ -658,16 +465,7 @@ export function aeron(p: Product): THREE.Group {
   // PostureFit (seen from behind): lumbar pad and Y straps up to the shoulders
   const behind = (y: number, t: number) => v(0, y, at(y) - 0.006 - t / 2);
   const padTop = backBottom + 0.22;
-  g.add(
-    bar(
-      behind(backBottom + 0.02, 0.02),
-      behind(padTop, 0.02),
-      0.07,
-      0.02,
-      graphite,
-      0.008,
-    ),
-  );
+  g.add(bar(behind(backBottom + 0.02, 0.02), behind(padTop, 0.02), 0.07, 0.02, graphite, 0.008));
   for (const sx of [-1, 1]) {
     const end = behind(top - 0.17, 0.01).setX(sx * 0.2);
     // bar(): its "w" side stays horizontal, here across the back (z)
@@ -677,25 +475,9 @@ export function aeron(p: Product): THREE.Group {
   for (const sx of [-1, 1]) {
     const x = sx * (w / 2 - 0.05);
     g.add(
-      bar(
-        v(sx * 0.2, seatY - 0.03, -0.08),
-        v(x, seatY - 0.03, -0.1),
-        0.04,
-        0.025,
-        graphite,
-        0.008,
-      ),
+      bar(v(sx * 0.2, seatY - 0.03, -0.08), v(x, seatY - 0.03, -0.1), 0.04, 0.025, graphite, 0.008),
     );
-    g.add(
-      bar(
-        v(x, seatY - 0.03, -0.1),
-        v(x, seatY + 0.22, -0.06),
-        0.04,
-        0.03,
-        graphite,
-        0.008,
-      ),
-    );
+    g.add(bar(v(x, seatY - 0.03, -0.1), v(x, seatY + 0.22, -0.06), 0.04, 0.03, graphite, 0.008));
     g.add(board(0.09, 0.03, 0.24, caster, x, seatY + 0.235, -0.02, 0.014, "z"));
   }
   return g;
@@ -728,10 +510,7 @@ export function bookcase(p: Product, layout: BookcaseLayout): THREE.Group {
     const g = new THREE.Group();
     let x = -p.w / 2;
     for (const c of layout.columns) {
-      const unit = bookcase(
-        { ...p, w: c },
-        { ...layout, columns: [c], modules: false },
-      );
+      const unit = bookcase({ ...p, w: c }, { ...layout, columns: [c], modules: false });
       unit.position.x = x + c / 2;
       g.add(unit);
       x += c;
@@ -752,30 +531,14 @@ export function bookcase(p: Product, layout: BookcaseLayout): THREE.Group {
   }
   // top, plinth (front kick board + bottom shelf), shelves
   const inner = w - 2 * t;
-  g.add(
-    board(inner, t, d - backT, material, 0, h - t / 2, backT / 2, 0.002, "x"),
-  );
-  g.add(
-    board(
-      inner,
-      plinth,
-      t,
-      material,
-      0,
-      plinth / 2,
-      d / 2 - t / 2 - 0.01,
-      0.002,
-      "x",
-    ),
-  );
+  g.add(board(inner, t, d - backT, material, 0, h - t / 2, backT / 2, 0.002, "x"));
+  g.add(board(inner, plinth, t, material, 0, plinth / 2, d / 2 - t / 2 - 0.01, 0.002, "x"));
   const y0 = plinth;
   const y1 = h - t;
   const step = (y1 - y0) / levels;
   for (let i = 0; i < levels; i++) {
     const y = y0 + i * step + t / 2;
-    g.add(
-      board(inner, t, d - backT - 0.005, material, 0, y, backT / 2, 0.002, "x"),
-    );
+    g.add(board(inner, t, d - backT - 0.005, material, 0, y, backT / 2, 0.002, "x"));
   }
   // books in each compartment (decor)
   for (let i = 0; i < levels; i++) {
@@ -795,17 +558,7 @@ export function bookcase(p: Product, layout: BookcaseLayout): THREE.Group {
   }
   if (layout.back) {
     g.add(
-      board(
-        w - 0.004,
-        h - 0.004,
-        backT,
-        layout.back,
-        0,
-        h / 2,
-        -d / 2 + backT / 2,
-        0.001,
-        "x",
-      ),
+      board(w - 0.004, h - 0.004, backT, layout.back, 0, h / 2, -d / 2 + backT / 2, 0.001, "x"),
     );
   }
   return g;
@@ -873,19 +626,7 @@ export function iloss(p: Product): THREE.Group {
   // shelves: full width, 28 cm deep against the wall, thin chamfered edges
   const shelfD = 0.28;
   for (const y of ILOSS_SHELVES) {
-    g.add(
-      board(
-        w,
-        0.024,
-        shelfD,
-        naturalOak,
-        0,
-        y - 0.012,
-        back + shelfD / 2,
-        0.006,
-        "x",
-      ),
-    );
+    g.add(board(w, 0.024, shelfD, naturalOak, 0, y - 0.012, back + shelfD / 2, 0.006, "x"));
   }
   return g;
 }

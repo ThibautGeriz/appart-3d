@@ -10,17 +10,8 @@ import {
   slot,
   wallBedOpenRect,
 } from "../apartment/furnishing";
-import {
-  apartmentBounds,
-  buildColliders,
-  rectCollider,
-} from "../apartment/plan";
-import {
-  easeInOut,
-  poseWallBed,
-  stepOpening,
-  WALL_BED_DURATION,
-} from "../apartment/wallBed";
+import { apartmentBounds, buildColliders, rectCollider } from "../apartment/plan";
+import { easeInOut, poseWallBed, stepOpening, WALL_BED_DURATION } from "../apartment/wallBed";
 import { wallBed, wallBedGeometry } from "../models/furniture/study";
 import { buildNavGrid, findPath } from "../player/navigation";
 
@@ -31,10 +22,7 @@ const EAST = 11.41;
 const NORTH = 3.8;
 
 const bedAt = (id: string) => coffeeTableLayout(study.wallBed, product(id));
-const desk = coffeeTableLayout(
-  study.desk,
-  product("desk-flexispot-solid-wood"),
-);
+const desk = coffeeTableLayout(study.desk, product("desk-flexispot-solid-wood"));
 
 describe("chambre 2 layout (bedroom drawing)", () => {
   it("puts the wall bed against the west wall, centred on its 1.55 m zone", () => {
@@ -43,9 +31,7 @@ describe("chambre 2 layout (bedroom drawing)", () => {
       expect(bed.rect[0]).toBeCloseTo(WEST); // back against the wall
       expect(bed.rect[2] - bed.rect[0]).toBeCloseTo(p.d); // depth into the room
       // zone: 1.00 m from the window wall, 1.55 m wide
-      expect((bed.rect[1] + bed.rect[3]) / 2).toBeCloseTo(
-        NORTH + 1.0 + 1.55 / 2,
-      );
+      expect((bed.rect[1] + bed.rect[3]) / 2).toBeCloseTo(NORTH + 1.0 + 1.55 / 2);
     }
     // the Lenart Consus fits the zone, the Beganio is 2 cm wider on each side
     const consus = bedAt("bed-consus").rect;
@@ -55,9 +41,7 @@ describe("chambre 2 layout (bedroom drawing)", () => {
 
   it("puts the desk (120 × 60) on the east wall, 15 cm from the window wall", () => {
     expect(desk.rect).toEqual(
-      [EAST - 0.6, NORTH + 0.15, EAST, NORTH + 1.35].map((v) =>
-        expect.closeTo(v, 5),
-      ),
+      [EAST - 0.6, NORTH + 0.15, EAST, NORTH + 1.35].map((v) => expect.closeTo(v, 5)),
     );
   });
 
@@ -101,9 +85,7 @@ describe("chambre 2 layout (bedroom drawing)", () => {
       rectCollider(wallBedOpenRect(bedAt("bed-beganio"))!),
     ];
     const grid = buildNavGrid(colliders, apartmentBounds(APARTMENT_DEF), 0.25);
-    expect(
-      findPath(grid, { x: 9.36, z: 7.0 }, { x: 10.6, z: 4.6 }),
-    ).not.toBeNull();
+    expect(findPath(grid, { x: 9.36, z: 7.0 }, { x: 10.6, z: 4.6 })).not.toBeNull();
   });
 });
 
@@ -129,10 +111,7 @@ describe("wall bed mechanism", () => {
       const geo = wallBedGeometry(p);
       const fold = model.getObjectByName("fold")!;
       const foldBox = new THREE.Box3().setFromObject(fold);
-      expect(foldBox.max.y, p.id).toBeCloseTo(
-        geo.undersideHeight + geo.thickness,
-        1,
-      ); // ~38 cm
+      expect(foldBox.max.y, p.id).toBeCloseTo(geo.undersideHeight + geo.thickness, 1); // ~38 cm
       expect(foldBox.min.y, p.id).toBeGreaterThanOrEqual(-0.001); // feet on the floor, not below
       expect(foldBox.min.y, p.id).toBeLessThan(0.005);
       // head end inside the cabinet
