@@ -40,6 +40,51 @@ export interface ProductDetails {
 
 /** Read from the pages on 27/11/2026 (Black Friday week: some prices are offers). */
 export const DETAILS: Record<string, ProductDetails> = {
+  "sofa-bolzano-214": {
+    seller: "BoConcept",
+    brand: null,
+    weightKg: 64,
+    maxLoadKg: null,
+    warrantyYears: 5,
+    assembly: null,
+    martindale: null,
+    specs: [
+      { label: "Modèle", value: "Bolzano 3 places (4463001), design Morten Georgsen" },
+      {
+        label: "Revêtement",
+        value: "Bouclé Rimini, coloris 3086 (vert) : 100 % polyester recyclé, 950 g/m²",
+      },
+      {
+        label: "Assise",
+        value:
+          "Mousse HR 30 kg/m³ sur mousses 25 et 23 kg/m³, ouate 200 g (fiche BoConcept Europe)",
+      },
+      { label: "Dossier et accoudoirs", value: "D'un seul tenant, hauteur 76 cm" },
+      { label: "Hauteur d'assise", value: "42 cm" },
+      { label: "Pieds", value: "3 cm" },
+      { label: "Garantie", value: "5 ans (étiquette du magasin)" },
+    ],
+    sources: [
+      {
+        label: "BoConcept – Bolzano 3 places, Rimini 3086",
+        url: "https://www.boconcept.com/fr-fr/v/bolzano/4463001-14:3086/",
+      },
+      {
+        label: "BoConcept UK – Bolzano 3-seater (dimensions, poids)",
+        url: "https://www.boconcept.com/en-gb/p/bolzano/4463001-14:6096/",
+      },
+      {
+        label: "BoConcept Italie – Bolzano 3-seater (mousses, fiche Europe)",
+        url: "https://www.boconcept.com/en-it/p/bolzano/4463001-14:3096/",
+      },
+      {
+        label: "BoConcept Russie – Rimini 3086 (composition du tissu)",
+        url: "https://boconceptonline.ru/bolzano/379013403086.html",
+      },
+    ],
+    notes:
+      "La page française bloque la lecture automatique : dimensions et poids viennent de la page UK, les mousses de la fiche européenne (Italie), le tissu Rimini 3086 d'un revendeur BoConcept. Prix (2 447 €) donné par l'utilisateur ; l'étiquette du magasin indique 3 349 € pour le modèle exposé, à partir de 1 999 €. Pays de fabrication non indiqué sur la page (BoConcept dit faire ses canapés surtout en Lituanie).",
+  },
   "sofa-albatros-222": {
     seller: "Cuir Center",
     brand: null,

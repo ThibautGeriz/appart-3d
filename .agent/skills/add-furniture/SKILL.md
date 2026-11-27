@@ -64,6 +64,23 @@ Write the facts as a short table in your reply before coding.
   GLBs of every product after it. That is expected: re-export everything
   and commit all changed GLBs.
 
+### Details for the catalog page — `src/data/catalogDetails.ts`
+
+**Required for every product** (`catalogPage.test.ts` fails without it,
+which breaks CI on `main`): a `DETAILS["<id>"]` entry for `catalog.html`
+(🪑 CATALOGUE → "Catalogue complet"), with what the pages state and `null`
+when they don't: `seller`, `brand`, `weightKg`, `maxLoadKg`,
+`warrantyYears`, `assembly`, `martindale`, the key `specs` in the page's
+words, every page used in `sources` (https), and `notes` for where the
+facts come from or disagree (user's price vs. tag, regional page used,
+origin not stated). Origin and seat foam stay on the product in
+`catalog.ts` (`madeIn`, `seatFoamDensity`). The thumbnail is drawn from the
+GLB at runtime, so there is nothing else to add.
+
+If several furniture PRs are open at once, rebase on `main` before
+merging: a product added by one PR and a check added by another only meet
+on `main`.
+
 ## 3. Model — `src/models/furniture/<group>.ts`
 
 Pick the file of its kind (`sofa.ts`, `tables.ts`, `chairs.ts`,
@@ -153,7 +170,7 @@ lighting is dimmer than a showroom: judge hue, not brightness.
 - Add facts to `src/__tests__/sofas.test.ts` (or a test of its kind):
   size, price, default colour, anything special (e.g. "the wrap reaches
   76 cm, measured without decor").
-- `npx vitest run src`, `npm run lint`, `npx oxfmt --check src scripts .agent`,
+- `npx vitest run src` (including `catalogPage.test.ts`), `npm run lint`, `npx oxfmt --check src scripts .agent`,
   `npm run build`.
 - Export is repeatable: copy `models/*.glb` aside, export again, `cmp`.
 - Only re-bake the lightmap (`npm run bake:lightmap`) if built-in
