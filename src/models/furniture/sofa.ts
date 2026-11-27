@@ -2,7 +2,8 @@ import * as THREE from "three";
 import type { Product } from "../../data/catalog";
 import { albatrosFabric, bolzanoFabric, oiledOak, romaFabric, titanio } from "./materials";
 import { grainUVs } from "./parts";
-import { throwCushions } from "./decor";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { DECOR, throwCushions } from "./decor";
 
 /*
  * Mobilier de France ROMA (showroom photos + product sheet): one continuous
@@ -144,6 +145,59 @@ function seat(g: THREE.Group, b: Box2, top: number): void {
  */
 export const SLIDING_BACK_Z = "sofa-back-z";
 export const SLIDING_BACK_X = "sofa-back-x";
+
+/**
+ * For export: a sliding sofa merged per material into its fixed part and one
+ * node per sliding axis (sofa-back-z / -x, at the origin), decor kept apart.
+ * The backs still slide, in a handful of draw calls instead of one per cushion.
+ */
+export function mergeSliding(g: THREE.Group): THREE.Group {
+  g.updateMatrixWorld(true);
+  const toRoot = g.matrixWorld.clone().invert();
+  const buckets = new Map<
+    string,
+    { node: string; decor: boolean; material: THREE.Material; geos: THREE.BufferGeometry[] }
+  >();
+  g.traverse((o) => {
+    if (!(o instanceof THREE.Mesh)) return;
+    if (Array.isArray(o.material)) throw new Error(`${g.name}: multi-material mesh`);
+    let node = "";
+    let decor = false;
+    for (let x: THREE.Object3D | null = o; x && x !== g; x = x.parent) {
+      if (!node && (x.name.startsWith(SLIDING_BACK_Z) || x.name.startsWith(SLIDING_BACK_X)))
+        node = x.name.startsWith(SLIDING_BACK_Z) ? SLIDING_BACK_Z : SLIDING_BACK_X;
+      decor ||= x.name === DECOR;
+    }
+    const geo = (o.geometry as THREE.BufferGeometry).clone();
+    geo.applyMatrix4(toRoot.clone().multiply(o.matrixWorld));
+    const attributes = Object.keys(geo.attributes).sort().join();
+    const key = `${node}|${decor}|${o.material.uuid}|${attributes}|${geo.index ? "i" : "n"}`;
+    const bucket = buckets.get(key) ?? {
+      node,
+      decor,
+      material: o.material,
+      geos: [] as THREE.BufferGeometry[],
+    };
+    bucket.geos.push(geo);
+    buckets.set(key, bucket);
+  });
+  const out = new THREE.Group();
+  out.name = g.name;
+  const nodes = new Map<string, THREE.Group>();
+  for (const { node, decor, material, geos } of buckets.values()) {
+    const mesh = new THREE.Mesh(geos.length > 1 ? mergeGeometries(geos) : geos[0], material);
+    if (decor) mesh.name = DECOR;
+    let parent: THREE.Group = out;
+    if (node) {
+      parent = nodes.get(node) ?? new THREE.Group();
+      parent.name = node;
+      if (!nodes.has(node)) out.add(parent);
+      nodes.set(node, parent);
+    }
+    parent.add(mesh);
+  }
+  return out;
+}
 
 /**
  * Back pad standing on the base's rear ledge: a lower back and a puffier
@@ -288,7 +342,7 @@ export function roma(p: Product): THREE.Group {
     seat(g, { x0: x0 + 0.006, x1: x0 + seatW - 0.006, z0: seatBack, z1: front }, seatTop);
     backPad(g, x0, x0 + seatW, padFront, "+z", p.h, seatTop);
   }
-  throwCushions(g, seatsFrom, seatsTo, seatTop, padFront + BACK_T); // decor
+  throwCushions(g, seatsFrom, seatsTo, seatTop, padFront + BACK_T, SLIDING_BACK_Z); // decor, slides
   leg(g, right - inset, back + inset, "+x");
   leg(g, right - inset, front - inset - 0.04, "+x");
 
@@ -461,7 +515,7 @@ export function albatros(p: Product): THREE.Group {
       add(g, half.clone().translate(x, bottom + lift, push), albatrosFabric, 0, 0, 0).name =
         SLIDING_BACK_Z; // slides back (the backs "avance-recule")
   }
-  throwCushions(g, seatsFrom, seatsTo, seatTop, push + A_BACK_T); // decor
+  throwCushions(g, seatsFrom, seatsTo, seatTop, push + A_BACK_T, SLIDING_BACK_Z); // decor, slides
   return g;
 }
 

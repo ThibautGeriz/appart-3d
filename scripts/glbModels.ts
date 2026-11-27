@@ -10,7 +10,7 @@ import { plant, rug } from "../src/models/furniture/decor";
 import { woolCharcoal, woolCream, woolGrey } from "../src/models/furniture/materials";
 import { CHAIR_BUILDERS } from "../src/models/furniture/chairs";
 import { TABLE_BUILDERS } from "../src/models/furniture/tables";
-import { SOFA_BUILDERS } from "../src/models/furniture/sofa";
+import { mergeSliding, SOFA_BUILDERS } from "../src/models/furniture/sofa";
 import { SIDEBOARD_BUILDERS } from "../src/models/furniture/sideboards";
 import { BEDROOM_BUILDERS } from "../src/models/furniture/bedroom";
 import { STUDY_BUILDERS } from "../src/models/furniture/study";
@@ -98,10 +98,9 @@ export const MODELS: ModelEntry[] = [
     build: () => {
       const g = FURNITURE_BUILDERS[p.id](p);
       g.name = p.id;
-      return g;
+      return p.sofa?.backTravel ? mergeSliding(g) : g;
     },
     textures: FURNITURE_TEXTURES,
-    // wall beds keep their moving parts (fold, feet) as named nodes
     // keep the moving parts as their own nodes: the wall bed, sliding sofa backs
     rigged: p.kind === "wallBed" || !!p.sofa?.backTravel,
   })),

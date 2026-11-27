@@ -8,7 +8,8 @@ import { CATALOG, product } from "../data/catalog";
 import { sofaLayout } from "../apartment/furnishing";
 import { buildColliders } from "../apartment/plan";
 import { ease } from "../apartment/furniture";
-import { SOFA_BUILDERS } from "../models/furniture/sofa";
+import { mergeSliding, SOFA_BUILDERS } from "../models/furniture/sofa";
+import { DECOR } from "../models/furniture/decor";
 
 const sliding = CATALOG.filter((p) => p.sofa?.backTravel);
 const names = (o: THREE.Object3D) => {
@@ -33,12 +34,38 @@ describe("sliding sofa backs (dossiers avance-recule)", () => {
       names(SOFA_BUILDERS["sofa-roma-210"](product("sofa-roma-210"))).filter((n) =>
         n.endsWith("z"),
       ),
-    ).toHaveLength(2);
+    ).toHaveLength(3); // two back cushions + the throw cushions' holder
     const corner = names(SOFA_BUILDERS["sofa-roma-corner"](product("sofa-roma-corner")));
     expect(corner.some((n) => n.endsWith("x"))).toBe(true);
     expect(
       names(SOFA_BUILDERS["sofa-albatros-222"](product("sofa-albatros-222"))).length,
     ).toBeGreaterThan(0);
+  });
+
+  it("the throw cushions slide with the backs", () => {
+    for (const id of ["sofa-roma-210", "sofa-roma-corner", "sofa-albatros-222"]) {
+      const cushions: THREE.Object3D[] = [];
+      SOFA_BUILDERS[id](product(id)).traverse(
+        (o) => o.name === DECOR && o instanceof THREE.Mesh && cushions.push(o),
+      );
+      expect(cushions.length, id).toBeGreaterThan(0);
+      for (const c of cushions) expect(c.parent!.name, id).toMatch(/^sofa-back-z/);
+    }
+  });
+
+  it("the export merges them per material, same size, backs still apart", () => {
+    for (const id of ["sofa-roma-210", "sofa-roma-corner", "sofa-albatros-222"]) {
+      const g = SOFA_BUILDERS[id](product(id));
+      const merged = mergeSliding(g);
+      const size = (o: THREE.Object3D) =>
+        new THREE.Box3().setFromObject(o, true).getSize(new THREE.Vector3());
+      expect(size(merged).distanceTo(size(g)), id).toBeLessThan(1e-6);
+      let meshes = 0;
+      merged.traverse((o) => o instanceof THREE.Mesh && meshes++);
+      expect(meshes, id).toBeLessThanOrEqual(12);
+      expect(merged.getObjectByName("sofa-back-z"), id).toBeDefined();
+      expect(merged.getObjectByName("sofa-back-z")!.getObjectByName(DECOR), id).toBeDefined();
+    }
   });
 
   it("the exported GLBs keep them as their own nodes", async () => {
