@@ -11,7 +11,34 @@ import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
  */
 export const AO_SCALE = 0.5;
 
+/** GTAOPass internals it hides during its depth + normal pass (points and lines). */
+interface GTAOInternals {
+  _overrideVisibility(): void;
+  _visibilityCache: THREE.Object3D[];
+}
+
 class ScaledGTAOPass extends GTAOPass {
+  /**
+   * Annotations drawn over the surfaces (the dimension labels, 4 mm off the
+   * walls): left out of the AO's depth and normals, else the AO reads each
+   * label quad as a thin slab over the wall and blends it to black.
+   */
+  readonly excluded: THREE.Object3D[] = [];
+
+  constructor(...args: ConstructorParameters<typeof GTAOPass>) {
+    super(...args);
+    const internals = this as unknown as GTAOInternals;
+    const hideLinesAndPoints = internals._overrideVisibility.bind(this);
+    internals._overrideVisibility = () => {
+      hideLinesAndPoints();
+      for (const o of this.excluded) {
+        if (!o.visible) continue;
+        o.visible = false;
+        internals._visibilityCache.push(o); // shown again by _restoreVisibility
+      }
+    };
+  }
+
   override setSize(width: number, height: number): void {
     super.setSize(Math.ceil(width * AO_SCALE), Math.ceil(height * AO_SCALE));
   }
@@ -22,6 +49,8 @@ export interface Pipeline {
   setSize(width: number, height: number): void;
   /** the ambient occlusion pass, when enabled (for tuning) */
   ao?: GTAOPass;
+  /** keep an overlay (dimension lines and labels) out of the ambient occlusion */
+  excludeFromAO(object: THREE.Object3D): void;
 }
 
 /**
@@ -39,6 +68,7 @@ export function createPipeline(
     return {
       render: () => renderer.render(scene, camera),
       setSize: (w, h) => renderer.setSize(w, h),
+      excludeFromAO: () => {},
     };
   }
   const size = renderer.getDrawingBufferSize(new THREE.Vector2());
@@ -66,6 +96,7 @@ export function createPipeline(
   composer.addPass(new OutputPass()); // tone mapping + sRGB, as without post-processing
   return {
     ao,
+    excludeFromAO: (object) => ao.excluded.push(object),
     render: () => composer.render(),
     setSize: (w, h) => {
       renderer.setSize(w, h);
