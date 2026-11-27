@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { APARTMENT_DEF } from "../data/apartment";
 import { expandKitchen, moduleSpans, runLength } from "../apartment/kitchen";
-import { bowlSpans, KUBUS_2_KNG_120 } from "../data/sink";
+import { bowlSpans, cutOutSpans, KUBUS_2_KNG_120 } from "../data/sink";
 
 const kitchen = APARTMENT_DEF.kitchen;
 
@@ -69,7 +69,7 @@ describe("kitchen sink (Franke Kubus 2.0 KNG 120)", () => {
     expect(tap.rect[0]).toBeLessThan(sink.rect[0]);
   });
 
-  it("leaves the worktop open over the two bowls only", () => {
+  it("leaves one 72 × 42 cm cut-out over both bowls (Franke CO drawing)", () => {
     const worktop = items.filter((i) => i.name === "Plan de travail");
     const covered = (x: number, z: number) =>
       worktop.some(({ rect: [x0, z0, x1, z1] }) => x > x0 && x < x1 && z > z0 && z < z1);
@@ -77,7 +77,11 @@ describe("kitchen sink (Franke Kubus 2.0 KNG 120)", () => {
     const spans = bowlSpans(KUBUS_2_KNG_120);
     const sz = center(sink.rect)[1];
     for (const [a, b] of spans) expect(covered(sx, sz - (a + b) / 2)).toBe(false); // bowl centres
-    expect(covered(sx, sz - (spans[0][1] + spans[1][0]) / 2)).toBe(true); // bridge between bowls
+    expect(covered(sx, sz - (spans[0][1] + spans[1][0]) / 2)).toBe(false); // divider sits below
+    const [[c0, c1]] = cutOutSpans(KUBUS_2_KNG_120);
+    expect(c1 - c0).toBeCloseTo(0.72, 5);
+    expect(covered(sx, sz - c1 - 0.005)).toBe(true); // 2 cm rim under the worktop
+    expect(covered(sx, sz - c0 + 0.005)).toBe(true);
     expect(covered(sx, kitchen.sink[0] - 0.05)).toBe(true);
     // one stone pattern across all pieces
     expect(new Set(worktop.map((w) => JSON.stringify(w.uvOrigin))).size).toBe(1);
@@ -87,8 +91,9 @@ describe("kitchen sink (Franke Kubus 2.0 KNG 120)", () => {
     const spans = bowlSpans(KUBUS_2_KNG_120);
     expect(spans[0][1] - spans[0][0]).toBeCloseTo(0.464, 5);
     expect(spans[1][1] - spans[1][0]).toBeCloseTo(0.214, 5);
-    const rim = spans[0][0] + KUBUS_2_KNG_120.length / 2;
-    expect(spans[1][0] - spans[0][1]).toBeCloseTo(rim, 5);
-    expect(KUBUS_2_KNG_120.length / 2 - spans[1][1]).toBeCloseTo(rim, 5);
+    // DT drawing: 20 mm rims at both ends, ~40 mm divider
+    expect(spans[0][0] + KUBUS_2_KNG_120.length / 2).toBeCloseTo(0.02, 5);
+    expect(KUBUS_2_KNG_120.length / 2 - spans[1][1]).toBeCloseTo(0.02, 5);
+    expect(spans[1][0] - spans[0][1]).toBeCloseTo(0.042, 5);
   });
 });
