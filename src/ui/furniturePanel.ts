@@ -258,5 +258,6 @@ function kindLabel(kind: ProductKind): string {
     shelf: "étagère",
     wallBed: "lit escamotable",
     desk: "bureau",
+    officeChair: "fauteuil de bureau",
   }[kind];
 }

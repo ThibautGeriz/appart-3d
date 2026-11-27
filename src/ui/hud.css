@@ -394,3 +394,34 @@ body {
   opacity: 0.45;
   cursor: not-allowed;
 }
+
+/* Frame-rate counter, top centre (green on target, orange playable, red low) */
+.hud-fps {
+  position: fixed;
+  top: calc(16px + env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.5);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.03em;
+  font-family: system-ui, sans-serif;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.hud-fps[data-level="good"] {
+  color: #7ee08a;
+}
+
+.hud-fps[data-level="ok"] {
+  color: #ffc46b;
+}
+
+.hud-fps[data-level="low"] {
+  color: #ff7a6b;
+}

@@ -409,19 +409,21 @@ export const APARTMENT_DEF: ApartmentDef = {
       ceiling: 2.15,
     },
     {
-      label: "Chambre 2",
+      // "Chambre 2" on the plan: a study with a wall bed
+      label: "Bureau",
       rect: [8.1, 3.8, 11.455, 7.35],
       floorColor: WOOD,
       floorFinish: "parquet",
     },
     {
-      label: "Chambre 1",
+      // "Chambre 1" on the plan
+      label: "Chambre",
       rect: [11.455, 3.8, 14.25, 8.5],
       floorColor: WOOD,
       floorFinish: "parquet",
     },
     {
-      room: "Chambre 1",
+      room: "Chambre",
       rect: [10.36, 7.35, 11.455, 8.5],
       floorColor: WOOD,
       floorFinish: "parquet",
@@ -729,6 +731,9 @@ export const APARTMENT_DEF: ApartmentDef = {
       wallBed: { anchor: [8.135, 5.575], align: [-1, 0], along: "-z" },
       desk: { anchor: [11.41, 3.95], align: [1, -1], along: "+z" },
       bookcase: { anchor: [11.41, 7.19], align: [1, 1], along: "+z" },
+      // office chair facing the desk, where the drawing's circle is
+      // (x 10.59, z 4.55): its seat tucked under the desk's front edge
+      officeChair: { anchor: [10.59, 4.55], align: [0, 0], along: "-z" },
     },
     // what can be chosen, room by room (the toolbar lists rooms first)
     slots: [
@@ -775,18 +780,18 @@ export const APARTMENT_DEF: ApartmentDef = {
         default: "sideboard-norway",
         maxWidth: 1.6,
       },
-      { id: "bed", kind: "bed", room: "Chambre 1", title: "Lit (160 × 200)", default: "bed-lunja" },
+      { id: "bed", kind: "bed", room: "Chambre", title: "Lit (160 × 200)", default: "bed-lunja" },
       {
         id: "nightstand",
         kind: "nightstand",
-        room: "Chambre 1",
+        room: "Chambre",
         title: "Chevets (× 2)",
         default: "nightstand-lundby",
       },
       {
         id: "shelfWindow",
         kind: "shelf",
-        room: "Chambre 1",
+        room: "Chambre",
         title: "Étagère près de la fenêtre",
         default: "shelf-borneo",
         maxWidth: 1.0,
@@ -794,7 +799,7 @@ export const APARTMENT_DEF: ApartmentDef = {
       {
         id: "shelfEntry",
         kind: "shelf",
-        room: "Chambre 1",
+        room: "Chambre",
         title: "Étagère près de l'entrée",
         default: "shelf-borneo",
         maxWidth: 1.42,
@@ -802,21 +807,28 @@ export const APARTMENT_DEF: ApartmentDef = {
       {
         id: "wallBed",
         kind: "wallBed",
-        room: "Chambre 2",
+        room: "Bureau",
         title: "Lit escamotable 140 × 200 · cliquer le lit pour l'ouvrir",
         default: "bed-beganio",
       },
       {
         id: "desk",
         kind: "desk",
-        room: "Chambre 2",
-        title: "Bureau",
+        room: "Bureau",
+        title: "Bureau assis-debout",
         default: "desk-flexispot-solid-wood",
+      },
+      {
+        id: "officeChair",
+        kind: "officeChair",
+        room: "Bureau",
+        title: "Fauteuil de bureau",
+        default: "office-aeron",
       },
       {
         id: "bookcase",
         kind: "shelf",
-        room: "Chambre 2",
+        room: "Bureau",
         title: "Bibliothèque",
         default: "bookcase-vu-white",
         maxWidth: 1.5,

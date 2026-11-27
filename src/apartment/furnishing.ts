@@ -65,7 +65,8 @@ export type SlotId =
   | "shelfEntry"
   | "wallBed"
   | "desk"
-  | "bookcase";
+  | "bookcase"
+  | "officeChair";
 
 export interface SlotDef {
   id: SlotId;
@@ -90,7 +91,7 @@ export interface FurnishingDef {
   /** shelves against a wall, one per shelf slot */
   shelves: Record<"shelfWindow" | "shelfEntry", CoffeeTableDef>;
   /** chambre 2: wall bed, desk and bookcase, each against a wall */
-  study: Record<"wallBed" | "desk" | "bookcase", CoffeeTableDef>;
+  study: Record<"wallBed" | "desk" | "bookcase" | "officeChair", CoffeeTableDef>;
 }
 
 export type Selection = Record<SlotId, string>;
@@ -291,6 +292,7 @@ export function furnishingLayout(def: FurnishingDef, selection: Selection): Plac
     coffeeTableLayout(def.study.wallBed, product(selection.wallBed)),
     coffeeTableLayout(def.study.desk, product(selection.desk)),
     coffeeTableLayout(def.study.bookcase, product(selection.bookcase)),
+    coffeeTableLayout(def.study.officeChair, product(selection.officeChair)),
   ];
 }
 

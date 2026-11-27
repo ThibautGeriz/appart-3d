@@ -7,6 +7,7 @@ import { KeyboardMouseInput } from "./controls/keyboardMouse";
 import { TouchInput } from "./controls/touch";
 import { isTouchDevice } from "./controls/device";
 import { createHud } from "./ui/hud";
+import { createFpsCounter } from "./ui/fps";
 import { bindSunControls, defaultHour } from "./ui/sunControls";
 import { createLighting } from "./lighting/environment";
 import { createPipeline } from "./lighting/postprocessing";
@@ -125,9 +126,11 @@ window.addEventListener("resize", () => {
   pipeline.setSize(window.innerWidth, window.innerHeight);
 });
 
+const fpsCounter = createFpsCounter(container);
 const timer = new THREE.Timer();
 renderer.setAnimationLoop(() => {
   timer.update();
+  fpsCounter.update(timer.getDelta());
   const dt = Math.min(timer.getDelta(), 0.1); // clamp huge tab-switch deltas
   input.update(dt);
   let intent = input.moveIntent();

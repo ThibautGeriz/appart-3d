@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import type { Product } from "../../data/catalog";
-import { board } from "./parts";
+import { bar, board, tube, v } from "./parts";
 import { blackSteel, oiledOak } from "./materials";
 import { WALL_BED_FEET, WALL_BED_FOLD } from "../../apartment/wallBed";
 
@@ -176,6 +176,112 @@ export function flexispotDesk(p: Product): THREE.Group {
   return g;
 }
 
+/** Aeron graphite: dark frame, base and armrests. */
+const graphite = new THREE.MeshStandardMaterial({
+  name: "graphite",
+  color: "#2a2c2f",
+  metalness: 0.35,
+  roughness: 0.5,
+});
+/** 8Z Pellicle mesh (seat and back), dark and matte. */
+const pellicle = new THREE.MeshStandardMaterial({
+  name: "pellicle mesh",
+  color: "#34363a",
+  metalness: 0,
+  roughness: 1,
+});
+const caster = new THREE.MeshStandardMaterial({
+  name: "caster",
+  color: "#111214",
+  metalness: 0.1,
+  roughness: 0.6,
+});
+
+/**
+ * Herman Miller Aeron (size B): five-star base on casters, gas cylinder, a
+ * mesh seat and a taller mesh back on a graphite frame, height-adjustable
+ * arms. Origin at the floor under the cylinder, front toward +z.
+ */
+export function aeron(p: Product): THREE.Group {
+  const g = new THREE.Group();
+  const { w, h } = p; // the depth comes from the base and the leaning back
+  const seatY = 0.45;
+  const baseR = 0.33;
+  // five-star base: spokes slightly sloping down to the casters
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * Math.PI * 2 + Math.PI / 2;
+    const end = v(Math.cos(a) * (baseR - 0.03), 0.075, Math.sin(a) * (baseR - 0.03));
+    g.add(bar(v(0, 0.1, 0), end, 0.045, 0.03, graphite, 0.008));
+    const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.03, 20), caster);
+    wheel.rotation.z = Math.PI / 2;
+    wheel.rotation.y = -a;
+    wheel.position.set(Math.cos(a) * (baseR - 0.03), 0.03, Math.sin(a) * (baseR - 0.03));
+    g.add(wheel);
+  }
+  g.add(
+    new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.04, 0.06, 20), graphite).translateY(0.1),
+  );
+  // gas cylinder up to the seat mechanism
+  g.add(
+    new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.026, seatY - 0.14, 20), graphite).translateY(
+      0.12 + (seatY - 0.14) / 2,
+    ),
+  );
+  g.add(board(0.2, 0.05, 0.2, graphite, 0, seatY - 0.06, 0, 0.01, "x"));
+  // seat: mesh in a frame, front edge rolled down (waterfall)
+  g.add(board(0.5, 0.035, 0.44, graphite, 0, seatY, 0.02, 0.015, "x"));
+  g.add(board(0.47, 0.012, 0.41, pellicle, 0, seatY + 0.02, 0.02, 0.004, "x"));
+  g.add(board(0.47, 0.04, 0.03, graphite, 0, seatY - 0.01, 0.25, 0.012, "x"));
+  // back: frame loop around the mesh, leaning back, wider at the shoulders
+  const backBottom = seatY + 0.08;
+  const lean = 0.155; // how far the top sits behind the bottom (sets the overall depth)
+  const backZ = -0.2;
+  const loop = [
+    v(-0.2, backBottom, backZ),
+    v(-0.235, (backBottom + h) / 2, backZ - lean / 2),
+    v(-0.22, h - 0.055, backZ - lean), // the curve bows ~4 cm above its top points
+    v(0.22, h - 0.055, backZ - lean),
+    v(0.235, (backBottom + h) / 2, backZ - lean / 2),
+    v(0.2, backBottom, backZ),
+  ];
+  g.add(tube(loop, 0.016, graphite, true));
+  const back = board(
+    0.43,
+    h - 0.02 - backBottom,
+    0.01,
+    pellicle,
+    0,
+    (backBottom + h - 0.02) / 2,
+    backZ - lean / 2,
+    0.004,
+    "y",
+  );
+  back.rotation.x = -Math.atan2(lean, h - backBottom);
+  g.add(back);
+  // spine from the seat mechanism to the back (with the lumbar pad)
+  g.add(
+    bar(
+      v(0, seatY - 0.04, -0.06),
+      v(0, backBottom + 0.05, backZ + 0.01),
+      0.07,
+      0.03,
+      graphite,
+      0.01,
+    ),
+  );
+  g.add(board(0.3, 0.06, 0.02, graphite, 0, backBottom + 0.12, backZ - 0.005, 0.01, "x"));
+  // arms: posts from under the seat to the pads, at the chair's full width
+  for (const sx of [-1, 1]) {
+    const x = sx * (w / 2 - 0.05);
+    g.add(
+      bar(v(sx * 0.2, seatY - 0.03, -0.08), v(x, seatY - 0.03, -0.1), 0.04, 0.025, graphite, 0.008),
+    );
+    g.add(bar(v(x, seatY - 0.03, -0.1), v(x, seatY + 0.22, -0.06), 0.04, 0.03, graphite, 0.008));
+    g.add(board(0.09, 0.03, 0.26, caster, x, seatY + 0.235, -0.02, 0.012, "z"));
+  }
+  return g;
+}
+
 export interface BookcaseLayout {
   /** column widths, left to right (sum = product width, panels included) */
   columns: number[];
@@ -244,6 +350,7 @@ export const STUDY_BUILDERS: Record<string, (p: Product) => THREE.Group> = {
   "bed-consus": wallBed,
   "bed-altera-premium": wallBed,
   "desk-flexispot-solid-wood": flexispotDesk,
+  "office-aeron": aeron,
   "bookcase-vu-white": venteUniqueBookcase(whiteMelamine),
   "bookcase-vu-wotan": venteUniqueBookcase(oiledOak),
   // AM.PM Iloss: solid oak, 5 fixed shelves (the bay split is not given:

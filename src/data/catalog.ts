@@ -18,7 +18,8 @@ export type ProductKind =
   | "nightstand"
   | "shelf"
   | "wallBed"
-  | "desk";
+  | "desk"
+  | "officeChair";
 
 /** Vertical wall bed (lit escamotable): folds down from its cabinet, head against the wall. */
 export interface WallBedSpec {
@@ -460,6 +461,21 @@ export const CATALOG: Product[] = [
     h: 2.0,
     materials: "Chêne massif, vernis polyuréthane incolore, 5 tablettes fixes",
     price: 1190.63, // + 99 € delivery to the room
+  },
+  // ── Office chair (in front of the desk) ─────────────────────────────────
+  {
+    id: "office-aeron",
+    kind: "officeChair",
+    name: "Herman Miller Aeron (taille B, graphite)",
+    url: "https://frstore.hermanmiller.com/products/aeron-office-chair",
+    // official spec sheet, size B: W 719–772, D 698–719, H 933–1045 mm
+    w: 0.72,
+    d: 0.7,
+    h: 0.98,
+    seatHeight: 0.45,
+    materials:
+      "Assise et dossier maille 8Z Pellicle, cadre et piétement graphite, accoudoirs réglables, roulettes",
+    price: 1599, // official French store, 25 % off 2 132 € (27/11/2026)
   },
   // ── Desk (already owned, kept as is) ────────────────────────────────────
   {

@@ -140,9 +140,9 @@ describe("budget", () => {
       bookcase: "shelf-fina",
     });
     const rooms = budget(APARTMENT_DEF, placements);
-    expect(rooms.map((r) => r.room)).toEqual(["Séjour / Cuisine", "Chambre 1", "Chambre 2"]);
-    // chambre 2: the bed and the bookcase; the desk is already owned
-    expect(rooms[2].total).toBeCloseTo(1578.9 + 590, 2);
+    expect(rooms.map((r) => r.room)).toEqual(["Séjour / Cuisine", "Chambre", "Bureau"]);
+    // bureau: the bed and the bookcase (the desk is already owned) + the office chair
+    expect(rooms[2].total).toBeCloseTo(1578.9 + 590 + 1599, 2);
     const lines = Object.fromEntries(rooms[0].lines.map((l) => [l.product.id, l]));
     expect(lines["chair-bistrot"].quantity).toBe(6);
     expect(lines["chair-bistrot"].total).toBe(6 * 99);
