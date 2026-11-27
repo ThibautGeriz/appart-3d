@@ -202,14 +202,17 @@ export function createFurniturePanel(
   refreshOptions();
   show("meubles");
 
-  // every product with its origin, characteristics and sources (catalog.html)
-  const catalog = el("a", "fp-catalog", "Catalogue complet ↗");
+  // every product with its origin, characteristics and sources (catalog.html),
+  // next to the tabs: always in view, the bar stays on top while scrolling
+  const catalog = el("a", "fp-tab fp-tab-link", "Catalogue ↗");
   Object.assign(catalog, {
     href: `${import.meta.env.BASE_URL}catalog.html`,
     target: "_blank",
     rel: "noopener",
+    title: "Tous les produits : origine, caractéristiques, sources (nouvel onglet)",
   });
-  panel.append(tabs, pages.meubles, pages.budget, catalog);
+  tabs.appendChild(catalog);
+  panel.append(tabs, pages.meubles, pages.budget);
   button.addEventListener("click", () => {
     panel.hidden = !panel.hidden;
     button.classList.toggle("active", !panel.hidden);
