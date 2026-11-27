@@ -420,6 +420,15 @@ body {
   z-index: 10;
 }
 
+/* phones: the top row holds the catalogue button and the toggles, so the
+   counter would cover the catalogue button: move it to the bottom centre */
+@media (max-width: 600px) {
+  .hud-fps {
+    top: auto;
+    bottom: calc(16px + env(safe-area-inset-bottom));
+  }
+}
+
 .hud-fps[data-level="good"] {
   color: #7ee08a;
 }

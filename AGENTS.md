@@ -158,3 +158,11 @@ npm run validate:glb # Khronos glTF validator on every model (as in CI)
   - mobile: joystick, swipe to look, tap to move, no scroll/zoom hijack, correct fullscreen height,
     playable framerate
   - collision: cannot walk through walls; smooth sliding in corridors
+
+## Agent skills
+
+Shared by every agent in `.agent/skills/` (`.claude/skills` is a symlink):
+
+- `add-furniture`: add a real product to the catalog (facts, model,
+  fabric and colour, placement, GLB, PR)
+- `improve-model`: compare a model with its product page and fix it
