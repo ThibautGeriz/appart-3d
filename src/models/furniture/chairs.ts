@@ -1,16 +1,45 @@
 import * as THREE from "three";
 import type { Product } from "../../data/catalog";
 import {
-  agedBlack,
-  agedIron,
   darkScrew,
-  fir,
-  lightElm,
-  microfibre,
-  oiledOak,
-  recycledElm,
+  fir as sharedFir,
+  lightElm as sharedLightElm,
+  microfibre as sharedMicrofibre,
+  oiledOak as sharedOiledOak,
+  recycledElm as sharedRecycledElm,
 } from "./materials";
 import { arcBand, bar, board, slab, tube, v } from "./parts";
+
+/*
+ * Chair materials, tuned against the seller's photos. The wood / fabric ones
+ * are clones of the shared ones (same name, so the same photo scan at export)
+ * with a lighter, less saturated tint: the scans render darker than the photos.
+ */
+function retint(m: THREE.MeshStandardMaterial, color: string): THREE.MeshStandardMaterial {
+  const c = m.clone();
+  c.color.set(color);
+  return c;
+}
+const recycledElm = retint(sharedRecycledElm, "#eec8b8");
+const oiledOak = retint(sharedOiledOak, "#fff6ea");
+const microfibre = retint(sharedMicrofibre, "#ffffff");
+const fir = retint(sharedFir, "#ffd9c6");
+const lightElm = retint(sharedLightElm, "#ffffff");
+
+/** Aged iron as it shows on the photos: dark grey-brown, not black. */
+const agedIron = new THREE.MeshStandardMaterial({
+  name: "aged iron chair",
+  color: "#574c47",
+  metalness: 0.35,
+  roughness: 0.6,
+});
+/** Mackay: aged black sheet metal, a charcoal grey with a soft sheen. */
+const agedBlack = new THREE.MeshStandardMaterial({
+  name: "aged black chair",
+  color: "#464c52",
+  metalness: 0.35,
+  roughness: 0.55,
+});
 
 /*
  * Dining chairs, at the seller's dimensions (W × D × H bounding box).
@@ -83,8 +112,10 @@ export function bistrot(p: Product): THREE.Group {
       bar(
         v(sx * 0.165, seat + 0.01, -0.17),
         v(-sx * 0.165, topY, -d / 2 + 0.03),
-        0.022,
+        // bar() keeps `w` horizontal: on a diagonal in the back plane it is
+        // the depth, `t` the visible width (~3 cm flat bars on the photo)
         0.005,
+        0.03,
         agedIron,
         0.001,
       ),
@@ -209,11 +240,12 @@ export function norway(p: Product): THREE.Group {
   );
   g.add(board(w - 2 * leg, 0.03, 0.028, oiledOak, 0, 0.13, 0.005, 0.003, "x"));
 
-  // Back: top rail, lower rail and the X between them
+  // Back: top rail, lower rail and the X between them (on the photo the X
+  // is taller than wide, the lower rail ~13 cm above the cushion)
   const backZ = -d / 2 + leg / 2 + 0.008;
   const inner = w - 2 * leg;
   const topRail = [h - 0.095, h - 0.015];
-  const lowRail = [seat + 0.17, seat + 0.23];
+  const lowRail = [seat + 0.13, seat + 0.18];
   g.add(
     board(
       inner,
@@ -245,8 +277,10 @@ export function norway(p: Product): THREE.Group {
       bar(
         v(sx * (inner / 2 - 0.02), lowRail[1] - 0.01, backZ + 0.002),
         v(-sx * (inner / 2 - 0.02), topRail[0] + 0.01, backZ),
-        0.04,
-        sx > 0 ? 0.024 : 0.02, // the two halves are halved into each other
+        // `w` stays horizontal (the depth here), `t` is the visible width;
+        // the two halves are halved into each other
+        sx > 0 ? 0.024 : 0.02,
+        0.048,
         oiledOak,
         0.003,
       ),
@@ -272,7 +306,8 @@ export function norway(p: Product): THREE.Group {
 
 /**
  * WESTMOUNT: aged-iron sled frame (square tube), rough sawn fir seat and back,
- * two planks each. L 40 × P 50 × H 88 cm, seat 45 cm.
+ * two planks each, "cerclées de fer": the thick seat sits between the side
+ * rails, its front edge bare. L 40 × P 50 × H 88 cm, seat 45 cm.
  */
 export function westmount(p: Product): THREE.Group {
   const g = new THREE.Group();
@@ -282,26 +317,29 @@ export function westmount(p: Product): THREE.Group {
   const front = d / 2 - t / 2;
   const back = -d / 2 + t / 2;
   const seat = p.seatHeight ?? 0.45;
-  const plank = 0.028;
-  const rail = seat - plank - t / 2;
+  const plank = 0.05; // ~5 cm front edge on the photo
+  const seatBottom = seat - plank;
 
   for (const sx of [-1, 1]) {
     const X = sx * x;
-    g.add(bar(v(X, 0, front), v(X, rail + t / 2, front), t, t, agedIron, 0.001)); // front leg
+    g.add(bar(v(X, 0, front), v(X, seat, front), t, t, agedIron, 0.001)); // front leg, up to the seat top
     g.add(bar(v(X, t / 2, front + t / 2), v(X, t / 2, back - t / 2), t, t, agedIron, 0.001)); // floor runner
     g.add(bar(v(X, 0, back), v(X, h, back), t, t, agedIron, 0.001)); // back upright
-    g.add(bar(v(X, rail, front + t / 2), v(X, rail, back), t, t, agedIron, 0.001)); // seat rail
+    // seat rail: flat bar along the seat's side
+    g.add(board(t, plank - 0.01, d - 2 * t, agedIron, X, seat - plank / 2, 0, 0.001, "z"));
   }
-  // cross rails: front and back at seat level, top of the back
-  g.add(bar(v(-x - t / 2, rail, front), v(x + t / 2, rail, front), t, t, agedIron, 0.001));
-  g.add(bar(v(-x - t / 2, rail, back), v(x + t / 2, rail, back), t, t, agedIron, 0.001));
+  // cross rails: under the back of the seat, top of the back
+  g.add(
+    bar(v(-x, seatBottom - t / 2, back), v(x, seatBottom - t / 2, back), t, t, agedIron, 0.001),
+  );
   g.add(bar(v(-x - t / 2, h - t / 2, back), v(x + t / 2, h - t / 2, back), t, t, agedIron, 0.001));
 
-  // Seat: two planks across, on the frame
-  const seatD = d - 0.004;
+  // Seat: two planks across, between the side rails
+  const seatD = d - t - 0.002;
+  const seatZ = t / 2 + 0.001; // from the back upright to the front edge
   for (const i of [0, 1]) {
-    const z = -seatD / 2 + (seatD * (i + 0.5)) / 2 + (i === 0 ? -0.001 : 0.001);
-    g.add(board(w - 0.006, plank, seatD / 2 - 0.004, fir, 0, seat - plank / 2, z, 0.004, "x"));
+    const z = seatZ - seatD / 2 + (seatD * (i + 0.5)) / 2 + (i === 0 ? -0.001 : 0.001);
+    g.add(board(w - 2 * t, plank, seatD / 2 - 0.002, fir, 0, seat - plank / 2, z, 0.004, "x"));
   }
   // Back: two planks, between the uprights
   const backTop = h - t - 0.008;
@@ -327,21 +365,25 @@ export function mackay(p: Product): THREE.Group {
   const wood = 0.025;
   const pan = seat - wood;
 
-  // Seat pan with its skirt, and the elm seat with chamfered corners
-  g.add(board(0.39, 0.055, 0.39, agedBlack, 0, pan - 0.0275, 0.03, 0.01));
-  const s = new THREE.Shape();
-  const a = 0.185;
-  const c = 0.05;
-  s.moveTo(-a + c, -a);
-  s.lineTo(a - c, -a);
-  s.lineTo(a, -a + c);
-  s.lineTo(a, a - c);
-  s.lineTo(a - c, a);
-  s.lineTo(-a + c, a);
-  s.lineTo(-a, a - c);
-  s.lineTo(-a, -a + c);
-  s.closePath();
-  const seatMesh = slab(s, seat, wood, 0.006, lightElm);
+  // Seat pan with its skirt following the seat's chamfered outline, and the
+  // elm seat on it
+  const octagon = (a: number, c: number) => {
+    const s = new THREE.Shape();
+    s.moveTo(-a + c, -a);
+    s.lineTo(a - c, -a);
+    s.lineTo(a, -a + c);
+    s.lineTo(a, a - c);
+    s.lineTo(a - c, a);
+    s.lineTo(-a + c, a);
+    s.lineTo(-a, a - c);
+    s.lineTo(-a, -a + c);
+    s.closePath();
+    return s;
+  };
+  const skirt = slab(octagon(0.197, 0.055), pan, 0.055, 0.004, agedBlack);
+  skirt.position.z = 0.03;
+  g.add(skirt);
+  const seatMesh = slab(octagon(0.185, 0.05), seat, wood, 0.006, lightElm);
   seatMesh.position.z = 0.03;
   g.add(seatMesh);
 
@@ -349,7 +391,7 @@ export function mackay(p: Product): THREE.Group {
   for (const sx of [-1, 1]) {
     for (const sz of [-1, 1]) {
       const top = v(sx * 0.165, pan - 0.02, 0.03 + sz * 0.165);
-      const foot = v(sx * (w / 2 - 0.016), 0, sz > 0 ? d / 2 - 0.016 : -d / 2 + 0.07);
+      const foot = v(sx * (w / 2 - 0.0135), 0, sz > 0 ? d / 2 - 0.012 : -d / 2 + 0.07);
       const length = top.distanceTo(foot);
       const geo = new THREE.CylinderGeometry(0.026, 0.016, length, 4, 1);
       geo.rotateY(Math.PI / 4);
@@ -366,19 +408,39 @@ export function mackay(p: Product): THREE.Group {
   for (const sx of [-1, 1])
     g.add(tube([v(sx * 0.17, by, -0.14), v(sx * 0.17, by, 0.2)], 0.0045, agedBlack));
 
-  // Back: arched band at the top, central spine down to the seat, side rods
+  // Back: arched band at the top, central spine down to the seat, side
+  // strips; the spine flares into the band, leaving two arched openings
   const bandH = 0.085;
   const bandR = 0.27;
   const bandZ = -d / 2 + bandR + 0.004; // band's back at the footprint edge
   g.add(arcBand(w - 0.01, bandR, 0.004, bandZ, h - bandH, bandH, agedBlack, 0.0015));
-  const spine = bar(
-    v(0, pan + 0.01, -0.17),
-    v(0, h - bandH + 0.01, -d / 2 + 0.012),
-    0.11,
-    0.005,
-    agedBlack,
-    0.002,
-  );
+  const spineFoot = v(0, pan + 0.01, -0.17);
+  const spineTop = v(0, h - bandH + 0.01, -d / 2 + 0.012);
+  const spineLen = spineFoot.distanceTo(spineTop);
+  const outline = new THREE.Shape();
+  const flareFrom = spineLen - 0.17;
+  outline.moveTo(-0.048, 0);
+  outline.lineTo(-0.04, flareFrom);
+  outline.quadraticCurveTo(-0.04, spineLen - 0.01, -0.13, spineLen);
+  outline.lineTo(0.13, spineLen);
+  outline.quadraticCurveTo(0.04, spineLen - 0.01, 0.04, flareFrom);
+  outline.lineTo(0.048, 0);
+  outline.closePath();
+  const spineGeo = new THREE.ExtrudeGeometry(outline, {
+    depth: 0.005,
+    bevelEnabled: false,
+    curveSegments: 8,
+  });
+  // follow the band's curve: the sides come forward with the arc
+  const pos = spineGeo.getAttribute("position");
+  for (let i = 0; i < pos.count; i++) {
+    const px = pos.getX(i);
+    pos.setZ(i, pos.getZ(i) - 0.0025 + bandR - Math.sqrt(bandR * bandR - px * px));
+  }
+  spineGeo.computeVertexNormals();
+  const spine = new THREE.Mesh(spineGeo, agedBlack);
+  spine.position.copy(spineFoot);
+  spine.quaternion.setFromUnitVectors(v(0, 1, 0), spineTop.clone().sub(spineFoot).normalize());
   g.add(spine);
   // embossed teardrop on the spine
   const drop = bar(
@@ -394,11 +456,15 @@ export function mackay(p: Product): THREE.Group {
   const endX = Math.sin(half) * bandR;
   const endZ = bandZ - Math.cos(half) * bandR;
   for (const sx of [-1, 1]) {
+    // flat sheet-metal strip from the band's end (inset by half its width) down to the seat pan
     g.add(
-      tube(
-        [v(sx * endX, h - bandH + 0.01, endZ), v(sx * 0.19, pan - 0.01, -0.12)],
-        0.0055,
+      bar(
+        v(sx * (endX - 0.009), h - bandH + 0.01, endZ - 0.01),
+        v(sx * 0.19, pan - 0.01, -0.12),
+        0.022,
+        0.004,
         agedBlack,
+        0.0015,
       ),
     );
   }

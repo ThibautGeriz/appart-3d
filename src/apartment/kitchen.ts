@@ -1,4 +1,4 @@
-import { bowlSpans, KUBUS_2_KNG_120, KUBUS_2_KNG_120_URL } from "../data/sink";
+import { cutOutSpans, KUBUS_2_KNG_120, KUBUS_2_KNG_120_URL } from "../data/sink";
 import type { FurnitureDef, KitchenDef, KitchenModule, Rect } from "../data/apartment";
 
 /** Gap between adjacent fronts (shadow line between doors/drawers). */
@@ -131,8 +131,9 @@ export function expandKitchen(k: KitchenDef): FurnitureDef[] {
     }
   }
 
-  // Worktop with a small front overhang, cut out over the undermount sink's
-  // bowls; all pieces share one texture origin, so the stone runs across them
+  // Worktop with a small front overhang, cut out over the undermount sink
+  // (one opening, see cutOutSpans); all pieces share one texture origin, so
+  // the stone runs across them
   const worktopTop = top + k.worktop.thickness;
   const worktopFront = front + k.worktop.overhang;
   const worktop = (rect: Rect) =>
@@ -145,7 +146,7 @@ export function expandKitchen(k: KitchenDef): FurnitureDef[] {
   const bowlX0 = sinkX0 + (KUBUS_2_KNG_120.width - KUBUS_2_KNG_120.bowlWidth) / 2;
   const bowlX1 = bowlX0 + KUBUS_2_KNG_120.bowlWidth;
   // the large bowl towards +z: the sink's local +x runs along -z (it faces +x)
-  const openings = bowlSpans(KUBUS_2_KNG_120)
+  const openings = cutOutSpans(KUBUS_2_KNG_120)
     .map(([a, b]) => [sinkCenter - b, sinkCenter - a] as [number, number])
     .sort((a, b) => a[0] - b[0]);
   let z = zMin;

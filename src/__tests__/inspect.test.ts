@@ -42,3 +42,13 @@ describe("modelSources", () => {
     expect(new Set(sources.map((m) => m.file)).size).toBe(sources.length);
   });
 });
+
+describe("inspectModel on rotated parts", () => {
+  it("measures the real extent, not the rotated local box", () => {
+    const g = new THREE.Group();
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.5, 32));
+    leg.rotation.y = Math.PI / 4; // a round leg turned 45° is still 20 cm wide
+    g.add(leg);
+    expect(inspectModel(g).size.w).toBeCloseTo(20, 0);
+  });
+});

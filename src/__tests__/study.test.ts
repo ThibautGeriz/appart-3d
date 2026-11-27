@@ -93,25 +93,44 @@ describe("wall bed mechanism", () => {
   it("fits the folding part inside the cabinet when closed", () => {
     for (const p of productsOf("wallBed")) {
       const geo = wallBedGeometry(p);
-      expect(geo.pivotFromWall - geo.thickness, p.id).toBeGreaterThan(0.01);
-      expect(geo.pivotFromWall, p.id).toBeLessThanOrEqual(p.d);
-      expect(geo.pivotHeight + geo.length, p.id).toBeLessThan(p.h);
+      expect(geo.frontFromWall - geo.thickness, p.id).toBeGreaterThan(0.01);
+      expect(geo.frontFromWall, p.id).toBeLessThanOrEqual(p.d);
+      expect(geo.frontFromWall, p.id).toBeGreaterThan(p.d - 0.04); // front ~flush
+      expect(geo.closedBottom + geo.length, p.id).toBeLessThan(p.h);
     }
   });
 
   it("folds down to the open depth, mattress on top, at sleeping height", () => {
-    const p = product("bed-beganio");
-    const model = wallBed(p);
-    poseWallBed(model, 1);
-    model.updateMatrixWorld(true);
-    const box = new THREE.Box3().setFromObject(model);
-    // model frame: back against the wall at z = -d/2
-    expect(box.max.z + p.d / 2).toBeCloseTo(p.wallBed!.openDepth, 1);
-    const geo = wallBedGeometry(p);
-    const fold = model.getObjectByName("fold")!;
-    const foldBox = new THREE.Box3().setFromObject(fold);
-    expect(foldBox.max.y).toBeCloseTo(geo.pivotHeight + geo.thickness, 1); // ~38 cm
-    expect(foldBox.min.y).toBeGreaterThanOrEqual(-0.001); // feet on the floor, not below
+    for (const p of productsOf("wallBed")) {
+      const model = wallBed(p);
+      poseWallBed(model, 1);
+      model.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(model);
+      // model frame: back against the wall at z = -d/2
+      expect(box.max.z + p.d / 2, p.id).toBeCloseTo(p.wallBed!.openDepth, 2);
+      const geo = wallBedGeometry(p);
+      const fold = model.getObjectByName("fold")!;
+      const foldBox = new THREE.Box3().setFromObject(fold);
+      expect(foldBox.max.y, p.id).toBeCloseTo(geo.undersideHeight + geo.thickness, 1); // ~38 cm
+      expect(foldBox.min.y, p.id).toBeGreaterThanOrEqual(-0.001); // feet on the floor, not below
+      expect(foldBox.min.y, p.id).toBeLessThan(0.005);
+      // head end inside the cabinet
+      expect(foldBox.min.z + p.d / 2, p.id).toBeLessThan(p.d);
+    }
+  });
+
+  it("swings clear of the floor and the cabinet top while opening", () => {
+    for (const p of productsOf("wallBed")) {
+      const model = wallBed(p);
+      const fold = model.getObjectByName("fold")!;
+      for (let t = 0; t <= 1; t += 0.05) {
+        poseWallBed(model, t);
+        model.updateMatrixWorld(true);
+        const box = new THREE.Box3().setFromObject(fold, true);
+        expect(box.min.y, `${p.id} t=${t}`).toBeGreaterThan(-0.02);
+        expect(box.max.y, `${p.id} t=${t}`).toBeLessThan(p.h - 0.019);
+      }
+    }
   });
 
   it("stays within the cabinet when closed", () => {

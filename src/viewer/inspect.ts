@@ -25,7 +25,8 @@ const cm = (m: number) => Math.round(m * 1000) / 10;
 /** Bounding box and material inventory of an object. Pure (no rendering). */
 export function inspectModel(object: THREE.Object3D): ModelReport {
   object.updateMatrixWorld(true);
-  const box = new THREE.Box3().setFromObject(object);
+  // precise: per-vertex, so rotated or quantized meshes do not inflate the box
+  const box = new THREE.Box3().setFromObject(object, true);
   const size = box.getSize(new THREE.Vector3());
   const byMaterial = new Map<THREE.Material, MaterialReport>();
   object.traverse((o) => {
