@@ -7,6 +7,7 @@ import { KeyboardMouseInput } from "./controls/keyboardMouse";
 import { TouchInput } from "./controls/touch";
 import { isTouchDevice } from "./controls/device";
 import { createHud } from "./ui/hud";
+import { createFpsCounter } from "./ui/fps";
 import { bindSunControls, defaultHour } from "./ui/sunControls";
 import { createLighting } from "./lighting/environment";
 import { createPipeline } from "./lighting/postprocessing";
@@ -18,7 +19,7 @@ import { createClickToMove } from "./player/clickToMove";
 import { apartmentBounds } from "./apartment/plan";
 import { cameraObstacles } from "./player/camera";
 import { loadModels } from "./apartment/models";
-import { createFurniture } from "./apartment/furniture";
+import { createFurniture, isWallBed } from "./apartment/furniture";
 import { createFurniturePanel } from "./ui/furniturePanel";
 
 const container = document.getElementById("app") as HTMLElement;
@@ -78,6 +79,12 @@ const clickToMove = createClickToMove({
   colliders: apartment.colliders,
   bounds: apartmentBounds(APARTMENT_DEF),
   radius: player.radius,
+  // a click on the wall bed opens / closes it instead of walking there
+  interact: (hit) => {
+    if (!isWallBed(hit.object)) return false;
+    furniture.toggleBed();
+    return true;
+  },
 });
 
 // Movable furniture (catalog products), switched from the toolbar
@@ -119,9 +126,11 @@ window.addEventListener("resize", () => {
   pipeline.setSize(window.innerWidth, window.innerHeight);
 });
 
+const fpsCounter = createFpsCounter(container);
 const timer = new THREE.Timer();
 renderer.setAnimationLoop(() => {
   timer.update();
+  fpsCounter.update(timer.getDelta());
   const dt = Math.min(timer.getDelta(), 0.1); // clamp huge tab-switch deltas
   input.update(dt);
   let intent = input.moveIntent();
@@ -131,6 +140,8 @@ renderer.setAnimationLoop(() => {
     intent = auto.intent;
     look.yaw += auto.turn;
   }
+  // the wall bed folding: static shadows are redrawn only while it moves
+  if (furniture.update(dt)) renderer.shadowMap.needsUpdate = true;
   player.update(dt, intent, look, apartment.colliders);
   player.applyToCamera(camera, obstacles);
   fixtures.update(camera.position.x, camera.position.z);

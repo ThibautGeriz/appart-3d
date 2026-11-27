@@ -5,9 +5,15 @@ import { budget, fits, formatEuros, type SlotDef } from "../apartment/furnishing
 
 const cm = (m: number) => Math.round(m * 100);
 
-/** "L 220 × P 90 × H 76 cm". Pure. */
+/** "L 220 × P 90 × H 76 cm", plus the open depth of a wall bed. Pure. */
 export function sizeLabel(p: Product): string {
-  return `L ${cm(p.w)} × P ${cm(p.d)} × H ${cm(p.h)} cm`;
+  const size = `L ${cm(p.w)} × P ${cm(p.d)} × H ${cm(p.h)} cm`;
+  return p.wallBed ? `${size} · ouvert ${cm(p.wallBed.openDepth)} cm` : size;
+}
+
+/** Price, or "déjà acheté" for what is already owned. Pure. */
+export function priceLabel(p: Product, amount = p.price): string {
+  return p.owned ? "déjà acheté" : formatEuros(amount);
 }
 
 function el<K extends keyof HTMLElementTagNameMap>(
@@ -106,7 +112,7 @@ export function createFurniturePanel(
           "fp-size",
           ok ? sizeLabel(p) : `${sizeLabel(p)} · trop large (max ${cm(s.maxWidth!)} cm)`,
         ),
-        el("span", "fp-price", formatEuros(p.price)),
+        el("span", "fp-price", priceLabel(p)),
       );
       option.title = p.materials;
       option.addEventListener("click", () => {
@@ -157,8 +163,8 @@ export function createFurniturePanel(
         tr.append(
           el("td", "fp-qty", `${line.quantity} ×`),
           name,
-          el("td", "fp-unit", formatEuros(line.product.price)),
-          el("td", "fp-amount", formatEuros(line.total)),
+          el("td", "fp-unit", priceLabel(line.product)),
+          el("td", "fp-amount", priceLabel(line.product, line.total)),
         );
         table.appendChild(tr);
       }
@@ -250,5 +256,8 @@ function kindLabel(kind: ProductKind): string {
     bed: "lit",
     nightstand: "chevet",
     shelf: "étagère",
+    wallBed: "lit escamotable",
+    desk: "bureau",
+    officeChair: "fauteuil de bureau",
   }[kind];
 }

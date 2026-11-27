@@ -11,6 +11,7 @@ import { TABLE_BUILDERS } from "../src/models/furniture/tables";
 import { SOFA_BUILDERS } from "../src/models/furniture/sofa";
 import { SIDEBOARD_BUILDERS } from "../src/models/furniture/sideboards";
 import { BEDROOM_BUILDERS } from "../src/models/furniture/bedroom";
+import { STUDY_BUILDERS } from "../src/models/furniture/study";
 import { PHOTO_TEXTURES } from "../src/models/furniture/materials";
 
 export interface ModelEntry {
@@ -52,6 +53,7 @@ const FURNITURE_BUILDERS = {
   ...SOFA_BUILDERS,
   ...SIDEBOARD_BUILDERS,
   ...BEDROOM_BUILDERS,
+  ...STUDY_BUILDERS,
 };
 
 /** Build a prop at the size the layout data gives it (first item using it). */
@@ -87,6 +89,8 @@ export const MODELS: ModelEntry[] = [
       return g;
     },
     textures: FURNITURE_TEXTURES,
+    // wall beds keep their moving parts (fold, feet) as named nodes
+    rigged: p.kind === "wallBed",
   })),
 ];
 

@@ -11,9 +11,20 @@ import {
   type Selection,
   type SlotDef,
   type SlotId,
+  wallBedOpenRect,
 } from "./furnishing";
 import { loadFile, prepare } from "./models";
 import { rectCollider } from "./plan";
+import { poseWallBed, stepOpening } from "./wallBed";
+
+/** Marks the wall bed's model, so a click on any of its meshes finds it. */
+const WALL_BED_TAG = "wallBed";
+
+/** Is this object (or one of its parents) the wall bed? */
+export function isWallBed(object: THREE.Object3D | null): boolean {
+  for (let o = object; o; o = o.parent) if (o.userData[WALL_BED_TAG]) return true;
+  return false;
+}
 
 const STORAGE_KEY = "appart-3d.furniture";
 
@@ -71,6 +82,12 @@ export interface Furniture {
   setSofaColor(color: string): void;
   /** called after each change (rebuild the path grid, shadows…) */
   onChange(listener: () => void): void;
+  /** the wall bed is open (or opening) */
+  bedOpen: boolean;
+  /** open the wall bed if closed, close it if open (animated) */
+  toggleBed(): void;
+  /** advance animations; true while something moves (shadows need a redraw) */
+  update(dt: number): boolean;
 }
 
 /**
@@ -87,6 +104,26 @@ export function createFurniture(
   const listeners: (() => void)[] = [];
   let own: Collider[] = [];
   let version = 0;
+  let bedModel: THREE.Object3D | null = null;
+  let bedPlacement: Placement | null = null;
+  /** 0 closed → 1 open */
+  let opening = 0;
+  let openCollider: Collider | null = null;
+
+  /** The open bed takes floor: add / remove its collider, then notify. */
+  const setOpenCollider = (on: boolean) => {
+    if (on === (openCollider !== null)) return;
+    if (openCollider) {
+      colliders.splice(colliders.indexOf(openCollider), 1);
+      openCollider = null;
+    } else {
+      const rect = bedPlacement && wallBedOpenRect(bedPlacement);
+      if (!rect) return;
+      openCollider = rectCollider(rect);
+      colliders.push(openCollider);
+    }
+    listeners.forEach((l) => l());
+  };
 
   const saved = load(def.furnishing);
   const persist = () => save({ selection: furniture.selection, sofaColor: furniture.sofaColor });
@@ -118,6 +155,22 @@ export function createFurniture(
     onChange(listener) {
       listeners.push(listener);
     },
+    bedOpen: false,
+    toggleBed() {
+      if (!bedModel) return;
+      furniture.bedOpen = !furniture.bedOpen;
+      // opening takes the floor right away; closing frees it once folded up
+      if (furniture.bedOpen) setOpenCollider(true);
+    },
+    update(dt) {
+      if (!bedModel) return false;
+      const target = furniture.bedOpen ? 1 : 0;
+      if (opening === target) return false;
+      opening = stepOpening(opening, furniture.bedOpen, dt);
+      poseWallBed(bedModel, opening);
+      if (opening === 0) setOpenCollider(false);
+      return true;
+    },
   };
 
   async function place(): Promise<void> {
@@ -126,10 +179,18 @@ export function createFurniture(
     const models = await Promise.all(placements.map((p) => loadFile(p.product.id)));
     if (current !== version) return; // a newer selection won the race
     group.clear();
+    bedModel = null;
+    bedPlacement = null;
     placements.forEach((p, i) => {
       const model = prepare(models[i].clone(), isTouch);
       model.position.set(p.x, 0, p.z);
       model.rotation.y = p.rotationY;
+      if (p.product.wallBed) {
+        model.userData[WALL_BED_TAG] = true;
+        bedModel = model;
+        bedPlacement = p;
+        poseWallBed(model, opening);
+      }
       group.add(model);
     });
     tint();
@@ -137,6 +198,14 @@ export function createFurniture(
     for (const c of own) colliders.splice(colliders.indexOf(c), 1);
     own = placements.flatMap((p) => (p.rects ?? [p.rect]).map(rectCollider));
     colliders.push(...own);
+    // an open bed switched for another product: its open footprint follows
+    if (openCollider) colliders.splice(colliders.indexOf(openCollider), 1);
+    openCollider = null;
+    const openRect = furniture.bedOpen && bedPlacement ? wallBedOpenRect(bedPlacement) : null;
+    if (openRect) {
+      openCollider = rectCollider(openRect);
+      colliders.push(openCollider);
+    }
     furniture.placements = placements;
     listeners.forEach((l) => l());
   }

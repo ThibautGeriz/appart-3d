@@ -18,6 +18,7 @@ import { segmentDistance, TABLE_BUILDERS } from "../models/furniture/tables";
 import { SOFA_BUILDERS } from "../models/furniture/sofa";
 import { SIDEBOARD_BUILDERS } from "../models/furniture/sideboards";
 import { BEDROOM_BUILDERS } from "../models/furniture/bedroom";
+import { STUDY_BUILDERS } from "../models/furniture/study";
 import { liveEdge } from "../models/furniture/parts";
 
 const BUILDERS = {
@@ -26,6 +27,7 @@ const BUILDERS = {
   ...SOFA_BUILDERS,
   ...SIDEBOARD_BUILDERS,
   ...BEDROOM_BUILDERS,
+  ...STUDY_BUILDERS,
 };
 
 describe("catalog models", () => {
@@ -134,9 +136,13 @@ describe("budget", () => {
       nightstand: "nightstand-oregon",
       shelfWindow: "shelf-borneo",
       shelfEntry: "shelf-fina",
+      wallBed: "bed-consus",
+      bookcase: "shelf-fina",
     });
     const rooms = budget(APARTMENT_DEF, placements);
-    expect(rooms.map((r) => r.room)).toEqual(["Séjour / Cuisine", "Chambre 1"]);
+    expect(rooms.map((r) => r.room)).toEqual(["Séjour / Cuisine", "Chambre", "Bureau"]);
+    // bureau: the bed and the bookcase (the desk is already owned) + the office chair
+    expect(rooms[2].total).toBeCloseTo(1578.9 + 590 + 1599, 2);
     const lines = Object.fromEntries(rooms[0].lines.map((l) => [l.product.id, l]));
     expect(lines["chair-bistrot"].quantity).toBe(6);
     expect(lines["chair-bistrot"].total).toBe(6 * 99);

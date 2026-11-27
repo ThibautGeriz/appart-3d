@@ -45,6 +45,11 @@ export function createClickToMove(options: {
   colliders: Collider[];
   bounds: Collider;
   radius: number;
+  /**
+   * Interactive objects get the click first (the wall bed opens instead of
+   * walking there): return true when the hit was handled.
+   */
+  interact?: (hit: THREE.Intersection) => boolean;
 }): ClickToMove {
   const build = () => buildNavGrid(options.colliders, options.bounds, options.radius + PATH_MARGIN);
   let grid = build();
@@ -72,6 +77,7 @@ export function createClickToMove(options: {
         // see through glass, light decals and other transparent surfaces
         .find((h) => !((h.object as THREE.Mesh).material as THREE.Material).transparent);
       if (!hit) return false;
+      if (options.interact?.(hit)) return true;
       // furniture or a wall: aim at its foot, the path snaps to the closest reachable spot
       const path = findPath(grid, from, { x: hit.point.x, z: hit.point.z });
       if (!path || path.length === 0) return false;

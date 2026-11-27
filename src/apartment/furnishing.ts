@@ -62,7 +62,11 @@ export type SlotId =
   | "bed"
   | "nightstand"
   | "shelfWindow"
-  | "shelfEntry";
+  | "shelfEntry"
+  | "wallBed"
+  | "desk"
+  | "bookcase"
+  | "officeChair";
 
 export interface SlotDef {
   id: SlotId;
@@ -86,6 +90,8 @@ export interface FurnishingDef {
   bedroom: BedroomDef;
   /** shelves against a wall, one per shelf slot */
   shelves: Record<"shelfWindow" | "shelfEntry", CoffeeTableDef>;
+  /** chambre 2: wall bed, desk and bookcase, each against a wall */
+  study: Record<"wallBed" | "desk" | "bookcase" | "officeChair", CoffeeTableDef>;
 }
 
 export type Selection = Record<SlotId, string>;
@@ -283,7 +289,22 @@ export function furnishingLayout(def: FurnishingDef, selection: Selection): Plac
     ...bedroomLayout(def.bedroom, product(selection.bed), product(selection.nightstand)),
     coffeeTableLayout(def.shelves.shelfWindow, product(selection.shelfWindow)),
     coffeeTableLayout(def.shelves.shelfEntry, product(selection.shelfEntry)),
+    coffeeTableLayout(def.study.wallBed, product(selection.wallBed)),
+    coffeeTableLayout(def.study.desk, product(selection.desk)),
+    coffeeTableLayout(def.study.bookcase, product(selection.bookcase)),
+    coffeeTableLayout(def.study.officeChair, product(selection.officeChair)),
   ];
+}
+
+/**
+ * Floor taken by an open wall bed, from its cabinet front to its foot (the
+ * cabinet itself is `rect`); null for anything else. Pure.
+ */
+export function wallBedOpenRect(p: Placement): Rect | null {
+  const spec = p.product.wallBed;
+  if (!spec) return null;
+  const { w, d } = p.product;
+  return placeRect([-w / 2, d / 2, w / 2, -d / 2 + spec.openDepth], p.x, p.z, p.rotationY);
 }
 
 export interface BudgetLine {
