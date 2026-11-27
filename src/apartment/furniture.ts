@@ -1,8 +1,17 @@
 import * as THREE from "three";
-import { CATALOG, type ProductKind } from "../data/catalog";
+import { CATALOG } from "../data/catalog";
 import type { ApartmentDef } from "../data/apartment";
 import type { Collider } from "../player/movement";
-import { furnishingLayout, type Placement, type Selection } from "./furnishing";
+import {
+  defaultSelection,
+  fits,
+  furnishingLayout,
+  type FurnishingDef,
+  type Placement,
+  type Selection,
+  type SlotDef,
+  type SlotId,
+} from "./furnishing";
 import { loadFile, prepare } from "./models";
 import { rectCollider } from "./plan";
 
@@ -18,24 +27,24 @@ interface Saved {
   sofaColor: string;
 }
 
-/** Saved choice (per viewer), falling back to the defaults for anything unknown. */
-function load(defaults: Selection): Saved {
+/** Saved choice (per viewer), falling back to the slot's default for anything unknown or too wide. */
+function load(def: FurnishingDef): Saved {
+  const defaults = defaultSelection(def);
   try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}") as Partial<Selection> & {
-      sofaColor?: string;
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}") as Partial<
+      Record<SlotId, string>
+    > & { sofaColor?: string };
+    const valid = (s: SlotDef) => {
+      const p = CATALOG.find((x) => x.id === saved[s.id]);
+      return p && fits(s, p) ? p.id : defaults[s.id];
     };
-    const valid = (kind: ProductKind) => {
-      const id = saved[kind];
-      return CATALOG.some((p) => p.id === id && p.kind === kind) ? id! : defaults[kind];
-    };
-    const kinds: ProductKind[] = ["table", "chair", "coffeeTable", "sofa", "sideboard", "tvUnit"];
     const color = saved.sofaColor;
     return {
-      selection: Object.fromEntries(kinds.map((k) => [k, valid(k)])) as Selection,
+      selection: Object.fromEntries(def.slots.map((s) => [s.id, valid(s)])) as Selection,
       sofaColor: color && /^#[0-9a-f]{6}$/i.test(color) ? color : DEFAULT_SOFA_COLOR,
     };
   } catch {
-    return { selection: { ...defaults }, sofaColor: DEFAULT_SOFA_COLOR };
+    return { selection: defaults, sofaColor: DEFAULT_SOFA_COLOR };
   }
 }
 
@@ -55,8 +64,8 @@ export interface Furniture {
   group: THREE.Group;
   selection: Selection;
   placements: Placement[];
-  /** switch one kind of product; resolves once the new models are in */
-  select(kind: ProductKind, id: string): Promise<void>;
+  /** put a product in a slot; resolves once the new models are in */
+  select(slot: SlotId, id: string): Promise<void>;
   /** fabric colour of the sofa ("#rrggbb") */
   sofaColor: string;
   setSofaColor(color: string): void;
@@ -79,7 +88,7 @@ export function createFurniture(
   let own: Collider[] = [];
   let version = 0;
 
-  const saved = load(def.furnishing.defaults);
+  const saved = load(def.furnishing);
   const persist = () => save({ selection: furniture.selection, sofaColor: furniture.sofaColor });
   /** tint the sofa fabric (shared by the sofa's meshes) */
   const tint = () =>
@@ -96,8 +105,8 @@ export function createFurniture(
     selection: saved.selection,
     sofaColor: saved.sofaColor,
     placements: [],
-    async select(kind, id) {
-      furniture.selection = { ...furniture.selection, [kind]: id };
+    async select(slot, id) {
+      furniture.selection = { ...furniture.selection, [slot]: id };
       persist();
       await place();
     },

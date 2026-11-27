@@ -1,15 +1,7 @@
 import type { ApartmentDef } from "../data/apartment";
 import { productsOf, type Product, type ProductKind } from "../data/catalog";
 import type { Furniture } from "../apartment/furniture";
-import { budget, formatEuros } from "../apartment/furnishing";
-
-const SECTIONS: { kind: ProductKind; title: string }[] = [
-  { kind: "sofa", title: "Canapé (et son aménagement)" },
-  { kind: "coffeeTable", title: "Table basse" },
-  { kind: "table", title: "Table" },
-  { kind: "chair", title: "Chaises" },
-  { kind: "sideboard", title: "Bahut" },
-];
+import { budget, fits, formatEuros, type SlotDef } from "../apartment/furnishing";
 
 const cm = (m: number) => Math.round(m * 100);
 
@@ -74,25 +66,53 @@ export function createFurniturePanel(
     tabs.appendChild(b);
   }
 
-  // ── Meubles: one row of choices per kind ────────────────────────────
-  const options = new Map<string, HTMLButtonElement>();
-  for (const { kind, title } of SECTIONS) {
+  // ── Meubles: the room first, then a row of choices per slot ─────────
+  const slots = def.furnishing.slots;
+  const rooms = [...new Set(slots.map((s) => s.room))];
+  const roomBar = el("div", "fp-rooms");
+  const roomButtons = new Map<string, HTMLButtonElement>();
+  const roomPages = new Map<string, HTMLElement>();
+  let room = rooms[0];
+  const showRoom = (name: string) => {
+    room = name;
+    for (const [r, b] of roomButtons) b.classList.toggle("active", r === name);
+    for (const [r, page] of roomPages) page.hidden = r !== name;
+  };
+  for (const r of rooms) {
+    const b = el("button", "fp-room", r);
+    b.type = "button";
+    b.addEventListener("click", () => showRoom(r));
+    roomButtons.set(r, b);
+    roomBar.appendChild(b);
+    const page = el("div", "fp-room-page");
+    roomPages.set(r, page);
+  }
+  pages.meubles.appendChild(roomBar);
+
+  const options: { slot: SlotDef; product: Product; button: HTMLButtonElement }[] = [];
+  for (const s of slots) {
     const section = el("section", "fp-section");
-    section.appendChild(el("h3", "fp-title", title));
+    section.appendChild(el("h3", "fp-title", s.title));
     const list = el("div", "fp-options");
-    for (const p of productsOf(kind)) {
+    for (const p of productsOf(s.kind)) {
+      const ok = fits(s, p);
       const option = el("button", "fp-option");
       option.type = "button";
+      option.disabled = !ok;
       option.append(
         el("span", "fp-name", p.name),
-        el("span", "fp-size", sizeLabel(p)),
+        el(
+          "span",
+          "fp-size",
+          ok ? sizeLabel(p) : `${sizeLabel(p)} · trop large (max ${cm(s.maxWidth!)} cm)`,
+        ),
         el("span", "fp-price", formatEuros(p.price)),
       );
       option.title = p.materials;
       option.addEventListener("click", () => {
-        if (furniture.selection[kind] === p.id) return;
+        if (!ok || furniture.selection[s.id] === p.id) return;
         option.classList.add("loading");
-        void furniture.select(kind, p.id).finally(() => option.classList.remove("loading"));
+        void furniture.select(s.id, p.id).finally(() => option.classList.remove("loading"));
         refreshOptions();
       });
       const link = el("a", "fp-link", "↗");
@@ -105,15 +125,17 @@ export function createFurniturePanel(
       const row = el("div", "fp-row");
       row.append(option, link);
       list.appendChild(row);
-      options.set(p.id, option);
+      options.push({ slot: s, product: p, button: option });
     }
     section.appendChild(list);
-    if (kind === "sofa") section.appendChild(colorPicker(furniture));
-    pages.meubles.appendChild(section);
+    if (s.kind === "sofa") section.appendChild(colorPicker(furniture));
+    roomPages.get(s.room)!.appendChild(section);
   }
+  for (const page of roomPages.values()) pages.meubles.appendChild(page);
+  showRoom(room);
   const refreshOptions = () => {
-    for (const [id, option] of options) {
-      option.classList.toggle("active", Object.values(furniture.selection).includes(id));
+    for (const { slot: s, product: p, button } of options) {
+      button.classList.toggle("active", furniture.selection[s.id] === p.id);
     }
   };
 
@@ -225,5 +247,8 @@ function kindLabel(kind: ProductKind): string {
     sofa: "canapé",
     sideboard: "bahut",
     tvUnit: "meuble TV",
+    bed: "lit",
+    nightstand: "chevet",
+    shelf: "étagère",
   }[kind];
 }

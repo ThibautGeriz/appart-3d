@@ -10,6 +10,7 @@ import { CHAIR_BUILDERS } from "../src/models/furniture/chairs";
 import { TABLE_BUILDERS } from "../src/models/furniture/tables";
 import { SOFA_BUILDERS } from "../src/models/furniture/sofa";
 import { SIDEBOARD_BUILDERS } from "../src/models/furniture/sideboards";
+import { BEDROOM_BUILDERS } from "../src/models/furniture/bedroom";
 import { PHOTO_TEXTURES } from "../src/models/furniture/materials";
 
 export interface ModelEntry {
@@ -50,6 +51,7 @@ const FURNITURE_BUILDERS = {
   ...TABLE_BUILDERS,
   ...SOFA_BUILDERS,
   ...SIDEBOARD_BUILDERS,
+  ...BEDROOM_BUILDERS,
 };
 
 /** Build a prop at the size the layout data gives it (first item using it). */

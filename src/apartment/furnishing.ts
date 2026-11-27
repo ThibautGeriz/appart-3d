@@ -41,17 +41,69 @@ export interface LivingDef {
   tvUnit: CoffeeTableDef;
 }
 
+/** A bedroom: the bed's head against a wall, a bedside table on each side. */
+export interface BedroomDef {
+  /** middle of the headboard, on the wall */
+  head: [number, number];
+  /** the way the bed runs from the wall (towards its foot) */
+  towards: Facing;
+  /** gap between the bed and each bedside table */
+  nightstandGap: number;
+}
+
+/** Every place a product can be chosen for, in the toolbar's order. */
+export type SlotId =
+  | "sofa"
+  | "coffeeTable"
+  | "tvUnit"
+  | "table"
+  | "chair"
+  | "sideboard"
+  | "bed"
+  | "nightstand"
+  | "shelfWindow"
+  | "shelfEntry";
+
+export interface SlotDef {
+  id: SlotId;
+  kind: ProductKind;
+  /** room the slot is listed under (the toolbar shows rooms first) */
+  room: string;
+  title: string;
+  /** product when nothing is saved yet */
+  default: string;
+  /** widest product that fits there (m); wider ones are listed but disabled */
+  maxWidth?: number;
+}
+
 export interface FurnishingDef {
+  slots: SlotDef[];
   dining: DiningDef;
   /** living-room layout per sofa product id */
   living: Record<string, LivingDef>;
   /** sideboard against a wall (along "-x": its front faces -z, …) */
   sideboard: CoffeeTableDef;
-  /** selection when nothing is saved yet */
-  defaults: Selection;
+  bedroom: BedroomDef;
+  /** shelves against a wall, one per shelf slot */
+  shelves: Record<"shelfWindow" | "shelfEntry", CoffeeTableDef>;
 }
 
-export type Selection = Record<ProductKind, string>;
+export type Selection = Record<SlotId, string>;
+
+/** Does this product go in this slot (right kind, narrow enough)? Pure. */
+export function fits(slot: SlotDef, p: Product): boolean {
+  return p.kind === slot.kind && (slot.maxWidth === undefined || p.w <= slot.maxWidth + 0.005);
+}
+
+export function defaultSelection(def: FurnishingDef): Selection {
+  return Object.fromEntries(def.slots.map((s) => [s.id, s.default])) as Selection;
+}
+
+export function slot(def: FurnishingDef, id: SlotId): SlotDef {
+  const s = def.slots.find((x) => x.id === id);
+  if (!s) throw new Error(`unknown slot ${id}`);
+  return s;
+}
 
 export interface Placement {
   product: Product;
@@ -188,6 +240,36 @@ export function sofaLayout(def: LivingDef, sofa: Product): Placement {
   };
 }
 
+/**
+ * Bed with its head against the wall, and a bedside table on each side of
+ * the head, against the same wall, facing the room. Pure.
+ */
+export function bedroomLayout(def: BedroomDef, bed: Product, nightstand: Product): Placement[] {
+  const dir = facingVector(def.towards);
+  const side: [number, number] = [-dir[1], dir[0]];
+  const [hx, hz] = def.head;
+  const rotationY = rotationFacing(dir);
+  const at = (x: number, z: number, p: Product): Placement => ({
+    product: p,
+    x,
+    z,
+    rotationY,
+    rect: placeRect([-p.w / 2, -p.d / 2, p.w / 2, p.d / 2], x, z, rotationY),
+  });
+  const placements = [at(hx + (dir[0] * bed.d) / 2, hz + (dir[1] * bed.d) / 2, bed)];
+  for (const s of [-1, 1]) {
+    const off = bed.w / 2 + def.nightstandGap + nightstand.w / 2;
+    placements.push(
+      at(
+        hx + side[0] * s * off + (dir[0] * nightstand.d) / 2,
+        hz + side[1] * s * off + (dir[1] * nightstand.d) / 2,
+        nightstand,
+      ),
+    );
+  }
+  return placements;
+}
+
 /** Everything to place for a selection: the living room follows the sofa. Pure. */
 export function furnishingLayout(def: FurnishingDef, selection: Selection): Placement[] {
   const living = def.living[selection.sofa];
@@ -198,6 +280,9 @@ export function furnishingLayout(def: FurnishingDef, selection: Selection): Plac
     coffeeTableLayout(living.coffeeTable, product(selection.coffeeTable)),
     coffeeTableLayout(living.tvUnit, product(selection.tvUnit)),
     coffeeTableLayout(def.sideboard, product(selection.sideboard)),
+    ...bedroomLayout(def.bedroom, product(selection.bed), product(selection.nightstand)),
+    coffeeTableLayout(def.shelves.shelfWindow, product(selection.shelfWindow)),
+    coffeeTableLayout(def.shelves.shelfEntry, product(selection.shelfEntry)),
   ];
 }
 
