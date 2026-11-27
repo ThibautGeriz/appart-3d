@@ -4,6 +4,9 @@
  * https://www.franke.com/fr/fr/home-solutions/produits/evier-cuisine/product-detail-page.html/125.0748.925.html
  * Dimensions in meters, from the product sheet.
  */
+export const KUBUS_2_KNG_120_URL =
+  "https://www.franke.com/fr/fr/home-solutions/produits/evier-cuisine/product-detail-page.html/125.0748.925.html";
+
 export const KUBUS_2_KNG_120 = {
   /** overall, along the worktop */
   length: 0.76,
