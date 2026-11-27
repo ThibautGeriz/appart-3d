@@ -72,19 +72,24 @@ table before touching code.
 2. Start the dev server in the background (`npm run dev`; if Vite reports
    another dev process for this project, reuse its URL). Base is
    `/appart-3d/`.
-3. With chrome-devtools: `resize_page` 1200×900, then for each view
-   `navigate_page` to
+3. Render with the headless script (no DevTools session needed, safe in
+   parallel, ~10 s per view):
+   ```bash
+   node scripts/render-model.ts <file> --url http://localhost:<port>/appart-3d/ --prefix before
+   ```
+   It writes `/tmp/improve-model/<file>/before-{front,side,top,iso}.png` and
+   `before-report.json` (`--views`, `--bg`, `--out` to change). front/side/top
+   are orthographic (they compare directly with product drawings); the grid
+   has 10 cm cells and sits under the model.
+4. The report holds the measured bounding box in cm (`report.size`), the
+   expected size from the data (`expected`) and every material (type, hex
+   color, roughness/metalness, opacity, textured). Use these numbers for
+   dimensions and colors, not eyeballing.
+5. Interactive alternative: chrome-devtools `navigate_page` to
    `http://localhost:<port>/appart-3d/viewer.html?model=<file>&view=<view>`
-   for `front`, `side`, `top`, `iso`. front/side/top are orthographic (they
-   compare directly with product drawings); the grid has 10 cm cells.
-   `&bg=<hex>` matches the photo background, `&grid=0` hides the grid.
-   `viewer.html` with no `model` lists every model and its URL.
-4. `wait_for` the info text, `take_screenshot` →
-   `/tmp/improve-model/<file>/before-<view>.png`.
-5. `evaluate_script` → `() => window.__viewer.model` gives the measured
-   bounding box in cm (`report.size`), the expected size from the data
-   (`expected`) and every material (type, hex color, roughness/metalness,
-   opacity, textured). Use these numbers for dimensions and colors.
+   (`&bg=<hex>`, `&grid=0`), then `evaluate_script` →
+   `() => window.__viewer.model`. `viewer.html` with no `model` lists every
+   model and its URL.
 6. Optional: look at it in place in the app (`/appart-3d/`, 🪑 toolbar for
    catalog furniture) to judge it under the apartment lighting.
 
@@ -127,8 +132,8 @@ Rules:
 
 1. Apply the fixes (data for sizes, the builder for shape and materials).
    Respect AGENTS.md (data-driven, reuse geometry/materials, mobile budget).
-2. `npm run export:glb`, re-render the same views (`after-<view>.png`),
-   re-read `window.__viewer.model`. Iterate until every row is "ok" or the
+2. `npm run export:glb`, re-render with `--prefix after`, re-read
+   `after-report.json`. Iterate until every row is "ok" or the
    remaining gap is explained (e.g. invisible at walking distance). Stop
    after ~3 rounds and report what is left.
 3. Verify: `npm test && npm run lint && npm run build`, and
@@ -154,8 +159,8 @@ Do not commit unless asked. When committing, follow the user's rules
   bathroom props — list them as "no source" in the report).
 - Group models that share a builder file (`src/models/furniture/<group>.ts`)
   and handle a group in one pass, so two agents never edit the same file.
-  Sub-agents: one per group, each with its own dev server port
-  (`npx vite --port <p> --strictPort --bypass-lock`) and its own browser
-  context (`isolatedContext: "<group>"`).
+  Sub-agents: one per group, each in its own git worktree with its own dev
+  server port (`npx vite --port <p> --strictPort --bypass-lock`), rendering
+  with `scripts/render-model.ts`.
 - Run `npm run export:glb` and the checks once at the end, then report one
   table per model.

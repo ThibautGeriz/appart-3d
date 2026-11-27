@@ -35,6 +35,7 @@ if (!source) {
     .map((m) => `${m.file.padEnd(28)} ${m.url ?? "(no source)"}`)
     .join("\n")}`;
   window.__viewer.ready = true;
+  publish();
 } else {
   void show(source);
 }
@@ -46,6 +47,7 @@ async function show(source: ModelSource): Promise<void> {
   } catch (e) {
     info.textContent = String(e);
     window.__viewer = { models, error: String(e), ready: true };
+    publish();
     return;
   }
   const report = inspectModel(model);
@@ -63,17 +65,18 @@ async function show(source: ModelSource): Promise<void> {
   const key = new THREE.DirectionalLight("#ffffff", 1.4);
   key.position.set(1.5, 3, 2.5);
   scene.add(key);
+  const box = new THREE.Box3().setFromObject(model);
   if (params.get("grid") !== "0") {
-    const grid = new THREE.GridHelper(4, 40, "#9aa0a6", "#d5d8db"); // 10 cm cells
-    grid.position.y = 0.0005;
+    // 10 cm cells, under the model (an undermount sink hangs below its origin)
+    const grid = new THREE.GridHelper(4, 40, "#9aa0a6", "#d5d8db");
+    grid.position.y = Math.min(box.min.y, 0) - 0.0005;
     scene.add(grid);
   }
 
-  const box = new THREE.Box3().setFromObject(model);
   const center = box.getCenter(new THREE.Vector3());
   const size = Math.max(...box.getSize(new THREE.Vector3()).toArray());
   const aspect = window.innerWidth / window.innerHeight;
-  const half = size * 0.65;
+  const half = size * 0.6;
   const ortho = new THREE.OrthographicCamera(-half * aspect, half * aspect, half, -half, 0.01, 50);
   const persp = new THREE.PerspectiveCamera(35, aspect, 0.01, 50);
   const dirs: Record<string, [number, number, number]> = {
@@ -85,7 +88,7 @@ async function show(source: ModelSource): Promise<void> {
   };
   const camera = view in dirs && view !== "iso" ? ortho : persp;
   const dir = new THREE.Vector3(...(dirs[view] ?? dirs.iso)).normalize();
-  camera.position.copy(center).addScaledVector(dir, size * 3.2);
+  camera.position.copy(center).addScaledVector(dir, size * 2.4);
   camera.lookAt(center);
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.target.copy(center);
@@ -103,4 +106,14 @@ async function show(source: ModelSource): Promise<void> {
     renderer.render(scene, camera);
   });
   window.__viewer = { models, model: { ...source, view, report }, ready: true };
+  publish();
+}
+
+/** Same data in the DOM, for headless runs (`chrome --dump-dom`, scripts/render-model.ts). */
+function publish(): void {
+  const pre = document.createElement("pre");
+  pre.id = "report";
+  pre.hidden = true;
+  pre.textContent = JSON.stringify(window.__viewer);
+  document.body.appendChild(pre);
 }
