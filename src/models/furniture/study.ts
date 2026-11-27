@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { fillShelf } from "./decor";
 import type { Product } from "../../data/catalog";
 import { bar, board, tube, v } from "./parts";
 import { blackSteel, oiledOak } from "./materials";
@@ -324,6 +325,22 @@ export function bookcase(p: Product, layout: BookcaseLayout): THREE.Group {
   for (let i = 0; i < levels; i++) {
     const y = y0 + i * step + t / 2;
     g.add(board(inner, t, d - backT - 0.005, material, 0, y, backT / 2, 0.002, "x"));
+  }
+  // books in each compartment (decor)
+  for (let i = 0; i < levels; i++) {
+    const y = y0 + i * step + t;
+    for (let k = 0; k + 1 < edges.length; k++) {
+      fillShelf(
+        g,
+        edges[k] + t / 2,
+        edges[k + 1] - t / 2,
+        y,
+        -d / 2 + backT,
+        d - backT,
+        step - t,
+        600 + i * 11 + k,
+      );
+    }
   }
   if (layout.back) {
     g.add(

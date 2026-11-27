@@ -6,6 +6,8 @@ import { allFurniture } from "../src/apartment/plan";
 import { APARTMENT_DEF, type PropModel } from "../src/data/apartment";
 import { mannequin, PROP_BUILDERS } from "../src/models";
 import { CATALOG } from "../src/data/catalog";
+import { plant, rug } from "../src/models/furniture/decor";
+import { woolCharcoal, woolCream, woolGrey } from "../src/models/furniture/materials";
 import { CHAIR_BUILDERS } from "../src/models/furniture/chairs";
 import { TABLE_BUILDERS } from "../src/models/furniture/tables";
 import { SOFA_BUILDERS } from "../src/models/furniture/sofa";
@@ -79,6 +81,18 @@ export const MODELS: ModelEntry[] = [
     build: mannequin,
     rigged: true,
     textures: { wood: { base: "src/assets/textures/oak_veneer_01.jpg" } },
+  },
+  // room decor (not sold: no budget), placed by the furnishing layout
+  { file: "decor-plant", build: plant, textures: FURNITURE_TEXTURES },
+  {
+    file: "decor-rug-living",
+    build: () => rug(2.0, 1.4, woolCream, woolCharcoal),
+    textures: FURNITURE_TEXTURES,
+  },
+  {
+    file: "decor-rug-bedroom",
+    build: () => rug(2.3, 1.6, woolGrey, woolCream),
+    textures: FURNITURE_TEXTURES,
   },
   // catalog furniture, at the seller's dimensions
   ...CATALOG.map((p) => ({

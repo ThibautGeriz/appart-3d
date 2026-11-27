@@ -9,6 +9,7 @@
  */
 
 import type { FurnishingDef } from "../apartment/furnishing";
+import type { OutletDef } from "../apartment/dressing";
 
 export type Rect = [minX: number, minZ: number, maxX: number, maxZ: number];
 
@@ -210,6 +211,8 @@ export interface ApartmentDef {
   lights: LightDef[];
   /** movable furniture (catalog products, switched from the toolbar) */
   furnishing: FurnishingDef;
+  /** sockets and switches of the plans (set dressing) */
+  outlets: OutletDef[];
   spawn: { x: number; z: number; yaw: number };
 }
 
@@ -698,6 +701,8 @@ export const APARTMENT_DEF: ApartmentDef = {
       "sofa-roma-corner": {
         sofa: { center: [5.79, 1.185], facing: "+z" },
         coffeeTable: { anchor: [5.67, 1.64], align: [-1, -1], along: "+x" },
+        // in the corner by the balcony door, past the TV unit
+        plant: [7.22, 3.45],
         // TV unit against the bathroom wall, facing the sofa (plan: hi-fi at x 5.6 → 7.0)
         tvUnit: { anchor: [6.3, 3.695], align: [0, 1], along: "-x" },
       },
@@ -707,6 +712,8 @@ export const APARTMENT_DEF: ApartmentDef = {
       "sofa-roma-210": {
         sofa: { center: [6.4, 2.975], facing: "-z" },
         coffeeTable: { anchor: [6.79, 2.025], align: [1, 1], along: "+x" },
+        // by the window, left of the TV unit
+        plant: [5.45, 0.3],
         // TV unit against the north wall, right of the window (plan: hi-fi at x 5.85 → 7.05)
         tvUnit: { anchor: [6.45, 0], align: [0, -1], along: "+x" },
       },
@@ -837,6 +844,15 @@ export const APARTMENT_DEF: ApartmentDef = {
       },
     ],
   },
+
+  // Chambre 1 plan: sockets (orange) and the bedside switch (red)
+  outlets: [
+    { at: [11.455, 4.26], facing: "+x", y: 0.25, kind: "socket" },
+    { at: [11.455, 5.42], facing: "+x", y: 0.25, kind: "socket" },
+    { at: [10.5, 7.4], facing: "+z", y: 0.25, kind: "socket" },
+    { at: [14.25, 4.86], facing: "-x", y: 0.75, kind: "switch" },
+    { at: [14.25, 6.52], facing: "-x", y: 0.25, kind: "socket" },
+  ],
 
   spawn: { x: 5.0, z: 8.15, yaw: 0.2 },
 };

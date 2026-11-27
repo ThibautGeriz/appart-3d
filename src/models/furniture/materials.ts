@@ -76,6 +76,11 @@ export const titanio = new THREE.MeshStandardMaterial({
   roughness: 0.42,
 });
 
+/** Rugs: wool loops (generated weave), tinted. */
+export const woolCream = textured("wool cream", "#e9e0cf", 1);
+export const woolGrey = textured("wool grey", "#b9bbb8", 1);
+export const woolCharcoal = textured("wool charcoal", "#4a4845", 1);
+
 /** Photo scan behind each textured material (by material name). */
 export const PHOTO_TEXTURES: Record<string, PhotoTexture> = {
   // tables: scans enlarged so the figure reads at the scale of a 2 m slab
@@ -95,6 +100,10 @@ export const PHOTO_TEXTURES: Record<string, PhotoTexture> = {
   [fragranite.name]: { scan: "fragranite", size: 0.25, grain: "u", flat: true },
   // generated weave (scripts/gen-roma-mesh.py): ~3 mm between holes
   [romaFabric.name]: { scan: "roma_mesh", size: 0.05, grain: "u", noRoughness: true },
+  // generated weave (scripts/gen-wool.py)
+  [woolCream.name]: { scan: "wool", size: 0.25, grain: "u", noRoughness: true },
+  [woolGrey.name]: { scan: "wool", size: 0.25, grain: "u", noRoughness: true },
+  [woolCharcoal.name]: { scan: "wool", size: 0.25, grain: "u", noRoughness: true },
 };
 
 /** Aged (vieilli) iron: dark brown-black with a soft sheen. */

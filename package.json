@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "export:glb": "node scripts/export-glb.ts",
     "validate:glb": "node scripts/export-glb.ts --no-meshopt --out .glb-check && for f in models/*.glb .glb-check/*.glb; do npx -y @gltf-transform/cli@4.1.1 validate --limit 20 \"$f\" || exit 1; done",
+    "bake:lightmap": "node scripts/bake-lightmap.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "oxlint",

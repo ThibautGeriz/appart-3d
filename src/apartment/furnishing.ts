@@ -37,6 +37,8 @@ export interface LivingDef {
   /** sofa centre (of its bounding box) and the way its long side's front faces */
   sofa: { center: [number, number]; facing: Facing };
   coffeeTable: CoffeeTableDef;
+  /** a potted plant (decor) */
+  plant?: [number, number];
   /** TV unit facing the sofa */
   tvUnit: CoffeeTableDef;
 }
@@ -305,6 +307,56 @@ export function wallBedOpenRect(p: Placement): Rect | null {
   if (!spec) return null;
   const { w, d } = p.product;
   return placeRect([-w / 2, d / 2, w / 2, -d / 2 + spec.openDepth], p.x, p.z, p.rotationY);
+}
+
+/** Decor placed with the furniture (rugs, plant): not sold, no budget. */
+export interface DecorPlacement {
+  /** models/<file>.glb */
+  file: string;
+  x: number;
+  z: number;
+  rotationY: number;
+  /** blocks the player (the plant), as a plan rectangle */
+  rect?: Rect;
+}
+
+/**
+ * The decor for a placed selection: a rug under the coffee table, a rug
+ * across the foot of the bed in Chambre 1, the living room's plant. Pure.
+ */
+export function decorLayout(
+  def: FurnishingDef,
+  selection: Selection,
+  placements: Placement[],
+): DecorPlacement[] {
+  const out: DecorPlacement[] = [];
+  const of = (id: string) => placements.find((p) => p.product.id === id);
+  const coffee = of(selection.coffeeTable);
+  if (coffee)
+    out.push({ file: "decor-rug-living", x: coffee.x, z: coffee.z, rotationY: coffee.rotationY });
+  const bed = placements.find((p) => p.product.kind === "bed" && p.product.id === selection.bed);
+  if (bed && !bed.product.wallBed) {
+    // its long side across the bed, towards the foot
+    const dir = facingVector(def.bedroom.towards);
+    out.push({
+      file: "decor-rug-bedroom",
+      x: bed.x + dir[0] * 0.35,
+      z: bed.z + dir[1] * 0.35,
+      rotationY: bed.rotationY,
+    });
+  }
+  const plant = def.living[selection.sofa]?.plant;
+  if (plant) {
+    const [x, z] = plant;
+    out.push({
+      file: "decor-plant",
+      x,
+      z,
+      rotationY: 0,
+      rect: [x - 0.17, z - 0.17, x + 0.17, z + 0.17],
+    });
+  }
+  return out;
 }
 
 export interface BudgetLine {
