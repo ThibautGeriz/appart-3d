@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Appart 3D — model viewer</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100dvh;
+        overflow: hidden;
+        background: #ffffff;
+        font:
+          13px/1.4 system-ui,
+          sans-serif;
+      }
+      #info {
+        position: fixed;
+        top: 8px;
+        left: 8px;
+        padding: 6px 10px;
+        background: rgba(255, 255, 255, 0.85);
+        border-radius: 6px;
+        white-space: pre;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="info"></div>
+    <!-- Dev-only page (not part of the production build): npm run dev, then
+         /appart-3d/viewer.html?model=toilet&view=front -->
+    <script type="module" src="/src/viewer/main.ts"></script>
+  </body>
+</html>

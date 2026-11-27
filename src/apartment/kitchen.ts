@@ -1,4 +1,4 @@
-import { bowlSpans, KUBUS_2_KNG_120 } from "../data/sink";
+import { bowlSpans, KUBUS_2_KNG_120, KUBUS_2_KNG_120_URL } from "../data/sink";
 import type { FurnitureDef, KitchenDef, KitchenModule, Rect } from "../data/apartment";
 
 /** Gap between adjacent fronts (shadow line between doors/drawers). */
@@ -166,6 +166,7 @@ export function expandKitchen(k: KitchenDef): FurnitureDef[] {
     {
       model: "kitchenSink",
       facing: "+x",
+      source: KUBUS_2_KNG_120_URL,
       solid: false,
     },
   );

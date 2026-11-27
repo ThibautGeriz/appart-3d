@@ -102,6 +102,8 @@ export interface FurnitureDef {
   model?: PropModel;
   /** direction the model's front faces (default +z) */
   facing?: Facing;
+  /** product page the model is based on (dimensions, colors, finish) */
+  source?: string;
   /** blocks the player (default true) */
   solid?: boolean;
 }
