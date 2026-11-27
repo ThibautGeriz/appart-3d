@@ -4,19 +4,27 @@ import { formatEuros } from "../apartment/furnishing";
 import { modelUrl } from "../apartment/models";
 import {
   catalogRows,
+  facetCounts,
   filterRows,
   modelSource,
+  positionOf,
+  priceOf,
+  priceAt,
+  priceBounds,
+  sellerOf,
   SORT_KEYS,
   sortRows,
   type CatalogRow,
+  type Filters,
   type SortKey,
 } from "./rows";
 import { createPreviews } from "./preview";
 
 /**
  * catalog.html: every product of the catalog with its 3D model, origin, key
- * characteristics and sources, sortable by size and the other figures.
- * Sort, direction, type filter and search live in the URL (shareable).
+ * characteristics and sources, sortable by size and the other figures, with
+ * facets on the left (type, seller, price range). Sort, direction, facets and
+ * search live in the URL (shareable).
  */
 
 const REPO = "https://github.com/ThibautGeriz/appart-3d/blob/main/";
@@ -43,16 +51,28 @@ const num = (n: number, unit: string) => `${String(n).replace(".", ",")} ${unit}
 const dash = "—";
 
 const rows = catalogRows(APARTMENT_DEF.furnishing);
+const bounds = priceBounds(rows);
 const previews = createPreviews();
 
 // ── State (URL) ───────────────────────────────────────────────────────
 const isKey = (k: string | null): k is SortKey => SORT_KEYS.some((s) => s.key === k);
-const readState = () => {
+const list = (value: string | null) => new Set((value ?? "").split(",").filter(Boolean));
+/** "prix=100-900": a range inside the catalog's, else none */
+const readPrice = (value: string | null): [number, number] | null => {
+  const m = /^(\d+)-(\d+)$/.exec(value ?? "");
+  if (!m) return null;
+  const lo = Math.max(bounds[0], Number(m[1]));
+  const hi = Math.min(bounds[1], Number(m[2]));
+  return lo <= hi && (lo > bounds[0] || hi < bounds[1]) ? [lo, hi] : null;
+};
+const readState = (): Filters & { sort: SortKey; ascending: boolean } => {
   const params = new URLSearchParams(location.hash.slice(1));
   return {
     sort: isKey(params.get("tri")) ? (params.get("tri") as SortKey) : ("kind" as SortKey),
     ascending: params.get("ordre") !== "desc",
-    kinds: new Set((params.get("type") ?? "").split(",").filter(Boolean)),
+    kinds: list(params.get("type")),
+    sellers: list(params.get("vendeur")),
+    price: readPrice(params.get("prix")),
     search: params.get("q") ?? "",
   };
 };
@@ -62,6 +82,8 @@ const saveState = () => {
   p.set("tri", state.sort);
   if (!state.ascending) p.set("ordre", "desc");
   if (state.kinds.size) p.set("type", [...state.kinds].join(","));
+  if (state.sellers.size) p.set("vendeur", [...state.sellers].join(","));
+  if (state.price) p.set("prix", state.price.join("-"));
   if (state.search) p.set("q", state.search);
   history.replaceState(null, "", `#${p}`);
 };
@@ -83,35 +105,182 @@ for (const { key, label } of SORT_KEYS) {
 }
 const direction = el("button", "c-dir");
 direction.type = "button";
-const chips = el("div", "c-chips");
-const kinds = [...new Set(rows.map((r) => r.product.kind))] as ProductKind[];
-const chipButtons = new Map<string, HTMLButtonElement>();
-const allChip = el("button", "c-chip", `Tout (${rows.length})`);
-allChip.type = "button";
-allChip.addEventListener("click", () => {
+
+// ── Facets (left panel) ───────────────────────────────────────────────
+const facets = el("aside", "c-facets");
+facets.id = "c-facets";
+facets.setAttribute("aria-label", "Filtres");
+const facetToggle = el("button", "c-facet-toggle");
+facetToggle.type = "button";
+facetToggle.setAttribute("aria-controls", facets.id);
+facetToggle.addEventListener("click", () => {
+  const open = !facets.classList.contains("open");
+  facets.classList.toggle("open", open);
+  facetToggle.setAttribute("aria-expanded", String(open));
+});
+
+/** A facet: a titled list of checkboxes, one per value, with its count. */
+function checkboxFacet(
+  title: string,
+  values: { value: string; label: string }[],
+  selected: () => Set<string>,
+) {
+  const box = el("fieldset", "c-facet");
+  box.appendChild(el("legend", "", title));
+  const items = new Map<
+    string,
+    { input: HTMLInputElement; count: HTMLSpanElement; row: HTMLLabelElement }
+  >();
+  for (const { value, label } of values) {
+    const row = el("label", "c-option");
+    const input = el("input");
+    input.type = "checkbox";
+    input.addEventListener("change", () => {
+      if (input.checked) selected().add(value);
+      else selected().delete(value);
+      render();
+    });
+    const count = el("span", "c-option-count");
+    row.append(input, el("span", "c-option-label", label), count);
+    box.appendChild(row);
+    items.set(value, { input, count, row });
+  }
+  return {
+    box,
+    update(counts: Map<string, number>) {
+      for (const [value, { input, count, row }] of items) {
+        const n = counts.get(value) ?? 0;
+        input.checked = selected().has(value);
+        count.textContent = String(n);
+        row.classList.toggle("empty", n === 0 && !input.checked);
+      }
+    },
+  };
+}
+
+const cap = (t: string) => `${t[0].toUpperCase()}${t.slice(1)}`;
+const kindFacet = checkboxFacet(
+  "Type",
+  ([...new Set(rows.map((r) => r.product.kind))] as ProductKind[])
+    .map((kind) => ({ value: kind, label: cap(kindLabel(kind)) }))
+    .sort((a, b) => a.label.localeCompare(b.label, "fr")),
+  () => state.kinds,
+);
+const sellerFacet = checkboxFacet(
+  "Vendeur",
+  [...new Set(rows.map(sellerOf))]
+    .sort((a, b) => a.localeCompare(b, "fr"))
+    .map((seller) => ({ value: seller, label: seller })),
+  () => state.sellers,
+);
+
+// price: two thumbs on one track (log scale) and the two figures, editable
+const priceBox = el("fieldset", "c-facet c-price-facet");
+priceBox.appendChild(el("legend", "", "Prix"));
+const track = el("div", "c-range");
+const fill = el("div", "c-range-fill");
+const thumb = (label: string) => {
+  const r = el("input", "c-range-thumb");
+  Object.assign(r, { type: "range", min: "0", max: "1000", step: "1" });
+  r.setAttribute("aria-label", label);
+  return r;
+};
+const lowThumb = thumb("Prix minimum");
+const highThumb = thumb("Prix maximum");
+track.append(fill, lowThumb, highThumb);
+const euros = (label: string) => {
+  const box = el("label", "c-euros");
+  const input = el("input", "c-euro-input");
+  Object.assign(input, {
+    type: "number",
+    min: String(bounds[0]),
+    max: String(bounds[1]),
+    step: "1",
+  });
+  input.setAttribute("aria-label", label);
+  box.append(input, el("span", "", "€"));
+  return { box, input };
+};
+const lowEuros = euros("Prix minimum (€)");
+const highEuros = euros("Prix maximum (€)");
+const priceFigures = el("div", "c-euro-row");
+priceFigures.append(lowEuros.box, el("span", "c-euro-dash", "–"), highEuros.box);
+const priceNote = el("p", "c-price-note");
+priceBox.append(track, priceFigures, priceNote);
+
+const range = (): [number, number] => state.price ?? bounds;
+const setPrice = (lo: number, hi: number) => {
+  lo = Math.max(bounds[0], Math.min(lo, bounds[1]));
+  hi = Math.max(bounds[0], Math.min(hi, bounds[1]));
+  if (lo > hi) [lo, hi] = [hi, lo];
+  state.price = lo > bounds[0] || hi < bounds[1] ? [lo, hi] : null;
+  render();
+};
+const fromThumbs = (moved: HTMLInputElement) => {
+  let a = Number(lowThumb.value);
+  let b = Number(highThumb.value);
+  if (a > b) {
+    // the thumbs do not cross: the moved one stops at the other
+    if (moved === lowThumb) a = b;
+    else b = a;
+  }
+  setPrice(
+    a === 0 ? bounds[0] : priceAt(a / 1000, bounds),
+    b === 1000 ? bounds[1] : priceAt(b / 1000, bounds),
+  );
+};
+lowThumb.addEventListener("input", () => fromThumbs(lowThumb));
+highThumb.addEventListener("input", () => fromThumbs(highThumb));
+lowEuros.input.addEventListener("change", () =>
+  setPrice(Number(lowEuros.input.value) || bounds[0], range()[1]),
+);
+highEuros.input.addEventListener("change", () =>
+  setPrice(range()[0], Number(highEuros.input.value) || bounds[1]),
+);
+
+const clear = el("button", "c-clear", "Effacer les filtres");
+clear.type = "button";
+clear.addEventListener("click", () => {
   state.kinds.clear();
+  state.sellers.clear();
+  state.price = null;
+  state.search = "";
+  search.value = "";
   render();
 });
-chips.appendChild(allChip);
-for (const kind of kinds) {
-  const n = rows.filter((r) => r.product.kind === kind).length;
-  const label = kindLabel(kind);
-  const b = el("button", "c-chip", `${label[0].toUpperCase()}${label.slice(1)} (${n})`);
-  b.type = "button";
-  b.addEventListener("click", () => {
-    if (state.kinds.has(kind)) state.kinds.delete(kind);
-    else state.kinds.add(kind);
-    render();
-  });
-  chipButtons.set(kind, b);
-  chips.appendChild(b);
+const facetsHead = el("div", "c-facets-head");
+facetsHead.append(el("h2", "", "Filtres"), clear);
+facets.append(facetsHead, kindFacet.box, sellerFacet.box, priceBox);
+
+function renderFacets(): void {
+  kindFacet.update(facetCounts(rows, state, "kinds"));
+  sellerFacet.update(facetCounts(rows, state, "sellers"));
+  const [lo, hi] = range();
+  lowThumb.value = String(lo <= bounds[0] ? 0 : Math.round(positionOf(lo, bounds) * 1000));
+  highThumb.value = String(hi >= bounds[1] ? 1000 : Math.round(positionOf(hi, bounds) * 1000));
+  // the low thumb on top when both are at the right end (else it cannot be grabbed)
+  lowThumb.classList.toggle("top", Number(lowThumb.value) > 900);
+  fill.style.left = `${Number(lowThumb.value) / 10}%`;
+  fill.style.right = `${100 - Number(highThumb.value) / 10}%`;
+  if (document.activeElement !== lowEuros.input) lowEuros.input.value = String(lo);
+  if (document.activeElement !== highEuros.input) highEuros.input.value = String(hi);
+  priceNote.textContent = state.price
+    ? "Hors produits sans prix et déjà achetés"
+    : `Tous les prix, et les ${rows.filter((r) => priceOf(r) === null).length} produits sans prix`;
+  const active =
+    state.kinds.size + state.sellers.size + (state.price ? 1 : 0) + (state.search ? 1 : 0);
+  clear.hidden = active === 0;
+  facetToggle.textContent = active ? `Filtres (${active})` : "Filtres";
 }
+
 const count = el("p", "c-count");
 const controls = el("div", "c-controls");
 const sortBox = el("label", "c-sort");
 sortBox.append(el("span", "", "Trier par"), sortSelect, direction);
-controls.append(search, sortBox);
-app.append(controls, chips, count);
+controls.append(facetToggle, search, sortBox);
+const results = el("section", "c-results");
+results.append(count);
+app.append(controls, facets, results);
 
 search.addEventListener("input", () => {
   state.search = search.value;
@@ -167,7 +336,7 @@ const thead = el("thead");
 thead.appendChild(head);
 const tbody = el("tbody");
 table.append(thead, tbody);
-app.appendChild(table);
+results.appendChild(table);
 
 // thumbnails: drawn when the row scrolls into view
 const thumbs = new IntersectionObserver(
@@ -336,19 +505,29 @@ function rowElements(row: CatalogRow): HTMLTableRowElement[] {
 
 const elements = new Map(rows.map((r) => [r.product.id, rowElements(r)]));
 
+// nothing matches: say so, and offer to clear the filters
+const emptyRow = el("tr", "c-empty");
+const emptyCell = el("td", "", "Aucun produit ne correspond à ces filtres. ");
+emptyCell.colSpan = COLUMNS.length;
+const emptyClear = el("button", "c-clear", "Effacer les filtres");
+emptyClear.type = "button";
+emptyClear.addEventListener("click", () => clear.click());
+emptyCell.appendChild(emptyClear);
+emptyRow.appendChild(emptyCell);
+
 function render(): void {
   saveState();
   sortSelect.value = state.sort;
   direction.textContent = state.ascending ? "↑ croissant" : "↓ décroissant";
-  allChip.classList.toggle("active", state.kinds.size === 0);
-  for (const [kind, b] of chipButtons) b.classList.toggle("active", state.kinds.has(kind));
+  renderFacets();
   for (const [key, th] of headers) {
     th.classList.toggle("sorted", key === state.sort);
     th.querySelector("button")!.dataset.dir =
       key === state.sort ? (state.ascending ? "↑" : "↓") : "";
   }
-  const shown = sortRows(filterRows(rows, state.kinds, state.search), state.sort, state.ascending);
+  const shown = sortRows(filterRows(rows, state), state.sort, state.ascending);
   tbody.replaceChildren(...shown.flatMap((r) => elements.get(r.product.id)!));
+  if (!shown.length) tbody.appendChild(emptyRow);
   const total = shown.reduce((s, r) => s + (r.product.owned ? 0 : r.product.price), 0);
   count.textContent = `${shown.length} produit${shown.length > 1 ? "s" : ""} · ${formatEuros(total)} au total (1 de chaque)`;
 }

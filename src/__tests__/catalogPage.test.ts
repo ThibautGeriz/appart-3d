@@ -4,8 +4,15 @@ import { CATALOG } from "../data/catalog";
 import { DETAILS } from "../data/catalogDetails";
 import {
   catalogRows,
+  facetCounts,
   filterRows,
+  filters,
   modelSource,
+  positionOf,
+  priceAt,
+  priceBounds,
+  priceOf,
+  sellerOf,
   SORT_KEYS,
   sortRows,
   sortValue,
@@ -95,14 +102,66 @@ describe("catalog page rows", () => {
   });
 
   it("filters by type and by text, accents aside", () => {
-    expect(filterRows(rows, new Set(["chair"]), "")).toHaveLength(5);
-    expect(names(filterRows(rows, new Set(), "italie")).sort()).toEqual([
+    expect(filterRows(rows, filters({ kinds: new Set(["chair"]) }))).toHaveLength(5);
+    expect(names(filterRows(rows, filters({ search: "italie" }))).sort()).toEqual([
       "sofa-roma-210",
       "sofa-roma-corner",
     ]);
-    const oak = filterRows(rows, new Set(), "chene");
+    const oak = filterRows(rows, filters({ search: "chene" }));
     expect(oak.length).toBeGreaterThan(3);
-    expect(filterRows(rows, new Set(["sofa"]), "chene")).toHaveLength(0);
+    expect(filterRows(rows, filters({ kinds: new Set(["sofa"]), search: "chene" }))).toHaveLength(
+      0,
+    );
+  });
+
+  it("filters by seller", () => {
+    const shown = filterRows(rows, filters({ sellers: new Set(["Mobilier de France"]) }));
+    expect(names(shown).sort()).toEqual(["sofa-roma-210", "sofa-roma-corner"]);
+    const two = filterRows(
+      rows,
+      filters({ sellers: new Set(["Mobilier de France", "BoConcept"]) }),
+    );
+    expect(two).toHaveLength(3);
+  });
+
+  it("filters by price range, inclusive; a range leaves out the unpriced and owned", () => {
+    const [lo, hi] = priceBounds(rows);
+    expect(lo).toBe(Math.floor(Math.min(...rows.map(priceOf).filter((p) => p !== null))));
+    expect(filterRows(rows, filters({ price: null }))).toHaveLength(rows.length);
+    const all = filterRows(rows, filters({ price: [lo, hi] }));
+    expect(all.length).toBe(rows.filter((r) => priceOf(r) !== null).length);
+    expect(all.length).toBeLessThan(rows.length);
+    const mid = filterRows(rows, filters({ price: [500, 1000] }));
+    expect(mid.length).toBeGreaterThan(0);
+    for (const r of mid) expect(r.product.price).toBeGreaterThanOrEqual(500);
+    for (const r of mid) expect(r.product.price).toBeLessThanOrEqual(1000);
+    expect(names(filterRows(rows, filters({ price: [6780, 6780] })))).toEqual(["sofa-roma-corner"]);
+  });
+
+  it("counts each facet given the others, every value listed", () => {
+    const sellers = new Set(rows.map(sellerOf));
+    const all = facetCounts(rows, filters(), "sellers");
+    expect(new Set(all.keys())).toEqual(sellers);
+    expect([...all.values()].reduce((a, b) => a + b, 0)).toBe(rows.length);
+    // sofas only: the sofa sellers keep their count, the others drop to 0
+    const sofas = facetCounts(rows, filters({ kinds: new Set(["sofa"]) }), "sellers");
+    expect(sofas.size).toBe(sellers.size);
+    expect(sofas.get("Mobilier de France")).toBe(2);
+    expect(sofas.get("FlexiSpot")).toBe(0);
+    // a facet's own selection does not narrow its counts (you can tick a second type)
+    const kinds = facetCounts(rows, filters({ kinds: new Set(["sofa"]) }), "kinds");
+    expect(kinds.get("chair")).toBe(5);
+  });
+
+  it("maps the price slider on a log scale, both ways", () => {
+    const b = priceBounds(rows);
+    expect(priceAt(0, b)).toBe(b[0]);
+    expect(priceAt(1, b)).toBe(b[1]);
+    // the middle of the track is the geometric mean (~ 660 €), not 3 400 €
+    expect(priceAt(0.5, b)).toBe(Math.round(Math.sqrt(b[0] * b[1])));
+    for (const price of [100, 795, 3386]) {
+      expect(priceAt(positionOf(price, b), b)).toBeCloseTo(price, -1);
+    }
   });
 
   it("points each model to the file that builds it", () => {

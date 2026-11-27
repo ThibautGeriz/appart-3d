@@ -74,6 +74,219 @@
       }
       #catalog {
         padding: 8px 24px 48px;
+        display: grid;
+        grid-template-columns: 240px minmax(0, 1fr);
+        grid-template-areas:
+          "facets controls"
+          "facets results";
+        grid-template-rows: auto 1fr;
+        column-gap: 28px;
+        align-items: start;
+      }
+      .c-controls {
+        grid-area: controls;
+        padding-top: 4px;
+      }
+      .c-results {
+        grid-area: results;
+        min-width: 0;
+      }
+      /* facets: the left panel, it stays in view while the list scrolls */
+      .c-facets {
+        grid-area: facets;
+        position: sticky;
+        top: 12px;
+        max-height: calc(100dvh - 24px);
+        overflow-y: auto;
+        padding: 4px 4px 16px 0;
+      }
+      .c-facets-head {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        margin: 6px 0 8px;
+      }
+      .c-facets-head h2 {
+        margin: 0;
+        font-size: 15px;
+      }
+      .c-clear {
+        all: unset;
+        margin-left: auto;
+        cursor: pointer;
+        color: var(--accent);
+        font-size: 13px;
+      }
+      .c-clear:hover {
+        text-decoration: underline;
+      }
+      .c-empty td {
+        padding: 32px 8px;
+        color: var(--muted);
+        text-align: center;
+      }
+      .c-empty .c-clear {
+        margin-left: 4px;
+      }
+      .c-clear[hidden] {
+        display: none;
+      }
+      .c-facet {
+        border: 0;
+        border-top: 1px solid var(--line);
+        margin: 0;
+        padding: 10px 0 10px;
+      }
+      .c-facet legend {
+        float: left;
+        width: 100%;
+        margin-bottom: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+      }
+      .c-option {
+        clear: both;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 1px 0;
+        font-size: 13px;
+        cursor: pointer;
+      }
+      .c-option input {
+        margin: 0;
+        accent-color: var(--accent);
+      }
+      .c-option-label {
+        flex: 1;
+      }
+      .c-option-count {
+        color: var(--muted);
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+      }
+      .c-option.empty {
+        opacity: 0.45;
+      }
+      .c-range {
+        clear: both;
+        position: relative;
+        height: 28px;
+        margin: 0 8px;
+      }
+      .c-range::before,
+      .c-range-fill {
+        content: "";
+        position: absolute;
+        top: 12px;
+        height: 4px;
+        border-radius: 2px;
+      }
+      .c-range::before {
+        left: 0;
+        right: 0;
+        background: var(--line);
+      }
+      .c-range-fill {
+        background: var(--accent);
+      }
+      /* two range inputs on one track: only their thumbs take the pointer */
+      .c-range-thumb {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        margin: 0;
+        background: none;
+        pointer-events: none;
+        appearance: none;
+        -webkit-appearance: none;
+      }
+      .c-range-thumb.top {
+        z-index: 1;
+      }
+      .c-range-thumb::-webkit-slider-runnable-track {
+        background: none;
+        height: 28px;
+      }
+      .c-range-thumb::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        pointer-events: auto;
+        width: 18px;
+        height: 18px;
+        margin-top: 5px;
+        border-radius: 50%;
+        background: var(--panel);
+        border: 2px solid var(--accent);
+        cursor: grab;
+      }
+      .c-range-thumb::-moz-range-thumb {
+        pointer-events: auto;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: var(--panel);
+        border: 2px solid var(--accent);
+        cursor: grab;
+      }
+      .c-range-thumb::-moz-range-track {
+        background: none;
+      }
+      .c-range-thumb:focus-visible::-webkit-slider-thumb {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+      .c-euro-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 8px;
+      }
+      .c-euros {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        padding: 4px 8px;
+        color: var(--muted);
+      }
+      .c-euro-input {
+        width: 100%;
+        min-width: 0;
+        border: 0;
+        background: none;
+        color: var(--text);
+        font: inherit;
+        font-variant-numeric: tabular-nums;
+      }
+      .c-euro-input:focus {
+        outline: none;
+      }
+      .c-euros:focus-within {
+        border-color: var(--accent);
+      }
+      .c-euro-dash {
+        color: var(--muted);
+      }
+      .c-price-note {
+        margin: 8px 0 0;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .c-facet-toggle {
+        display: none;
+        font: inherit;
+        color: var(--text);
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 7px 11px;
+        cursor: pointer;
       }
       .c-controls {
         display: flex;
@@ -84,7 +297,6 @@
       .c-search,
       .c-select,
       .c-dir,
-      .c-chip,
       .c-view {
         font: inherit;
         color: var(--text);
@@ -104,24 +316,8 @@
         color: var(--muted);
       }
       .c-dir,
-      .c-chip,
       .c-view {
         cursor: pointer;
-      }
-      .c-chips {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-        margin: 12px 0 6px;
-      }
-      .c-chip {
-        border-radius: 999px;
-        padding: 4px 11px;
-        font-size: 13px;
-      }
-      .c-chip.active {
-        border-color: var(--accent);
-        color: var(--accent);
       }
       .c-count {
         color: var(--muted);
@@ -342,12 +538,28 @@
         padding: 10px 14px;
         color: var(--muted);
       }
-      /* phones: one card per product */
+      /* phones: one card per product, the facets folded behind a button */
       @media (max-width: 860px) {
         header,
         #catalog {
           padding-left: 16px;
           padding-right: 16px;
+        }
+        #catalog {
+          display: block;
+        }
+        .c-facet-toggle {
+          display: block;
+        }
+        .c-facets {
+          display: none;
+          position: static;
+          max-height: none;
+          overflow: visible;
+          margin-bottom: 8px;
+        }
+        .c-facets.open {
+          display: block;
         }
         .c-table thead {
           display: none;
