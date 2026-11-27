@@ -27,6 +27,11 @@ const gltfLoader = () => {
 const cache = new Map<string, Promise<THREE.Object3D>>();
 
 /** models/<file>.glb, loaded once and shared (clone it before adding it). */
+/** Hashed URL of models/<file>.glb (undefined: not exported). */
+export function modelUrl(file: string): string | undefined {
+  return urls[`../../models/${file}.glb`];
+}
+
 export function loadFile(file: string): Promise<THREE.Object3D> {
   let pending = cache.get(file);
   if (!pending) {

@@ -617,6 +617,24 @@ export function product(id: string): Product {
   return p;
 }
 
+/** "chaise", "table basse"… (lower case, for lists). Pure. */
+export function kindLabel(kind: ProductKind): string {
+  return {
+    table: "table",
+    chair: "chaise",
+    coffeeTable: "table basse",
+    sofa: "canapé",
+    sideboard: "bahut",
+    tvUnit: "meuble TV",
+    bed: "lit",
+    nightstand: "chevet",
+    shelf: "étagère",
+    wallBed: "lit escamotable",
+    desk: "bureau",
+    officeChair: "fauteuil de bureau",
+  }[kind];
+}
+
 export function productsOf(kind: ProductKind): Product[] {
   return CATALOG.filter((p) => p.kind === kind);
 }

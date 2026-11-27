@@ -1,11 +1,5 @@
 import type { ApartmentDef } from "../data/apartment";
-import {
-  CATALOG,
-  productsOf,
-  type FabricSpec,
-  type Product,
-  type ProductKind,
-} from "../data/catalog";
+import { CATALOG, kindLabel, productsOf, type FabricSpec, type Product } from "../data/catalog";
 import type { Furniture } from "../apartment/furniture";
 import { budget, fits, formatEuros, type SlotDef } from "../apartment/furnishing";
 
@@ -208,7 +202,14 @@ export function createFurniturePanel(
   refreshOptions();
   show("meubles");
 
-  panel.append(tabs, pages.meubles, pages.budget);
+  // every product with its origin, characteristics and sources (catalog.html)
+  const catalog = el("a", "fp-catalog", "Catalogue complet ↗");
+  Object.assign(catalog, {
+    href: `${import.meta.env.BASE_URL}catalog.html`,
+    target: "_blank",
+    rel: "noopener",
+  });
+  panel.append(tabs, pages.meubles, pages.budget, catalog);
   button.addEventListener("click", () => {
     panel.hidden = !panel.hidden;
     button.classList.toggle("active", !panel.hidden);
@@ -259,21 +260,4 @@ function colorPicker(furniture: Furniture, fabric: FabricSpec): HTMLElement {
   }
   refresh();
   return row;
-}
-
-function kindLabel(kind: ProductKind): string {
-  return {
-    table: "table",
-    chair: "chaise",
-    coffeeTable: "table basse",
-    sofa: "canapé",
-    sideboard: "bahut",
-    tvUnit: "meuble TV",
-    bed: "lit",
-    nightstand: "chevet",
-    shelf: "étagère",
-    wallBed: "lit escamotable",
-    desk: "bureau",
-    officeChair: "fauteuil de bureau",
-  }[kind];
 }

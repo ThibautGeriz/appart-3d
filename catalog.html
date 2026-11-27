@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Catalogue du mobilier — Appart 3D</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #16171a;
+        --panel: #1f2125;
+        --line: #30333a;
+        --text: #ece9e4;
+        --muted: #9b9890;
+        --accent: #e2b04a;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font:
+          14px/1.45 system-ui,
+          -apple-system,
+          sans-serif;
+      }
+      a {
+        color: inherit;
+      }
+      header {
+        padding: 24px 24px 8px;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 4px 16px;
+      }
+      h1 {
+        margin: 0;
+        font-size: 22px;
+        letter-spacing: 0.02em;
+      }
+      header p {
+        margin: 0;
+        color: var(--muted);
+      }
+      .back {
+        margin-left: auto;
+        color: var(--accent);
+        text-decoration: none;
+        font-weight: 600;
+      }
+      #catalog {
+        padding: 8px 24px 48px;
+      }
+      .c-controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+      }
+      .c-search,
+      .c-select,
+      .c-dir,
+      .c-chip,
+      .c-view {
+        font: inherit;
+        color: var(--text);
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 7px 11px;
+      }
+      .c-search {
+        flex: 1 1 260px;
+        max-width: 420px;
+      }
+      .c-sort {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--muted);
+      }
+      .c-dir,
+      .c-chip,
+      .c-view {
+        cursor: pointer;
+      }
+      .c-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin: 12px 0 6px;
+      }
+      .c-chip {
+        border-radius: 999px;
+        padding: 4px 11px;
+        font-size: 13px;
+      }
+      .c-chip.active {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      .c-count {
+        color: var(--muted);
+        margin: 6px 0 10px;
+      }
+      .c-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .c-table th {
+        position: sticky;
+        top: 0;
+        background: var(--bg);
+        z-index: 1;
+        text-align: left;
+        font-weight: 600;
+        color: var(--muted);
+        border-bottom: 1px solid var(--line);
+        padding: 6px 8px;
+        white-space: nowrap;
+      }
+      .c-th {
+        all: unset;
+        cursor: pointer;
+      }
+      .c-th:hover,
+      th.sorted .c-th {
+        color: var(--accent);
+      }
+      .c-th[data-dir]:not([data-dir=""])::after {
+        content: " " attr(data-dir);
+      }
+      .c-table td {
+        padding: 8px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: middle;
+      }
+      .n {
+        text-align: right;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+      }
+      th.n {
+        text-align: right;
+      }
+      .c-row {
+        cursor: pointer;
+      }
+      .c-row:hover,
+      .c-row.open {
+        background: #1c1e22;
+      }
+      .c-row:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: -2px;
+      }
+      .c-thumb-button {
+        all: unset;
+        cursor: zoom-in;
+        display: block;
+      }
+      .c-thumb {
+        display: block;
+        width: 96px;
+        height: 96px;
+        border-radius: 8px;
+        background: #f4f1ec;
+        object-fit: cover;
+      }
+      .c-thumb:not([src]) {
+        background: linear-gradient(110deg, #2a2c31 30%, #34373d 50%, #2a2c31 70%) 0 0 / 300% 100%;
+        animation: shimmer 1.4s linear infinite;
+      }
+      @keyframes shimmer {
+        to {
+          background-position: -300% 0;
+        }
+      }
+      .c-name {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 160px;
+      }
+      .c-product {
+        font-weight: 600;
+        text-decoration: none;
+      }
+      .c-product::after {
+        content: " ↗";
+        color: var(--accent);
+      }
+      .c-product:hover {
+        text-decoration: underline;
+      }
+      .c-seller,
+      .c-places {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .c-kind {
+        display: block;
+        text-transform: capitalize;
+      }
+      .c-price {
+        font-weight: 600;
+      }
+      .c-unknown {
+        color: var(--muted);
+        font-style: italic;
+      }
+      .c-facts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        max-width: 280px;
+      }
+      .c-fact {
+        font-size: 12px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: #2a2c31;
+        white-space: nowrap;
+      }
+      .c-more td {
+        background: #1c1e22;
+        padding: 4px 8px 16px 112px;
+      }
+      .c-details {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 8px 32px;
+      }
+      .c-details h3 {
+        margin: 10px 0 6px;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--accent);
+      }
+      .c-specs {
+        display: grid;
+        grid-template-columns: max-content 1fr;
+        gap: 3px 12px;
+        margin: 0;
+      }
+      .c-specs dt {
+        color: var(--muted);
+      }
+      .c-specs dd {
+        margin: 0;
+      }
+      .c-sources {
+        margin: 8px 0 0;
+        padding-left: 18px;
+      }
+      .c-view {
+        margin-top: 10px;
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      .c-note {
+        grid-column: 1 / -1;
+        margin: 4px 0 0;
+        padding: 8px 12px;
+        border-left: 3px solid var(--accent);
+        background: #24231f;
+        color: #d9d3c7;
+      }
+      .c-dialog {
+        width: min(920px, 94vw);
+        height: min(720px, 88dvh);
+        padding: 0;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: var(--panel);
+        color: var(--text);
+        display: none;
+        flex-direction: column;
+      }
+      .c-dialog[open] {
+        display: flex;
+      }
+      .c-dialog::backdrop {
+        background: rgb(0 0 0 / 0.6);
+      }
+      .c-dialog-head {
+        display: flex;
+        align-items: center;
+        padding: 10px 14px;
+      }
+      .c-dialog h2 {
+        margin: 0;
+        font-size: 17px;
+      }
+      .c-close {
+        margin-left: auto;
+        font: inherit;
+        font-size: 18px;
+        background: none;
+        border: 0;
+        color: var(--text);
+        cursor: pointer;
+      }
+      .c-stage {
+        flex: 1;
+        min-height: 0;
+        touch-action: none;
+      }
+      .c-stage canvas {
+        display: block;
+      }
+      .c-dialog-info {
+        margin: 0;
+        padding: 10px 14px;
+        color: var(--muted);
+      }
+      /* phones: one card per product */
+      @media (max-width: 860px) {
+        header,
+        #catalog {
+          padding-left: 16px;
+          padding-right: 16px;
+        }
+        .c-table thead {
+          display: none;
+        }
+        .c-table,
+        .c-table tbody {
+          display: block;
+        }
+        .c-row {
+          display: grid;
+          grid-template-columns: 96px 1fr 1fr 1fr;
+          gap: 4px 10px;
+          padding: 12px 0;
+          border-bottom: 1px solid var(--line);
+        }
+        .c-table .c-row td {
+          border: 0;
+          padding: 0;
+        }
+        .c-row .c-thumb-cell {
+          grid-row: span 3;
+        }
+        .c-row td:nth-child(2) {
+          grid-column: 2 / -1;
+        }
+        .c-row td:nth-child(3) {
+          grid-column: 2 / -1;
+        }
+        .c-row td[data-label] {
+          text-align: left;
+          font-size: 13px;
+        }
+        .c-row td[data-label]::before {
+          content: attr(data-label);
+          display: block;
+          font-size: 11px;
+          color: var(--muted);
+        }
+        .c-row .c-facts-cell {
+          grid-column: 1 / -1;
+        }
+        .c-more {
+          display: block;
+        }
+        .c-more[hidden] {
+          display: none;
+        }
+        .c-more td {
+          display: block;
+          padding: 4px 0 16px;
+        }
+        .c-specs {
+          grid-template-columns: 1fr;
+        }
+        .c-specs dt {
+          margin-top: 4px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Catalogue du mobilier</h1>
+      <p>
+        Les produits de la visite 3D : modèle, taille et prix du vendeur, origine et
+        caractéristiques relevées sur les pages produit. Cliquez une ligne pour le détail.
+      </p>
+      <a class="back" href="./">← Visite 3D</a>
+    </header>
+    <main id="catalog"></main>
+    <script type="module" src="/src/catalog/main.ts"></script>
+  </body>
+</html>

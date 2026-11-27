@@ -331,6 +331,15 @@ body {
   font-weight: 700;
 }
 
+.fp-catalog {
+  display: block;
+  margin-top: 12px;
+  text-align: center;
+  color: #e2b04a;
+  font-weight: 600;
+  text-decoration: none;
+}
+
 .fp-colors {
   display: flex;
   align-items: center;
