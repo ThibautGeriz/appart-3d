@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { APARTMENT_DEF } from "../data/apartment";
 import { furnishingLayout } from "../apartment/furnishing";
-import { furnitureCotes } from "../apartment/furnitureDimensions";
+import { clearances, fixedObstacles, furnitureCotes } from "../apartment/furnitureDimensions";
 import { CATALOG } from "../data/catalog";
 import type { Placement } from "../apartment/furnishing";
 
@@ -45,5 +45,60 @@ describe("furniture dimension lines", () => {
     expect(tags).toHaveLength(products.size);
     expect(segments).toHaveLength(9 * placements.length);
     expect(placements.length).toBeGreaterThan(products.size); // chairs repeat
+  });
+});
+
+describe("clearances", () => {
+  const piece = (id: string, kind: string, rect: [number, number, number, number]): Placement =>
+    ({
+      product: { ...bolzano, id, kind },
+      x: 0,
+      z: 0,
+      rotationY: 0,
+      rect,
+    }) as Placement;
+
+  it("measures each side to the nearest wall facing it", () => {
+    const sofa = piece("s", "sofa", [0, 0, 2, 1]);
+    const wall: [number, number, number, number] = [2.43, -1, 2.6, 3]; // 43 cm to its right
+    const list = clearances([sofa], [wall]);
+    expect(list).toHaveLength(1);
+    expect(list[0].gap).toBeCloseTo(0.43, 5);
+    expect(list[0].from).toEqual([2, 0.5]);
+    expect(list[0].to[0]).toBeCloseTo(2.43, 5);
+  });
+
+  it("skips pieces against the wall, far walls, and walls that do not face it", () => {
+    const sofa = piece("s", "sofa", [0, 0, 2, 1]);
+    const against: [number, number, number, number] = [2.004, 0, 2.2, 1];
+    const far: [number, number, number, number] = [-3, 0, -2.5, 1]; // 2.5 m to its left
+    const aside: [number, number, number, number] = [0, 2.5, 2, 2.7]; // 1.5 m behind… too far
+    const offAxis: [number, number, number, number] = [3, 3, 4, 4];
+    expect(clearances([sofa], [against, far, aside, offAxis])).toEqual([]);
+  });
+
+  it("draws one line between two pieces, none inside a dining set", () => {
+    const sofa = piece("s", "sofa", [0, 0, 2, 1]);
+    const table = piece("t", "coffeeTable", [0.5, 1.43, 1.5, 2.13]);
+    const between = clearances([sofa, table], []).filter((c) => Math.abs(c.gap - 0.43) < 1e-6);
+    expect(between).toHaveLength(1);
+    const dining = piece("d", "table", [5, 0, 6.8, 0.9]);
+    const chair = piece("c", "chair", [5.2, 0.95, 5.7, 1.45]);
+    expect(clearances([dining, chair], [])).toEqual([]);
+  });
+
+  it("the Roma 210 layout: coffee table 43 cm in front of the sofa", () => {
+    const selection = Object.fromEntries(
+      APARTMENT_DEF.furnishing.slots.map((s) => [s.id, s.default]),
+    ) as Parameters<typeof furnishingLayout>[1];
+    const placements = furnishingLayout(APARTMENT_DEF.furnishing, {
+      ...selection,
+      sofa: "sofa-roma-210",
+    });
+    const list = clearances(placements, fixedObstacles(APARTMENT_DEF));
+    const sofa = placements.find((p) => p.product.id === "sofa-roma-210")!;
+    const [, minZ] = sofa.rect;
+    const front = list.find((c) => Math.abs(c.from[1] - minZ) < 1e-6 && c.to[1] < c.from[1]);
+    expect(front?.gap).toBeCloseTo(0.43, 2);
   });
 });

@@ -133,7 +133,7 @@ furniture.onChange((rooms) => {
   probes.request(rooms);
 });
 createFurniturePanel(container, APARTMENT_DEF, furniture);
-attachFurnitureDimensions(dimensions, furniture); // the pieces' cotes, with the walls'
+attachFurnitureDimensions(dimensions, furniture, APARTMENT_DEF); // the pieces' cotes, with the walls'
 input.onClick((x, y) => clickToMove.goTo(x, y, player));
 
 const toggleDimensions = () => {
