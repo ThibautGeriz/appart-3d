@@ -145,15 +145,73 @@ export function sortRows(rows: CatalogRow[], key: SortKey, ascending: boolean): 
   });
 }
 
-/** Rows of these kinds (all: empty set) whose text matches the search. */
-export function filterRows(rows: CatalogRow[], kinds: Set<string>, search: string): CatalogRow[] {
-  const q = search
+/** The facets of the left panel: what each row is filtered on. */
+export interface Filters {
+  /** product kinds (none: all) */
+  kinds: Set<string>;
+  /** sellers (none: all) */
+  sellers: Set<string>;
+  /** € range, inclusive (null: any price, the products without a price too) */
+  price: [number, number] | null;
+  search: string;
+}
+
+/** Nothing filtered, with the given facets set. */
+export function filters(set: Partial<Filters> = {}): Filters {
+  return { kinds: new Set(), sellers: new Set(), price: null, search: "", ...set };
+}
+
+/** What the row costs: null when owned or not priced. */
+export function priceOf(row: CatalogRow): number | null {
+  return row.product.owned ? null : row.product.price || null;
+}
+
+export function sellerOf(row: CatalogRow): string {
+  return row.details?.seller ?? "Inconnu";
+}
+
+/** The € range of the priced rows, rounded out to whole euros. */
+export function priceBounds(rows: CatalogRow[]): [number, number] {
+  const prices = rows.map(priceOf).filter((p): p is number => p !== null);
+  return prices.length ? [Math.floor(Math.min(...prices)), Math.ceil(Math.max(...prices))] : [0, 0];
+}
+
+/** Slider position (0..1) ↔ €, on a log scale: most products cost under 1 000 €. */
+export function priceAt(t: number, [lo, hi]: [number, number]): number {
+  const a = Math.log(Math.max(1, lo));
+  const b = Math.log(Math.max(1, hi));
+  return Math.round(Math.exp(a + Math.min(1, Math.max(0, t)) * (b - a)));
+}
+
+export function positionOf(price: number, [lo, hi]: [number, number]): number {
+  const a = Math.log(Math.max(1, lo));
+  const b = Math.log(Math.max(1, hi));
+  return b === a ? 0 : Math.min(1, Math.max(0, (Math.log(Math.max(1, price)) - a) / (b - a)));
+}
+
+const fold = (text: string) =>
+  text
     .normalize("NFD")
     .replace(/\p{Diacritic}/gu, "")
     .toLowerCase()
     .trim();
+
+/** Rows matching every facet and the search; `ignore` leaves one facet out (for its counts). */
+export function filterRows(
+  rows: CatalogRow[],
+  filters: Filters,
+  ignore?: "kinds" | "sellers" | "price",
+): CatalogRow[] {
+  const q = fold(filters.search);
   return rows.filter((r) => {
-    if (kinds.size && !kinds.has(r.product.kind)) return false;
+    if (ignore !== "kinds" && filters.kinds.size && !filters.kinds.has(r.product.kind))
+      return false;
+    if (ignore !== "sellers" && filters.sellers.size && !filters.sellers.has(sellerOf(r)))
+      return false;
+    if (ignore !== "price" && filters.price) {
+      const price = priceOf(r);
+      if (price === null || price < filters.price[0] || price > filters.price[1]) return false;
+    }
     if (!q) return true;
     const text = [
       r.product.name,
@@ -164,11 +222,24 @@ export function filterRows(rows: CatalogRow[], kinds: Set<string>, search: strin
       r.product.madeIn,
       ...(r.details?.specs.map((s) => `${s.label} ${s.value}`) ?? []),
       ...r.places,
-    ]
-      .join(" ")
-      .normalize("NFD")
-      .replace(/\p{Diacritic}/gu, "")
-      .toLowerCase();
-    return text.includes(q);
+    ].join(" ");
+    return fold(text).includes(q);
   });
+}
+
+/**
+ * A facet's values with their counts, given the other facets (the usual
+ * shop behaviour: ticking a type shows how many of each seller remain).
+ * Every value of the catalog is listed, 0 when nothing is left.
+ */
+export function facetCounts(
+  rows: CatalogRow[],
+  filters: Filters,
+  facet: "kinds" | "sellers",
+): Map<string, number> {
+  const value = (r: CatalogRow) => (facet === "kinds" ? r.product.kind : sellerOf(r));
+  const counts = new Map<string, number>();
+  for (const r of rows) counts.set(value(r), 0);
+  for (const r of filterRows(rows, filters, facet)) counts.set(value(r), counts.get(value(r))! + 1);
+  return counts;
 }
