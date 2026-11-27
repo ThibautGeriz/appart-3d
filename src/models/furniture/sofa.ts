@@ -5,18 +5,23 @@ import { grainUVs } from "./parts";
 import { throwCushions } from "./decor";
 
 /*
- * Mobilier de France ROMA (showroom photos + product sheet): a low rounded
- * base on slim titanio blade legs (13.5 cm); one soft seat cushion per seat,
- * stitched in four with a tuft in the middle, its thick rounded nose over the
- * base; separate back pads (lower back + puffier headrest) with gaps between
- * them; wide, flat, low arm pads tilted up at the front. 3D mesh fabric.
+ * Mobilier de France ROMA (showroom photos + product sheet): one continuous
+ * low rounded base, end to end, on V-shaped titanio hairpin legs (13.5 cm)
+ * leaning out under the ends; one soft seat cushion per seat, stitched in four
+ * with a tuft in the middle, its thick rounded nose over the base; separate
+ * back pads (lower back + puffier headrest) with gaps between them; the arms
+ * are pads lying on the base's ends, hinged at the seat and lifted at their
+ * outer end ("accoudoirs relevables", shown raised as in the photos). 3D mesh
+ * fabric.
  * Origin: floor, centre of the bounding box, the long side's front facing +z;
  * a corner sofa's return is on the left (-x) and comes forward (+z).
  */
 
 const LEG = 0.135; // product sheet
-const BASE_TOP = 0.29;
-const ARM_W = 0.27;
+const BASE_TOP = 0.31; // photos: base top ~32 cm, cushions ~13 cm on it
+const ARM_W = 0.3; // base under the arm pad (photos: seat cushions ~75 cm on the 210)
+const ARM_LIFT = 0.3; // arm pad tilt (rad), outer end up (~57 cm at the tip)
+const END = 0.02; // the base stops short of the ends, under the arm pads' tips
 const BACK_T = 0.15; // back pad thickness
 const RECLINE = 0.1;
 const LEDGE = 0.08; // the base behind the back pads
@@ -43,7 +48,8 @@ interface Pillow {
  */
 export function pillow(spec: Pillow): THREE.BufferGeometry {
   const { w, h, d, r, puff = 0, seams = false, tuft = 0 } = spec;
-  const seg = (size: number) => Math.max(4, Math.min(40, Math.round(size / 0.025)));
+  // even counts, so the seams through the middle land on a vertex row
+  const seg = (size: number) => 2 * Math.max(2, Math.min(16, Math.round(size / 0.06)));
   const g = new THREE.BoxGeometry(w, h, d, seg(w), seg(h), seg(d));
   const pos = g.getAttribute("position") as THREE.BufferAttribute;
   const half = new THREE.Vector3(w / 2, h / 2, d / 2);
@@ -104,7 +110,7 @@ function base(g: THREE.Group, b: Box2, top = BASE_TOP, frontInset = 0.04): void 
   const d = b.z1 - b.z0 - frontInset;
   add(
     g,
-    pillow({ w: b.x1 - b.x0, h: top - LEG, d, r: 0.035 }),
+    pillow({ w: b.x1 - b.x0, h: top - LEG, d, r: 0.06 }),
     romaFabric,
     (b.x0 + b.x1) / 2,
     (LEG + top) / 2,
@@ -179,42 +185,67 @@ function backPad(
   g.add(holder);
 }
 
-/** Arm: the base raised a little, a wide flat pad on it, tilted up at the front. */
-function arm(g: THREE.Group, b: Box2, seatTop: number, along: "z" | "x"): void {
-  // the pad rests on the arm's base, level with the seat cushions
-  base(g, b, seatTop - 0.01, along === "z" ? 0.04 : 0);
-  const length = along === "z" ? b.z1 - b.z0 : b.x1 - b.x0;
-  const width = along === "z" ? b.x1 - b.x0 : b.z1 - b.z0;
-  const holder = new THREE.Group();
-  const m = add(
-    holder,
-    pillow({ w: width, h: 0.11, d: length - 0.02, r: 0.045, puff: 0.01 }),
-    romaFabric,
-    0,
-    0.055,
-    0,
-  );
-  m.rotation.x = -0.04; // front raised (the arm lifts)
-  holder.position.set((b.x0 + b.x1) / 2, seatTop - 0.01, (b.z0 + b.z1) / 2);
-  if (along === "x") holder.rotation.y = Math.PI / 2;
-  g.add(holder);
+/**
+ * Arm pad lying on the base's end: hinged on the base beside the seat cushion,
+ * its outer end lifted up to the sofa's end. `b` is the arm's plan box; `out` the direction of the sofa's
+ * end (+x / -x for the long side, +z for a return's end).
+ */
+function arm(g: THREE.Group, b: Box2, out: "+x" | "-x" | "+z"): void {
+  const alongZ = out !== "+z"; // the pad's length runs front to back
+  const length = (alongZ ? b.z1 - b.z0 : b.x1 - b.x0) - 0.03;
+  const h = 0.12;
+  const r = 0.05;
+  // pad length so that, tilted, its tip reaches the end of the arm's box
+  const span = ARM_W - 0.005;
+  const pad = (span - r + r * Math.sin(ARM_LIFT)) / Math.cos(ARM_LIFT) + r;
+  // built with its outer end towards +x, inner bottom edge at the hinge,
+  // lifted, then turned to the sofa's end; baked so the bounding box is exact
+  const reach = (pad - r) * Math.cos(ARM_LIFT) - r * Math.sin(ARM_LIFT) + r;
+  const turn = out === "+x" ? 0 : out === "-x" ? Math.PI : -Math.PI / 2;
+  const at =
+    out === "+x"
+      ? new THREE.Vector3(b.x1 - reach, 0, (b.z0 + b.z1) / 2 - 0.005)
+      : out === "-x"
+        ? new THREE.Vector3(b.x0 + reach, 0, (b.z0 + b.z1) / 2 - 0.005)
+        : new THREE.Vector3((b.x0 + b.x1) / 2, 0, b.z1 - reach);
+  at.y = BASE_TOP - 0.01;
+  const geo = pillow({ w: pad, h, d: length, r, puff: 0.012 })
+    .translate(pad / 2, h / 2, 0)
+    .rotateZ(ARM_LIFT)
+    .rotateY(turn)
+    .translate(at.x, at.y, at.z);
+  add(g, geo, romaFabric, 0, 0, 0);
 }
 
-/** Slim blade leg: a thin tapered plate, its foot pushed out towards (dx, dz). */
-function leg(g: THREE.Group, x: number, z: number, dx: number, dz: number): void {
-  const shape = new THREE.Shape();
-  shape.moveTo(-0.03, LEG + 0.01);
-  shape.lineTo(0.03, LEG + 0.01);
-  shape.lineTo(0.045, 0);
-  shape.lineTo(0.028, 0);
-  shape.closePath();
-  const geo = new THREE.ExtrudeGeometry(shape, { depth: 0.01, bevelEnabled: false });
-  geo.translate(0, 0, -0.005);
-  const m = new THREE.Mesh(geo, titanio);
-  m.position.set(x, 0, z);
-  // the profile's +x (where the foot goes) turned towards (dx, dz)
-  m.rotation.y = Math.atan2(-dz, dx);
-  g.add(m);
+/** One strip of a hairpin leg: titanio flat bar, ~1.4 × 0.6 cm. */
+const STRIP = new THREE.BoxGeometry(0.014, 1, 0.006);
+
+/**
+ * V-shaped hairpin leg (photos): two flat bars from a common foot, pushed out
+ * towards the sofa's end (`out`), up to the base's underside where they open
+ * ~12 cm apart across the end. Transforms are baked into the geometry.
+ */
+function leg(g: THREE.Group, x: number, z: number, out: "+x" | "-x" | "+z" | "-z"): void {
+  const lean = 0.045;
+  const ox = out === "+x" ? lean : out === "-x" ? -lean : 0;
+  const oz = out === "+z" ? lean : out === "-z" ? -lean : 0;
+  const foot = new THREE.Vector3(x + ox, 0.004, z + oz);
+  const up = new THREE.Vector3(0, 1, 0);
+  for (const side of [-1, 1]) {
+    const spread = 0.06 * side;
+    const top = new THREE.Vector3(x + (oz ? spread : 0), LEG + 0.01, z + (ox ? spread : 0));
+    const dir = top.clone().sub(foot);
+    const len = dir.length();
+    const m = new THREE.Matrix4().compose(
+      foot.clone().addScaledVector(dir, 0.5),
+      new THREE.Quaternion().setFromUnitVectors(up, dir.normalize()),
+      new THREE.Vector3(1, len, 1),
+    );
+    // the flat face looks out of the end
+    if (oz) m.multiply(new THREE.Matrix4().makeRotationY(Math.PI / 2));
+    const geo = STRIP.clone().applyMatrix4(m);
+    g.add(new THREE.Mesh(geo, titanio));
+  }
 }
 
 export function roma(p: Product): THREE.Group {
@@ -227,56 +258,54 @@ export function roma(p: Product): THREE.Group {
   const corner = D > depth + 0.01;
   const back = -D / 2;
   const left = -W / 2;
+  const right = W / 2;
   const front = back + depth;
   const padFront = back + LEDGE; // back pads stand on the base's rear ledge
   const seatBack = padFront + BACK_T - 0.02; // seat cushions start under the pads' faces
-  const inset = 0.08;
+  const inset = 0.09;
 
-  // Long side: [corner block | seats | arm] or [arm | seats | arm]
+  // Long side: [corner block | seats | arm] or [arm | seats | arm], on one base
   const seatsFrom = corner ? left + depth : left + ARM_W;
-  const seatsTo = W / 2 - ARM_W;
+  const seatsTo = right - ARM_W;
   const count = Math.max(1, Math.round((seatsTo - seatsFrom) / 0.9));
   const seatW = (seatsTo - seatsFrom) / count;
-  if (!corner) arm(g, { x0: left, x1: left + ARM_W, z0: back, z1: front }, seatTop, "z");
-  arm(g, { x0: seatsTo, x1: W / 2, z0: back, z1: front }, seatTop, "z");
+  base(g, { x0: corner ? left : left + END, x1: right - END, z0: back, z1: front });
+  if (!corner) arm(g, { x0: left, x1: left + ARM_W, z0: back, z1: front }, "-x");
+  arm(g, { x0: seatsTo, x1: right, z0: back, z1: front }, "+x");
   for (let i = 0; i < count; i++) {
     const x0 = seatsFrom + i * seatW;
-    base(g, { x0, x1: x0 + seatW, z0: back, z1: front });
     seat(g, { x0: x0 + 0.006, x1: x0 + seatW - 0.006, z0: seatBack, z1: front }, seatTop);
     backPad(g, x0, x0 + seatW, padFront, "+z", p.h, seatTop);
   }
   throwCushions(g, seatsFrom, seatsTo, seatTop, padFront + BACK_T); // decor
+  leg(g, right - inset, back + inset, "+x");
+  leg(g, right - inset, front - inset - 0.04, "+x");
 
   if (corner) {
     const padLeft = left + LEDGE;
     const seatLeft = padLeft + BACK_T - 0.02;
     // corner block: square seat, a pad on each rear side
-    base(g, { x0: left, x1: left + depth, z0: back, z1: front }, BASE_TOP, 0);
     seat(g, { x0: seatLeft, x1: left + depth - 0.006, z0: seatBack, z1: front - 0.006 }, seatTop);
     backPad(g, padLeft, left + depth, padFront, "+z", p.h, seatTop);
     backPad(g, padFront + BACK_T, front, padLeft, "+x", p.h, seatTop);
-    // return: seat(s), then the arm across its end
+    // return: its own base, seat(s), then the arm across its end
+    base(g, { x0: left, x1: left + depth, z0: front - 0.04, z1: D / 2 - END }, BASE_TOP, 0);
     const returnTo = D / 2 - ARM_W;
     const n = Math.max(1, Math.round((returnTo - front) / 0.9));
     const len = (returnTo - front) / n;
     for (let i = 0; i < n; i++) {
       const z0 = front + i * len;
-      base(g, { x0: left, x1: left + depth, z0, z1: z0 + len }, BASE_TOP, 0);
       seat(g, { x0: seatLeft, x1: left + depth, z0: z0 + 0.006, z1: z0 + len - 0.006 }, seatTop);
       backPad(g, z0, z0 + len, padLeft, "+x", p.h, seatTop);
     }
-    arm(g, { x0: left, x1: left + depth, z0: returnTo, z1: D / 2 }, seatTop, "x");
-    leg(g, left + inset, back + inset, -1, -1);
-    leg(g, W / 2 - inset, back + inset, 1, -1);
-    leg(g, W / 2 - inset, front - inset - 0.04, 1, 1);
-    leg(g, left + depth - inset, front + inset, 1, 1);
-    leg(g, left + inset, D / 2 - inset, -1, 1);
-    leg(g, left + depth - inset, D / 2 - inset, 1, 1);
+    arm(g, { x0: left, x1: left + depth, z0: returnTo, z1: D / 2 }, "+z");
+    leg(g, left + inset, back + inset, "-x");
+    leg(g, left + depth - inset, front + inset, "+x");
+    leg(g, left + inset, D / 2 - inset, "+z");
+    leg(g, left + depth - inset, D / 2 - inset, "+z");
   } else {
-    leg(g, left + inset, back + inset, -1, -1);
-    leg(g, W / 2 - inset, back + inset, 1, -1);
-    leg(g, left + inset, front - inset - 0.04, -1, 1);
-    leg(g, W / 2 - inset, front - inset - 0.04, 1, 1);
+    leg(g, left + inset, back + inset, "-x");
+    leg(g, left + inset, front - inset - 0.04, "-x");
   }
   return g;
 }
