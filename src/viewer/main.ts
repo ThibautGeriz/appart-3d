@@ -65,7 +65,7 @@ async function show(source: ModelSource): Promise<void> {
   const key = new THREE.DirectionalLight("#ffffff", 1.4);
   key.position.set(1.5, 3, 2.5);
   scene.add(key);
-  const box = new THREE.Box3().setFromObject(model);
+  const box = new THREE.Box3().setFromObject(model, true);
   if (params.get("grid") !== "0") {
     // 10 cm cells, under the model (an undermount sink hangs below its origin)
     const grid = new THREE.GridHelper(4, 40, "#9aa0a6", "#d5d8db");
