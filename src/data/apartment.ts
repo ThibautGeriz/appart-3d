@@ -695,43 +695,32 @@ export const APARTMENT_DEF: ApartmentDef = {
     dining: { wall: [3.18, 0], towards: "+z", gap: 0.05, maxChairs: 6 },
     // Living area (east side of the séjour), one layout per sofa:
     living: {
-      // Option 4, corner sofa 312 × 197: long side along the north wall, 20 cm
-      // from it, ending 10 cm from the east wall (x 4.23 → 7.35, z 0.20 → 2.17);
-      // coffee table 40 cm from both sofa sides
-      "sofa-roma-corner": {
-        sofa: { center: [5.79, 1.185], facing: "+z" },
-        coffeeTable: { anchor: [5.67, 1.64], align: [-1, -1], along: "+x" },
-        // in the corner by the balcony door, past the TV unit
-        plant: [7.22, 3.45],
-        // TV unit against the bathroom wall, facing the sofa (plan: hi-fi at x 5.6 → 7.0)
-        tvUnit: { anchor: [6.3, 3.695], align: [0, 1], along: "-x" },
-      },
-      // Option 2, straight sofa 210: back 20 cm from the bathroom wall (z 3.695),
-      // right arm against the east wall (x 5.35 → 7.45, z 2.455 → 3.495);
-      // coffee table 43 cm in front of it, 66 cm from the east wall
+      // The three sofas against the bathroom wall (z 3.695), facing the
+      // window, their left arm in line with the wall's corner at the
+      // living-room entrance (x 5.12); coffee table centred, 43 cm in front.
+      // Roma 210 × 104: back 20 cm from the wall, for its sliding backs
+      // (x 5.12 → 7.22, z 2.455 → 3.495)
       "sofa-roma-210": {
-        sofa: { center: [6.4, 2.975], facing: "-z" },
-        coffeeTable: { anchor: [6.79, 2.025], align: [1, 1], along: "+x" },
+        sofa: { center: [6.17, 2.975], facing: "-z" },
+        coffeeTable: { anchor: [6.17, 2.025], align: [0, 1], along: "+x" },
         // by the window, left of the TV unit
         plant: [5.45, 0.3],
         // TV unit against the north wall, right of the window (plan: hi-fi at x 5.85 → 7.05)
         tvUnit: { anchor: [6.45, 0], align: [0, -1], along: "+x" },
       },
-      // Bolzano 214 × 91, where the Roma 210 goes: back 20 cm from the
-      // bathroom wall, right arm against the east wall (x 5.31 → 7.45,
-      // z 2.585 → 3.495); coffee table 43 cm in front of it
+      // Bolzano 214 × 91: fixed backs, 2 cm from the wall
+      // (x 5.12 → 7.26, z 2.765 → 3.675)
       "sofa-bolzano-214": {
-        sofa: { center: [6.38, 3.04], facing: "-z" },
-        coffeeTable: { anchor: [6.79, 2.155], align: [1, 1], along: "+x" },
+        sofa: { center: [6.19, 3.22], facing: "-z" },
+        coffeeTable: { anchor: [6.19, 2.335], align: [0, 1], along: "+x" },
         plant: [5.45, 0.3],
         tvUnit: { anchor: [6.45, 0], align: [0, -1], along: "+x" },
       },
-      // Albatros 222 × 112, where the Roma 210 goes: back 20 cm from the
-      // bathroom wall, right arm against the east wall (x 5.23 → 7.45,
-      // z 2.375 → 3.495); coffee table 43 cm in front of it
+      // Albatros 222 × 112: back 20 cm from the wall, for its sliding backs
+      // (x 5.12 → 7.34, z 2.375 → 3.495)
       "sofa-albatros-222": {
-        sofa: { center: [6.34, 2.935], facing: "-z" },
-        coffeeTable: { anchor: [6.79, 1.945], align: [1, 1], along: "+x" },
+        sofa: { center: [6.23, 2.935], facing: "-z" },
+        coffeeTable: { anchor: [6.23, 1.945], align: [0, 1], along: "+x" },
         plant: [5.45, 0.3],
         tvUnit: { anchor: [6.45, 0], align: [0, -1], along: "+x" },
       },
@@ -769,7 +758,7 @@ export const APARTMENT_DEF: ApartmentDef = {
         kind: "sofa",
         room: "Séjour / Cuisine",
         title: "Canapé (et son aménagement)",
-        default: "sofa-roma-corner",
+        default: "sofa-roma-210",
       },
       {
         id: "coffeeTable",

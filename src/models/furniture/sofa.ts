@@ -631,7 +631,6 @@ export function bolzano(p: Product): THREE.Group {
 
 export const SOFA_BUILDERS: Record<string, (p: Product) => THREE.Group> = {
   "sofa-bolzano-214": bolzano,
-  "sofa-roma-corner": roma,
   "sofa-roma-210": roma,
   "sofa-albatros-222": albatros,
 };

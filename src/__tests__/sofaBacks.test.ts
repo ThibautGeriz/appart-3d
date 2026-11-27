@@ -20,30 +20,24 @@ const names = (o: THREE.Object3D) => {
 
 describe("sliding sofa backs (dossiers avance-recule)", () => {
   it("the Roma and the Albatros slide, not the BoConcept Bolzano", () => {
-    expect(sliding.map((p) => p.id).sort()).toEqual([
-      "sofa-albatros-222",
-      "sofa-roma-210",
-      "sofa-roma-corner",
-    ]);
+    expect(sliding.map((p) => p.id).sort()).toEqual(["sofa-albatros-222", "sofa-roma-210"]);
     expect(product("sofa-roma-210").sofa!.backTravel).toBeCloseTo(0.18); // 104 → 122 cm
     expect(product("sofa-albatros-222").sofa!.backTravel).toBeCloseTo(0.13); // 112 → 125 cm
   });
 
-  it("their models name every back cushion (the long side along z, a return along x)", () => {
+  it("their models name every back cushion", () => {
     expect(
       names(SOFA_BUILDERS["sofa-roma-210"](product("sofa-roma-210"))).filter((n) =>
         n.endsWith("z"),
       ),
     ).toHaveLength(3); // two back cushions + the throw cushions' holder
-    const corner = names(SOFA_BUILDERS["sofa-roma-corner"](product("sofa-roma-corner")));
-    expect(corner.some((n) => n.endsWith("x"))).toBe(true);
     expect(
       names(SOFA_BUILDERS["sofa-albatros-222"](product("sofa-albatros-222"))).length,
     ).toBeGreaterThan(0);
   });
 
   it("the throw cushions slide with the backs", () => {
-    for (const id of ["sofa-roma-210", "sofa-roma-corner", "sofa-albatros-222"]) {
+    for (const id of ["sofa-roma-210", "sofa-albatros-222"]) {
       const cushions: THREE.Object3D[] = [];
       SOFA_BUILDERS[id](product(id)).traverse(
         (o) => o.name === DECOR && o instanceof THREE.Mesh && cushions.push(o),
@@ -54,7 +48,7 @@ describe("sliding sofa backs (dossiers avance-recule)", () => {
   });
 
   it("the export merges them per material, same size, backs still apart", () => {
-    for (const id of ["sofa-roma-210", "sofa-roma-corner", "sofa-albatros-222"]) {
+    for (const id of ["sofa-roma-210", "sofa-albatros-222"]) {
       const g = SOFA_BUILDERS[id](product(id));
       const merged = mergeSliding(g);
       const size = (o: THREE.Object3D) =>

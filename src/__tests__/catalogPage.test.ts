@@ -63,13 +63,14 @@ describe("catalog page rows", () => {
     expect(olivia.kind).toBe("chaise");
   });
 
-  it("counts the floor of an L-shaped sofa part by part", () => {
-    const corner = rows.find((r) => r.product.id === "sofa-roma-corner")!;
-    expect(corner.footprint).toBeCloseTo(3.12 * 1.04 + 1.04 * 0.93, 2);
+  it("counts the floor a product takes", () => {
+    const roma = rows.find((r) => r.product.id === "sofa-roma-210")!;
+    expect(roma.footprint).toBeCloseTo(2.1 * 1.04, 4);
   });
 
   it("sorts by size, both ways", () => {
-    expect(names(sortRows(rows, "width", false))[0]).toBe("sofa-roma-corner");
+    const widest = sortRows(rows, "width", false)[0];
+    expect(widest.product.w).toBe(Math.max(...CATALOG.map((p) => p.w)));
     const narrowest = sortRows(rows, "width", true)[0];
     expect(narrowest.product.w).toBe(Math.min(...CATALOG.map((p) => p.w)));
     const tallest = sortRows(rows, "height", false)[0];
@@ -103,10 +104,7 @@ describe("catalog page rows", () => {
 
   it("filters by type and by text, accents aside", () => {
     expect(filterRows(rows, filters({ kinds: new Set(["chair"]) }))).toHaveLength(5);
-    expect(names(filterRows(rows, filters({ search: "italie" }))).sort()).toEqual([
-      "sofa-roma-210",
-      "sofa-roma-corner",
-    ]);
+    expect(names(filterRows(rows, filters({ search: "italie" })))).toEqual(["sofa-roma-210"]);
     const oak = filterRows(rows, filters({ search: "chene" }));
     expect(oak.length).toBeGreaterThan(3);
     expect(filterRows(rows, filters({ kinds: new Set(["sofa"]), search: "chene" }))).toHaveLength(
@@ -116,12 +114,12 @@ describe("catalog page rows", () => {
 
   it("filters by seller", () => {
     const shown = filterRows(rows, filters({ sellers: new Set(["Mobilier de France"]) }));
-    expect(names(shown).sort()).toEqual(["sofa-roma-210", "sofa-roma-corner"]);
+    expect(names(shown)).toEqual(["sofa-roma-210"]);
     const two = filterRows(
       rows,
       filters({ sellers: new Set(["Mobilier de France", "BoConcept"]) }),
     );
-    expect(two).toHaveLength(3);
+    expect(two).toHaveLength(2);
   });
 
   it("filters by price range, inclusive; a range leaves out the unpriced and owned", () => {
@@ -135,7 +133,7 @@ describe("catalog page rows", () => {
     expect(mid.length).toBeGreaterThan(0);
     for (const r of mid) expect(r.product.price).toBeGreaterThanOrEqual(500);
     for (const r of mid) expect(r.product.price).toBeLessThanOrEqual(1000);
-    expect(names(filterRows(rows, filters({ price: [6780, 6780] })))).toEqual(["sofa-roma-corner"]);
+    expect(names(filterRows(rows, filters({ price: [3386, 3387] })))).toEqual(["sofa-roma-210"]);
   });
 
   it("counts each facet given the others, every value listed", () => {
@@ -146,7 +144,7 @@ describe("catalog page rows", () => {
     // sofas only: the sofa sellers keep their count, the others drop to 0
     const sofas = facetCounts(rows, filters({ kinds: new Set(["sofa"]) }), "sellers");
     expect(sofas.size).toBe(sellers.size);
-    expect(sofas.get("Mobilier de France")).toBe(2);
+    expect(sofas.get("Mobilier de France")).toBe(1);
     expect(sofas.get("FlexiSpot")).toBe(0);
     // a facet's own selection does not narrow its counts (you can tick a second type)
     const kinds = facetCounts(rows, filters({ kinds: new Set(["sofa"]) }), "kinds");
