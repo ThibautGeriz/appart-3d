@@ -717,6 +717,15 @@ export const APARTMENT_DEF: ApartmentDef = {
         // TV unit against the north wall, right of the window (plan: hi-fi at x 5.85 → 7.05)
         tvUnit: { anchor: [6.45, 0], align: [0, -1], along: "+x" },
       },
+      // Bolzano 214 × 91, where the Roma 210 goes: back 20 cm from the
+      // bathroom wall, right arm against the east wall (x 5.31 → 7.45,
+      // z 2.585 → 3.495); coffee table 43 cm in front of it
+      "sofa-bolzano-214": {
+        sofa: { center: [6.38, 3.04], facing: "-z" },
+        coffeeTable: { anchor: [6.79, 2.155], align: [1, 1], along: "+x" },
+        plant: [5.45, 0.3],
+        tvUnit: { anchor: [6.45, 0], align: [0, -1], along: "+x" },
+      },
       // Albatros 222 × 112, where the Roma 210 goes: back 20 cm from the
       // bathroom wall, right arm against the east wall (x 5.23 → 7.45,
       // z 2.375 → 3.495); coffee table 43 cm in front of it

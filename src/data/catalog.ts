@@ -87,6 +87,22 @@ const ALBATROS_FABRIC: FabricSpec = {
   ],
 };
 
+/**
+ * Bolzano: BoConcept bouclé "Rimini" (100 % recycled polyester, 950 g/m²).
+ * Default: the colour of the product link, Rimini 3086 (green), measured on
+ * the swatch photographed in store (curl tops #d0cfc3, average #939086: the
+ * tint is the average over the bouclé texture's own, with the curls' hue);
+ * then the beige the showroom sofa wears. BoConcept has many fabrics.
+ */
+const BOLZANO_FABRIC: FabricSpec = {
+  material: "bolzano fabric",
+  custom: true,
+  colors: [
+    { name: "Rimini vert 3086", hex: "#c2c1b6" },
+    { name: "Beige (modèle exposé)", hex: "#ddceb9" },
+  ],
+};
+
 /** Olivia: the four colours of the shop's swatches (photographed in store). */
 const OLIVIA_FABRIC: FabricSpec = {
   material: "olivia fabric",
@@ -472,6 +488,29 @@ export const CATALOG: Product[] = [
     madeIn: "Italie",
     seatFoamDensity: 30,
     price: 3386.46,
+  },
+  {
+    // BoConcept BOLZANO 3 places (4463001), designed by Morten Georgsen,
+    // fabric Rimini 3086. Size from the product sheet (214 × 91 × 76 cm,
+    // seat 42 cm, legs 3 cm); price from the user (2 447 €; the showroom tag
+    // reads 3 349 € for the model shown, from 1 999 €). Seat: 30 kg/m³ HR
+    // foam over 25 and 23 kg/m³ layers (BoConcept's EU spec). Origin: not on
+    // the product page (BoConcept says its sofas come mostly from a factory in
+    // Lithuania).
+    id: "sofa-bolzano-214",
+    kind: "sofa",
+    name: "Bolzano 214",
+    url: "https://www.boconcept.com/fr-fr/v/bolzano/4463001-14:3086/",
+    w: 2.14,
+    d: 0.91,
+    h: 0.76,
+    seatHeight: 0.42,
+    sofa: { depth: 0.91 },
+    materials:
+      "Tissu bouclé Rimini 3086 (100 % polyester recyclé, 950 g/m²), assise mousse HR 30 kg/m³ + 25 et 23 kg/m³, dossier et accoudoirs d'un seul tenant (H 76 cm), pieds 3 cm",
+    seatFoamDensity: 30,
+    fabric: BOLZANO_FABRIC,
+    price: 2447,
   },
   {
     // Cuir Center ALBATROS (CS-578), element 350 "Canapé 3 places Maxi,

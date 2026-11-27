@@ -55,6 +55,14 @@ async function show(source: ModelSource): Promise<void> {
     publish();
     return;
   }
+  // the app tints upholstery at runtime: show its default colour, as there
+  const fabric = source.fabric;
+  if (fabric)
+    model.traverse((o) => {
+      if (!(o instanceof THREE.Mesh)) return;
+      for (const m of Array.isArray(o.material) ? o.material : [o.material])
+        if (m.name === fabric.material && "color" in m) (m.color as THREE.Color).set(fabric.color);
+    });
   const report = inspectModel(model);
   document.body.appendChild(renderer.domElement);
 
