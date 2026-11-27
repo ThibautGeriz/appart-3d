@@ -261,6 +261,7 @@ export const CATALOG: Product[] = [
     fabric: OLIVIA_FABRIC,
     materials:
       "Tissu texturé 90 % polyester / 10 % nylon (25 000 Martindale), mousse 25 kg/m³, piètement fer époxy gris anthracite",
+    seatFoamDensity: 25,
     price: 135, // 170 € before the November offer (until 30/11/2026)
   },
   // ── Coffee tables ───────────────────────────────────────────────────────
@@ -545,6 +546,7 @@ export const CATALOG: Product[] = [
     wallBed: { openDepth: 2.392, mattressIncluded: true, mattressThickness: 0.2, finish: "white" },
     materials:
       "Panneaux de particules mélaminés blanc, piétement métal, 40 lattes, ouverture manuelle, matelas ressorts ensachés 20 cm inclus",
+    madeIn: "Europe",
     price: 1179.99,
   },
   {
@@ -563,6 +565,7 @@ export const CATALOG: Product[] = [
     },
     materials:
       "Panneaux décor chêne artisan, vérins pneumatiques soft close, push to open, matelas non inclus (18 cm max)",
+    madeIn: "Europe",
     price: 1578.9,
   },
   {
@@ -595,6 +598,7 @@ export const CATALOG: Product[] = [
     h: 1.894,
     materials:
       "Stratifié / MDF blanc mat, chants ABS, dos HDF blanc, 3 colonnes (70 + 40 + 40 cm), 5 niveaux de 33 cm",
+    madeIn: "Europe",
     price: 324.9,
   },
   {
@@ -607,6 +611,7 @@ export const CATALOG: Product[] = [
     h: 1.894,
     materials:
       "Stratifié décor chêne Wotan, dos HDF blanc, 3 colonnes (70 + 40 + 40 cm), 5 niveaux de 33 cm",
+    madeIn: "Europe",
     price: 324.9,
   },
   {
@@ -646,6 +651,7 @@ export const CATALOG: Product[] = [
     h: 0.74, // sitting height; the frame goes up for standing
     materials: "Plateau bois massif, cadre électrique réglable en hauteur",
     owned: true,
+    madeIn: "Union européenne (plateau)",
     price: 0, // already bought
   },
 ];
@@ -654,6 +660,24 @@ export function product(id: string): Product {
   const p = CATALOG.find((item) => item.id === id);
   if (!p) throw new Error(`unknown product ${id}`);
   return p;
+}
+
+/** "chaise", "table basse"… (lower case, for lists). Pure. */
+export function kindLabel(kind: ProductKind): string {
+  return {
+    table: "table",
+    chair: "chaise",
+    coffeeTable: "table basse",
+    sofa: "canapé",
+    sideboard: "bahut",
+    tvUnit: "meuble TV",
+    bed: "lit",
+    nightstand: "chevet",
+    shelf: "étagère",
+    wallBed: "lit escamotable",
+    desk: "bureau",
+    officeChair: "fauteuil de bureau",
+  }[kind];
 }
 
 export function productsOf(kind: ProductKind): Product[] {

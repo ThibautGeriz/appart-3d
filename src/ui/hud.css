@@ -194,6 +194,12 @@ body {
   cursor: pointer;
 }
 
+.fp-tab-link {
+  text-align: center;
+  text-decoration: none;
+  color: #ffc45c;
+}
+
 .fp-tab.active {
   color: #ffffff;
   border-bottom-color: #ffc45c;
