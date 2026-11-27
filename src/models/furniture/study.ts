@@ -497,6 +497,8 @@ export interface BookcaseLayout {
   material: THREE.Material;
   /** back panel material (null = open back) */
   back: THREE.Material | null;
+  /** first seed of the books (decor), so side-by-side units differ */
+  seed?: number;
 }
 
 /**
@@ -509,8 +511,9 @@ export function bookcase(p: Product, layout: BookcaseLayout): THREE.Group {
     // side-by-side units: each one a single-column bookcase
     const g = new THREE.Group();
     let x = -p.w / 2;
-    for (const c of layout.columns) {
-      const unit = bookcase({ ...p, w: c }, { ...layout, columns: [c], modules: false });
+    for (const [n, c] of layout.columns.entries()) {
+      const seed = (layout.seed ?? 600) + n * 100;
+      const unit = bookcase({ ...p, w: c }, { ...layout, columns: [c], modules: false, seed });
       unit.position.x = x + c / 2;
       g.add(unit);
       x += c;
@@ -546,13 +549,14 @@ export function bookcase(p: Product, layout: BookcaseLayout): THREE.Group {
     for (let k = 0; k + 1 < edges.length; k++) {
       fillShelf(
         g,
-        edges[k] + t / 2,
-        edges[k + 1] - t / 2,
+        // outer sides are a full panel thick, uprights are centred on the edge
+        edges[k] + (k === 0 ? t : t / 2),
+        edges[k + 1] - (k + 2 === edges.length ? t : t / 2),
         y,
         -d / 2 + backT,
         d - backT,
         step - t,
-        600 + i * 11 + k,
+        (layout.seed ?? 600) + i * 11 + k,
       );
     }
   }
@@ -628,6 +632,19 @@ export function iloss(p: Product): THREE.Group {
   for (const y of ILOSS_SHELVES) {
     g.add(board(w, 0.024, shelfD, naturalOak, 0, y - 0.012, back + shelfD / 2, 0.006, "x"));
   }
+  // books (decor): between and beside the uprights, up to the shelf above
+  const gap = thick / 2 + 0.01;
+  const spans: [number, number][] = [
+    [-w / 2 + 0.01, -0.41 - gap],
+    [-0.41 + gap, 0.41 - gap],
+    [0.41 + gap, w / 2 - 0.01],
+  ];
+  ILOSS_SHELVES.slice(0, -1).forEach((y, i) => {
+    const room = ILOSS_SHELVES[i + 1] - 0.024 - y - 0.02; // none on the top shelf
+    spans.forEach(([a, b], k) =>
+      fillShelf(g, a, b, y, back + 0.01, shelfD - 0.03, room, 700 + i * 11 + k),
+    );
+  });
   return g;
 }
 

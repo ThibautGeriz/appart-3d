@@ -117,16 +117,20 @@ export function fillShelf(
       // a run of upright books
       const n = 3 + Math.floor(rnd() * 9);
       for (let i = 0; i < n && x < end - 0.03; i++) {
-        const bw = 0.018 + rnd() * 0.03;
+        const bw = Math.min(0.018 + rnd() * 0.03, end - x); // stays in the compartment
         const bh = Math.min(maxH - 0.015, 0.17 + rnd() * 0.12);
         const bd = Math.min(depth - 0.015, 0.13 + rnd() * 0.08);
         book(bw, bh, bd, x + bw / 2, back + bd / 2 + 0.005);
         x += bw + 0.001;
       }
       // the last one sometimes leans on the run
+      const lean = 0.35;
       if (rnd() < 0.3 && x < end - 0.08) {
         const bh = Math.min(maxH - 0.03, 0.2 + rnd() * 0.06);
-        book(0.025, bh, Math.min(depth - 0.02, 0.15), x + 0.012, back + 0.08, -0.35);
+        // its top swings out: skip it when it would cross the side
+        const reach = 0.025 + bh * Math.sin(lean) + 0.0125 * Math.cos(lean);
+        if (x + reach > end) break;
+        book(0.025, bh, Math.min(depth - 0.02, 0.15), x + 0.012, back + 0.08, -lean);
         x += 0.09;
       }
       x += 0.03 + rnd() * 0.12;
