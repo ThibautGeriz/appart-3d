@@ -1,8 +1,10 @@
 /**
  * What the sellers' pages say about each catalog product beyond its size and
- * price (src/data/catalog.ts): where it is made, its key characteristics
- * (foam density, fabric abrasion, weight, load…) and the pages it comes from.
+ * price (src/data/catalog.ts): its key characteristics
+ * (fabric abrasion, weight, load, warranty…) and the pages it comes from.
  * Only what a page states: null when it does not say. Shown on catalog.html.
+ * The country of manufacture and the seat foam density are on the product
+ * itself (madeIn, seatFoamDensity in catalog.ts).
  */
 
 export interface Spec {
@@ -20,16 +22,12 @@ export interface ProductDetails {
   seller: string;
   /** manufacturer, when not the shop */
   brand: string | null;
-  /** country of manufacture as stated ("Inde", "France"…) */
-  origin: string | null;
   weightKg: number | null;
   /** load it takes (seat, bed base, per shelf: see specs) */
   maxLoadKg: number | null;
   warrantyYears: number | null;
   /** "à monter", "livré monté"… */
   assembly: string | null;
-  /** seat foam, kg/m³ */
-  density: number | null;
   /** fabric abrasion resistance (Martindale cycles) */
   martindale: number | null;
   /** the page's key characteristics, in its words */
@@ -42,15 +40,47 @@ export interface ProductDetails {
 
 /** Read from the pages on 27/11/2026 (Black Friday week: some prices are offers). */
 export const DETAILS: Record<string, ProductDetails> = {
+  "sofa-albatros-222": {
+    seller: "Cuir Center",
+    brand: null,
+    weightKg: null,
+    maxLoadKg: null,
+    warrantyYears: 5,
+    assembly: null,
+    martindale: null,
+    specs: [
+      { label: "Élément", value: "350, canapé 3 places Maxi, assises double profondeur (CS-578)" },
+      {
+        label: "Revêtement",
+        value: "Tissu Castello (catégorie Super), coloris Deep Blue en magasin",
+      },
+      { label: "Assise", value: "Mousse polyuréthane 30 kg/m³" },
+      {
+        label: "Dossiers",
+        value: "Fibre polyester siliconée ; avance-recule (profondeur maxi 125 cm)",
+      },
+      { label: "Accoudoirs", value: "Relevables (« accoudoirs déployables »)" },
+      { label: "Structure", value: "Sapin massif et panneaux de particules ; sangles élastiques" },
+      { label: "Pieds", value: "Métal titanium dark, 15 cm" },
+      { label: "Garantie", value: "5 ans structure, 2 ans revêtement (garantie générale du site)" },
+      { label: "Livraison", value: "Délai estimé 8 à 10 semaines" },
+    ],
+    sources: [
+      {
+        label: "Cuir Center – Albatros, canapé 3 places assises double profondeur",
+        url: "https://www.cuircenter.com/produit/albatros-canape-3-places---assises-double-profondeur/A10017541.html",
+      },
+    ],
+    notes:
+      "La page en ligne ne donne ni prix, ni mousses, ni structure : prix (3 115 €), mousse, structure et pieds viennent de l'étiquette du magasin (photos). Pays de fabrication non communiqué par Cuir Center.",
+  },
   "table-valmo-180": {
     seller: "Cocktail Scandinave",
     brand: null,
-    origin: null,
     weightKg: 60,
     maxLoadKg: null,
     warrantyYears: null,
     assembly: "à monter (pieds à fixer)",
-    density: null,
     martindale: null,
     specs: [
       {
@@ -94,12 +124,10 @@ export const DETAILS: Record<string, ProductDetails> = {
   "table-valmo-220": {
     seller: "Cocktail Scandinave",
     brand: null,
-    origin: null,
     weightKg: 67,
     maxLoadKg: null,
     warrantyYears: null,
     assembly: "à monter (pieds à fixer)",
-    density: null,
     martindale: null,
     specs: [
       {
@@ -143,12 +171,10 @@ export const DETAILS: Record<string, ProductDetails> = {
   "table-raia-220": {
     seller: "Cocktail Scandinave",
     brand: null,
-    origin: null,
     weightKg: 112,
     maxLoadKg: null,
     warrantyYears: null,
     assembly: "à monter",
-    density: null,
     martindale: null,
     specs: [
       {
@@ -192,12 +218,10 @@ export const DETAILS: Record<string, ProductDetails> = {
   "table-willow-220": {
     seller: "Cocktail Scandinave",
     brand: null,
-    origin: null,
     weightKg: 94,
     maxLoadKg: null,
     warrantyYears: null,
     assembly: "à monter",
-    density: null,
     martindale: null,
     specs: [
       {
@@ -237,12 +261,10 @@ export const DETAILS: Record<string, ProductDetails> = {
   "chair-bistrot": {
     seller: "Cocktail Scandinave",
     brand: null,
-    origin: null,
     weightKg: 5,
     maxLoadKg: 100,
     warrantyYears: null,
     assembly: "monté",
-    density: null,
     martindale: null,
     specs: [
       {
@@ -285,12 +307,10 @@ export const DETAILS: Record<string, ProductDetails> = {
   "chair-norway": {
     seller: "Cocktail Scandinave",
     brand: null,
-    origin: null,
     weightKg: 10,
     maxLoadKg: null,
     warrantyYears: null,
     assembly: null,
-    density: null,
     martindale: null,
     specs: [
       {
@@ -330,12 +350,10 @@ export const DETAILS: Record<string, ProductDetails> = {
   "chair-westmount": {
     seller: "Cocktail Scandinave",
     brand: null,
-    origin: null,
     weightKg: 6,
     maxLoadKg: null,
     warrantyYears: null,
     assembly: null,
-    density: null,
     martindale: null,
     specs: [
       {
@@ -382,12 +400,10 @@ export const DETAILS: Record<string, ProductDetails> = {
   "chair-mackay": {
     seller: "Cocktail Scandinave",
     brand: null,
-    origin: null,
     weightKg: 6,
     maxLoadKg: null,
     warrantyYears: null,
     assembly: "à monter",
-    density: null,
     martindale: null,
     specs: [
       {
@@ -422,12 +438,10 @@ export const DETAILS: Record<string, ProductDetails> = {
   "coffee-ontario": {
     seller: "Cocktail Scandinave",
     brand: null,
-    origin: null,
     weightKg: 58,
     maxLoadKg: null,
     warrantyYears: null,
     assembly: "pieds à fixer",
-    density: null,
     martindale: null,
     specs: [
       {
@@ -470,12 +484,10 @@ export const DETAILS: Record<string, ProductDetails> = {
   "coffee-norway": {
     seller: "Cocktail Scandinave",
     brand: null,
-    origin: null,
     weightKg: 31,
     maxLoadKg: null,
     warrantyYears: null,
     assembly: "à monter",
-    density: null,
     martindale: null,
     specs: [
       {
@@ -514,12 +526,10 @@ export const DETAILS: Record<string, ProductDetails> = {
   "coffee-dustin": {
     seller: "Cocktail Scandinave",
     brand: null,
-    origin: null,
     weightKg: 38,
     maxLoadKg: null,
     warrantyYears: null,
     assembly: null,
-    density: null,
     martindale: null,
     specs: [
       {
@@ -555,12 +565,10 @@ export const DETAILS: Record<string, ProductDetails> = {
   "sideboard-norway": {
     seller: "Cocktail Scandinave",
     brand: null,
-    origin: null,
     weightKg: 91,
     maxLoadKg: null,
     warrantyYears: null,
     assembly: null,
-    density: null,
     martindale: null,
     specs: [
       {
@@ -611,12 +619,10 @@ export const DETAILS: Record<string, ProductDetails> = {
   "sideboard-biwa": {
     seller: "Cocktail Scandinave",
     brand: null,
-    origin: null,
     weightKg: 63,
     maxLoadKg: null,
     warrantyYears: null,
     assembly: "à monter (pieds à fixer)",
-    density: null,
     martindale: null,
     specs: [
       {
@@ -659,12 +665,10 @@ export const DETAILS: Record<string, ProductDetails> = {
   "tv-norway": {
     seller: "Cocktail Scandinave",
     brand: null,
-    origin: null,
     weightKg: 58,
     maxLoadKg: null,
     warrantyYears: null,
     assembly: null,
-    density: null,
     martindale: null,
     specs: [
       {
@@ -711,12 +715,10 @@ export const DETAILS: Record<string, ProductDetails> = {
   "tv-biwa": {
     seller: "Cocktail Scandinave",
     brand: null,
-    origin: null,
     weightKg: 43,
     maxLoadKg: null,
     warrantyYears: null,
     assembly: "à monter (pieds à fixer)",
-    density: null,
     martindale: null,
     specs: [
       {
@@ -759,12 +761,10 @@ export const DETAILS: Record<string, ProductDetails> = {
   "bed-lunja": {
     seller: "La Redoute",
     brand: "La Redoute Intérieurs",
-    origin: null,
     weightKg: null,
     maxLoadKg: null,
     warrantyYears: null,
     assembly: "à monter (vendu prêt à monter, plan de montage PDF)",
-    density: null,
     martindale: null,
     specs: [
       {
@@ -820,12 +820,10 @@ export const DETAILS: Record<string, ProductDetails> = {
   "bed-janis": {
     seller: "Cocktail Scandinave",
     brand: null,
-    origin: null,
     weightKg: null,
     maxLoadKg: null,
     warrantyYears: null,
     assembly: "à monter",
-    density: null,
     martindale: null,
     specs: [
       {
@@ -869,12 +867,10 @@ export const DETAILS: Record<string, ProductDetails> = {
   "bed-petra": {
     seller: "Cocktail Scandinave",
     brand: null,
-    origin: null,
     weightKg: null,
     maxLoadKg: null,
     warrantyYears: null,
     assembly: "à monter",
-    density: null,
     martindale: null,
     specs: [
       {
@@ -906,12 +902,10 @@ export const DETAILS: Record<string, ProductDetails> = {
   "bed-poutre": {
     seller: "Cocktail Scandinave",
     brand: null,
-    origin: null,
     weightKg: null,
     maxLoadKg: null,
     warrantyYears: null,
     assembly: "à monter",
-    density: null,
     martindale: null,
     specs: [
       {
@@ -951,12 +945,10 @@ export const DETAILS: Record<string, ProductDetails> = {
   "nightstand-lundby": {
     seller: "Cocktail Scandinave",
     brand: null,
-    origin: null,
     weightKg: 5,
     maxLoadKg: null,
     warrantyYears: null,
     assembly: null,
-    density: null,
     martindale: null,
     specs: [
       {
@@ -991,12 +983,10 @@ export const DETAILS: Record<string, ProductDetails> = {
   "nightstand-oregon": {
     seller: "Cocktail Scandinave",
     brand: null,
-    origin: null,
     weightKg: 10,
     maxLoadKg: null,
     warrantyYears: null,
     assembly: null,
-    density: null,
     martindale: null,
     specs: [
       {
@@ -1035,12 +1025,10 @@ export const DETAILS: Record<string, ProductDetails> = {
   "shelf-borneo": {
     seller: "Cocktail Scandinave",
     brand: null,
-    origin: null,
     weightKg: 85,
     maxLoadKg: null,
     warrantyYears: null,
     assembly: "monté",
-    density: null,
     martindale: null,
     specs: [
       {
@@ -1079,12 +1067,10 @@ export const DETAILS: Record<string, ProductDetails> = {
   "shelf-fina": {
     seller: "Cocktail Scandinave",
     brand: null,
-    origin: null,
     weightKg: 96,
     maxLoadKg: null,
     warrantyYears: null,
     assembly: null,
-    density: null,
     martindale: null,
     specs: [
       {
@@ -1115,12 +1101,10 @@ export const DETAILS: Record<string, ProductDetails> = {
   "shelf-seatle": {
     seller: "Cocktail Scandinave",
     brand: null,
-    origin: null,
     weightKg: 40,
     maxLoadKg: null,
     warrantyYears: null,
     assembly: "à monter",
-    density: null,
     martindale: null,
     specs: [
       {
@@ -1159,12 +1143,10 @@ export const DETAILS: Record<string, ProductDetails> = {
   "bookcase-iloss": {
     seller: "La Redoute",
     brand: "AM.PM",
-    origin: null,
     weightKg: null,
     maxLoadKg: null,
     warrantyYears: null,
     assembly: "à monter",
-    density: null,
     martindale: null,
     specs: [
       {
@@ -1216,12 +1198,10 @@ export const DETAILS: Record<string, ProductDetails> = {
   "chair-olivia": {
     seller: "Monsieur Meuble",
     brand: null,
-    origin: null,
     weightKg: 7,
     maxLoadKg: null,
     warrantyYears: null,
     assembly: "livrée démontée (à monter), emballée par 2",
-    density: 25,
     martindale: 25000,
     specs: [
       {
@@ -1265,12 +1245,10 @@ export const DETAILS: Record<string, ProductDetails> = {
   "sofa-roma-corner": {
     seller: "Mobilier de France",
     brand: null,
-    origin: "Italie",
     weightKg: null,
     maxLoadKg: null,
     warrantyYears: null,
     assembly: null,
-    density: 30,
     martindale: null,
     specs: [
       {
@@ -1334,12 +1312,10 @@ export const DETAILS: Record<string, ProductDetails> = {
   "sofa-roma-210": {
     seller: "Mobilier de France",
     brand: null,
-    origin: "Italie",
     weightKg: null,
     maxLoadKg: null,
     warrantyYears: null,
     assembly: null,
-    density: 30,
     martindale: null,
     specs: [
       {
@@ -1395,12 +1371,10 @@ export const DETAILS: Record<string, ProductDetails> = {
   "bed-beganio": {
     seller: "Vente-unique.com",
     brand: "Beganio (gamme Les Astucieux) ; matelas Ambracie de Ysmée",
-    origin: "Europe",
     weightKg: null,
     maxLoadKg: 200,
     warrantyYears: 2,
     assembly: "à monter (2 personnes, fixation murale obligatoire, vis et chevilles non fournies)",
-    density: 23,
     martindale: null,
     specs: [
       {
@@ -1457,12 +1431,10 @@ export const DETAILS: Record<string, ProductDetails> = {
   "bed-consus": {
     seller: "Vente-unique.com",
     brand: "Lenart",
-    origin: "Europe",
     weightKg: null,
     maxLoadKg: null,
     warrantyYears: 2,
     assembly: "à monter (fixation à un mur solide obligatoire)",
-    density: null,
     martindale: null,
     specs: [
       {
@@ -1506,12 +1478,10 @@ export const DETAILS: Record<string, ProductDetails> = {
   "bed-altera-premium": {
     seller: "Altera Mobilier",
     brand: null,
-    origin: null,
     weightKg: 152,
     maxLoadKg: 200,
     warrantyYears: 2,
     assembly: "à monter (plan de montage fourni, 7 colis)",
-    density: null,
     martindale: null,
     specs: [
       {
@@ -1563,12 +1533,10 @@ export const DETAILS: Record<string, ProductDetails> = {
   "bookcase-vu-white": {
     seller: "Vente-unique.com",
     brand: null,
-    origin: "Europe",
     weightKg: null,
     maxLoadKg: null,
     warrantyYears: 2,
     assembly: "à monter (accessoires et notice inclus, 3 colis)",
-    density: null,
     martindale: null,
     specs: [
       {
@@ -1612,12 +1580,10 @@ export const DETAILS: Record<string, ProductDetails> = {
   "bookcase-vu-wotan": {
     seller: "Vente-unique.com",
     brand: null,
-    origin: "Europe",
     weightKg: null,
     maxLoadKg: null,
     warrantyYears: 2,
     assembly: "à monter (accessoires et notice inclus, 3 colis)",
-    density: null,
     martindale: null,
     specs: [
       {
@@ -1665,12 +1631,10 @@ export const DETAILS: Record<string, ProductDetails> = {
   "office-aeron": {
     seller: "Herman Miller France",
     brand: "Herman Miller",
-    origin: null,
     weightKg: 18.6,
     maxLoadKg: 159,
     warrantyYears: 12,
     assembly: "livré entièrement assemblé",
-    density: null,
     martindale: null,
     specs: [
       {
@@ -1723,12 +1687,10 @@ export const DETAILS: Record<string, ProductDetails> = {
   "desk-flexispot-solid-wood": {
     seller: "FlexiSpot",
     brand: null,
-    origin: "Union européenne (plateau)",
     weightKg: null,
     maxLoadKg: 180,
     warrantyYears: 2,
     assembly: "à monter (env. 20 min, perçage de la traverse nécessaire)",
-    density: null,
     martindale: null,
     specs: [
       {

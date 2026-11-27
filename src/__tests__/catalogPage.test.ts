@@ -37,9 +37,11 @@ describe("catalog details (sellers' pages)", () => {
   });
 
   it("keeps the figures plausible (kg/m³, Martindale cycles, kg, years)", () => {
+    for (const p of CATALOG.filter((x) => x.seatFoamDensity !== undefined)) {
+      expect(p.seatFoamDensity, p.id).toBeGreaterThan(10);
+      expect(p.seatFoamDensity, p.id).toBeLessThan(80);
+    }
     for (const [id, d] of Object.entries(DETAILS)) {
-      if (d.density !== null) expect(d.density, id).toBeGreaterThan(10);
-      if (d.density !== null) expect(d.density, id).toBeLessThan(80);
       if (d.martindale !== null) expect(d.martindale, id).toBeGreaterThan(5000);
       if (d.weightKg !== null) expect(d.weightKg, id).toBeLessThan(300);
       if (d.warrantyYears !== null) expect(d.warrantyYears, id).toBeLessThanOrEqual(30);

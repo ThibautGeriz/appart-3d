@@ -113,7 +113,7 @@ export function sortValue(row: CatalogRow, key: SortKey): number | string | null
     case "weight":
       return d?.weightKg ?? null;
     case "density":
-      return d?.density ?? null;
+      return p.seatFoamDensity ?? null;
     case "martindale":
       return d?.martindale ?? null;
     case "load":
@@ -121,7 +121,7 @@ export function sortValue(row: CatalogRow, key: SortKey): number | string | null
     case "warranty":
       return d?.warrantyYears ?? null;
     case "origin":
-      return d?.origin?.toLowerCase() ?? null;
+      return p.madeIn?.toLowerCase() ?? null;
     case "seller":
       return d?.seller.toLowerCase() ?? null;
   }
@@ -161,7 +161,7 @@ export function filterRows(rows: CatalogRow[], kinds: Set<string>, search: strin
       r.product.materials,
       r.details?.seller,
       r.details?.brand,
-      r.details?.origin,
+      r.product.madeIn,
       ...(r.details?.specs.map((s) => `${s.label} ${s.value}`) ?? []),
       ...r.places,
     ]

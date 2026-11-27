@@ -194,7 +194,8 @@ function keyFacts(row: CatalogRow): HTMLElement {
     if (title) c.title = title;
     box.appendChild(c);
   };
-  if (d?.density) chip(`Mousse ${d.density} kg/m³`, "Densité de la mousse d'assise");
+  if (row.product.seatFoamDensity)
+    chip(`Mousse ${row.product.seatFoamDensity} kg/m³`, "Densité de la mousse d'assise");
   if (d?.martindale)
     chip(`${d.martindale.toLocaleString("fr-FR")} Martindale`, "Résistance à l'abrasion du tissu");
   if (d?.maxLoadKg) chip(`Charge ${d.maxLoadKg} kg`);
@@ -225,7 +226,7 @@ function details(row: CatalogRow): HTMLElement {
     origin.append(el("dt", "", label), el("dd", value ? "" : "c-unknown", value ?? "non indiqué"));
   addOrigin("Vendeur", d?.seller ?? null);
   if (d?.brand) addOrigin("Marque", d.brand);
-  addOrigin("Fabriqué en", d?.origin ?? null);
+  addOrigin("Fabriqué en", p.madeIn ?? null);
   addOrigin("Montage", d?.assembly ?? null);
   const sources = el("ul", "c-sources");
   for (const s of d?.sources ?? [{ label: "Page produit", url: p.url }]) {
@@ -309,7 +310,7 @@ function rowElements(row: CatalogRow): HTMLTableRowElement[] {
   td(d?.weightKg ? num(d.weightKg, "kg") : dash, "n").dataset.label = "Poids";
   td(p.owned ? "déjà acheté" : p.price ? formatEuros(p.price) : dash, "n c-price").dataset.label =
     "Prix";
-  td(d?.origin ?? "non indiqué", d?.origin ? "" : "c-unknown").dataset.label = "Origine";
+  td(p.madeIn ?? "non indiqué", p.madeIn ? "" : "c-unknown").dataset.label = "Origine";
   td(keyFacts(row), "c-facts-cell");
 
   const more = el("tr", "c-more");
