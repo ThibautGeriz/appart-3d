@@ -5,14 +5,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Catalogue du mobilier — Appart 3D</title>
     <style>
+      /* follows the system setting: light, or dark like the walkthrough's HUD */
       :root {
-        color-scheme: dark;
-        --bg: #16171a;
-        --panel: #1f2125;
-        --line: #30333a;
-        --text: #ece9e4;
-        --muted: #9b9890;
-        --accent: #e2b04a;
+        color-scheme: light dark;
+        --bg: #faf8f5;
+        --panel: #ffffff;
+        --line: #e3dfd8;
+        --text: #1f1d1a;
+        --muted: #6f6a62;
+        --accent: #a06a00;
+        --hover: #f2eee8;
+        --chip: #eeeae3;
+        --chip-shine: #e2ddd4;
+        --note-bg: #fbf3e0;
+        --note-text: #4a4232;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #16171a;
+          --panel: #1f2125;
+          --line: #30333a;
+          --text: #ece9e4;
+          --muted: #9b9890;
+          --accent: #e2b04a;
+          --hover: #1c1e22;
+          --chip: #2a2c31;
+          --chip-shine: #34373d;
+          --note-bg: #24231f;
+          --note-text: #d9d3c7;
+        }
       }
       * {
         box-sizing: border-box;
@@ -151,7 +172,7 @@
       }
       .c-row:hover,
       .c-row.open {
-        background: #1c1e22;
+        background: var(--hover);
       }
       .c-row:focus-visible {
         outline: 2px solid var(--accent);
@@ -171,7 +192,7 @@
         object-fit: cover;
       }
       .c-thumb:not([src]) {
-        background: linear-gradient(110deg, #2a2c31 30%, #34373d 50%, #2a2c31 70%) 0 0 / 300% 100%;
+        background: linear-gradient(110deg, var(--chip) 30%, var(--chip-shine) 50%, var(--chip) 70%) 0 0 / 300% 100%;
         animation: shimmer 1.4s linear infinite;
       }
       @keyframes shimmer {
@@ -203,7 +224,9 @@
       }
       .c-kind {
         display: block;
-        text-transform: capitalize;
+      }
+      .c-kind::first-letter {
+        text-transform: uppercase;
       }
       .c-price {
         font-weight: 600;
@@ -222,11 +245,11 @@
         font-size: 12px;
         padding: 2px 8px;
         border-radius: 999px;
-        background: #2a2c31;
+        background: var(--chip);
         white-space: nowrap;
       }
       .c-more td {
-        background: #1c1e22;
+        background: var(--hover);
         padding: 4px 8px 16px 112px;
       }
       .c-details {
@@ -267,8 +290,8 @@
         margin: 4px 0 0;
         padding: 8px 12px;
         border-left: 3px solid var(--accent);
-        background: #24231f;
-        color: #d9d3c7;
+        background: var(--note-bg);
+        color: var(--note-text);
       }
       .c-dialog {
         width: min(920px, 94vw);
